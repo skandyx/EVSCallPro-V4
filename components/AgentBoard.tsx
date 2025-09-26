@@ -1,6 +1,6 @@
 import React from 'react';
-import type { AgentState, User } from '../types.ts';
-import { MicrophoneIcon, PhoneArrowUpRightIcon, AcademicCapIcon, PauseIcon, TrashIcon } from './Icons.tsx';
+import type { AgentState, User, AgentStatus } from '../types.ts';
+import { MicrophoneIcon, PhoneArrowUpRightIcon, AcademicCapIcon, PauseIcon, TrashIcon, UserCircleIcon } from './Icons.tsx';
 
 interface AgentBoardProps {
     agents: AgentState[];
@@ -13,6 +13,17 @@ const STATUS_CONFIG: { [key in AgentState['status']]: { label: string; color: st
     'En Post-Appel': { label: 'En Post-Appel', color: 'bg-red-100 text-red-800' },
     'En Pause': { label: 'En Pause', color: 'bg-slate-200 text-slate-800' },
     'Ringing': { label: 'Sonne', color: 'bg-yellow-100 text-yellow-800' },
+};
+
+const getStatusLedColor = (status: AgentStatus): string => {
+    switch (status) {
+        case 'En Attente': return 'bg-green-500';
+        case 'En Appel': return 'bg-red-500';
+        case 'En Post-Appel': return 'bg-red-500';
+        case 'Ringing': return 'bg-yellow-400';
+        case 'En Pause': return 'bg-slate-400';
+        default: return 'bg-slate-400';
+    }
 };
 
 const formatDuration = (seconds: number) => {
@@ -55,7 +66,22 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser }) => {
                         const canForcePause = hasPermission && agent.status !== 'En Pause';
                         return (
                         <tr key={agent.id}>
-                            <td className="px-4 py-3 font-medium text-slate-800">{agentFullName}</td>
+                            <td className="px-4 py-3">
+                                <div className="flex items-center">
+                                    <div className="relative flex-shrink-0">
+                                        {agent.profilePictureUrl ? (
+                                            <img src={agent.profilePictureUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
+                                        ) : (
+                                            <UserCircleIcon className="w-10 h-10 text-slate-400" />
+                                        )}
+                                        <span className={`absolute top-0 right-0 block h-3.5 w-3.5 rounded-full border-2 border-white ${getStatusLedColor(agent.status)}`}></span>
+                                    </div>
+                                    <div className="ml-3">
+                                        <div className="font-medium text-slate-800">{agentFullName}</div>
+                                        <div className="text-sm text-slate-500 font-mono">{agent.loginId}</div>
+                                    </div>
+                                </div>
+                            </td>
                             <td className="px-4 py-3">
                                 <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${STATUS_CONFIG[agent.status].color}`}>
                                     {STATUS_CONFIG[agent.status].label}
