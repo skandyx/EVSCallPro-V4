@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Feature, SavedScript, Page, ScriptBlock } from '../types.ts';
 import ScriptBuilder from './ScriptBuilder.tsx';
 import AgentPreview from './AgentPreview.tsx';
-import { EditIcon, DuplicateIcon, TrashIcon, PlusIcon } from './Icons.tsx';
+import { EditIcon, DuplicateIcon, TrashIcon, PlusIcon, ChevronDownIcon } from './Icons.tsx';
 
 interface ScriptFeatureProps {
     feature: Feature;
@@ -21,6 +21,55 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
 }) => {
     const [view, setView] = useState<'list' | 'editor' | 'preview'>('list');
     const [activeScript, setActiveScript] = useState<SavedScript | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: keyof SavedScript; direction: 'ascending' | 'descending' }>({ key: 'name', direction: 'ascending' });
+
+    const filteredAndSortedScripts = useMemo(() => {
+        let sortableScripts = [...savedScripts];
+
+        if (searchTerm) {
+            const lowerCaseSearchTerm = searchTerm.toLowerCase();
+            sortableScripts = sortableScripts.filter(script =>
+                script.name.toLowerCase().includes(lowerCaseSearchTerm) ||
+                script.id.toLowerCase().includes(lowerCaseSearchTerm)
+            );
+        }
+
+        sortableScripts.sort((a, b) => {
+            const key = sortConfig.key;
+            // Basic string comparison is sufficient for name and id
+            const aValue = a[key as keyof SavedScript] as string;
+            const bValue = b[key as keyof SavedScript] as string;
+
+            if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
+            if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
+            return 0;
+        });
+
+        return sortableScripts;
+    }, [savedScripts, searchTerm, sortConfig]);
+
+    const requestSort = (key: keyof SavedScript) => {
+        let direction: 'ascending' | 'descending' = 'ascending';
+        if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortableHeader: React.FC<{ sortKey: keyof SavedScript; label: string }> = ({ sortKey, label }) => (
+        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <button onClick={() => requestSort(sortKey)} className="group inline-flex items-center gap-1">
+                {label}
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    {sortConfig.key === sortKey
+                        ? <ChevronDownIcon className={`w-4 h-4 transition-transform ${sortConfig.direction === 'ascending' ? 'rotate-180' : ''}`} />
+                        : <ChevronDownIcon className="w-4 h-4 text-slate-400" />
+                    }
+                </span>
+            </button>
+        </th>
+    );
 
     const handleCreateNew = () => {
         const now = Date.now();
@@ -88,7 +137,7 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="max-w-7xl mx-auto space-y-8">
             <header>
                 <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
                 <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
@@ -106,18 +155,28 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
                     </button>
                 </div>
 
-                {savedScripts.length > 0 ? (
+                <div className="mb-4">
+                    <input
+                        type="text"
+                        placeholder="Rechercher par nom ou ID de script..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full max-w-lg p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                </div>
+
+                {filteredAndSortedScripts.length > 0 ? (
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-slate-200">
                             <thead className="bg-slate-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nom du Script</th>
+                                    <SortableHeader sortKey="id" label="ID" />
+                                    <SortableHeader sortKey="name" label="Nom du Script" />
                                     <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-slate-200">
-                                {savedScripts.map(script => (
+                                {filteredAndSortedScripts.map(script => (
                                     <tr key={script.id}>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono">{script.id}</td>
                                         <td className="px-6 py-4 whitespace-nowrap font-medium text-slate-800">{script.name}</td>
@@ -132,7 +191,7 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
                         </table>
                     </div>
                 ) : (
-                    <p className="text-slate-500 text-center py-8">Aucun script n'a encore été créé.</p>
+                    <p className="text-slate-500 text-center py-8">Aucun script ne correspond à votre recherche ou aucun script n'a été créé.</p>
                 )}
             </div>
         </div>
