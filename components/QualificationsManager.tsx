@@ -1,6 +1,4 @@
-
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Feature, Qualification, QualificationGroup } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ArrowLeftIcon, ArrowRightIcon, ChevronDownIcon } from './Icons.tsx';
 
@@ -257,17 +255,58 @@ interface QualificationsManagerProps {
     onDeleteQualificationGroup: (groupId: string) => void;
 }
 
+type SortableKeys = 'name' | 'qualCount';
+
 const QualificationsManager: React.FC<QualificationsManagerProps> = ({ feature, qualifications, qualificationGroups, onSaveQualification, onDeleteQualification, onSaveQualificationGroup, onDeleteQualificationGroup }) => {
     const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
     const [editingGroup, setEditingGroup] = useState<QualificationGroup | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'ascending' | 'descending' }>({ key: 'name', direction: 'ascending' });
 
     const handleSaveGroup = (group: QualificationGroup, assignedQualIds: string[]) => {
         onSaveQualificationGroup(group, assignedQualIds);
         setIsGroupModalOpen(false);
     };
     
+    const filteredAndSortedGroups = useMemo(() => {
+        let sortableGroups = [...qualificationGroups];
+        if (searchTerm) {
+            sortableGroups = sortableGroups.filter(g => g.name.toLowerCase().includes(searchTerm.toLowerCase()));
+        }
+        sortableGroups.sort((a, b) => {
+            let aValue, bValue;
+            if (sortConfig.key === 'qualCount') {
+                aValue = qualifications.filter(q => q.groupId === a.id).length;
+                bValue = qualifications.filter(q => q.groupId === b.id).length;
+            } else {
+                aValue = a.name;
+                bValue = b.name;
+            }
+            if (typeof aValue === 'string') return aValue.localeCompare(bValue) * (sortConfig.direction === 'ascending' ? 1 : -1);
+            if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
+            if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
+            return 0;
+        });
+        return sortableGroups;
+    }, [qualificationGroups, searchTerm, sortConfig, qualifications]);
+    
+    const requestSort = (key: SortableKeys) => {
+        let direction: 'ascending' | 'descending' = 'ascending';
+        if (sortConfig.key === key && sortConfig.direction === 'ascending') direction = 'descending';
+        setSortConfig({ key, direction });
+    };
+
+    const SortableHeader: React.FC<{ sortKey: SortableKeys; label: string }> = ({ sortKey, label }) => (
+         <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+             <button onClick={() => requestSort(sortKey)} className="group inline-flex items-center gap-1">
+                 {label}
+                 <span className="opacity-0 group-hover:opacity-100"><ChevronDownIcon className={`w-4 h-4 transition-transform ${sortConfig.key === sortKey && sortConfig.direction === 'ascending' ? 'rotate-180' : ''}`}/></span>
+             </button>
+         </th>
+    );
+
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="max-w-7xl mx-auto space-y-8">
             {isGroupModalOpen && <GroupEditModal 
                 group={editingGroup} 
                 allQualifications={qualifications} 
@@ -289,17 +328,28 @@ const QualificationsManager: React.FC<QualificationsManagerProps> = ({ feature, 
                         <PlusIcon className="w-5 h-5 mr-2"/>Créer un Groupe
                     </button>
                 </div>
+
+                 <div className="mb-4">
+                    <input
+                        type="text"
+                        placeholder="Rechercher un groupe..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full max-w-lg p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                </div>
+
                  <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nom du Groupe</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Qualifications</th>
+                                <SortableHeader sortKey="name" label="Nom du Groupe" />
+                                <SortableHeader sortKey="qualCount" label="Qualifications" />
                                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-200">
-                            {qualificationGroups.map(group => (
+                            {filteredAndSortedGroups.map(group => (
                                 <tr key={group.id}>
                                     <td className="px-6 py-4 font-medium text-slate-800">{group.name}</td>
                                     <td className="px-6 py-4 text-slate-600 text-sm">
@@ -317,6 +367,7 @@ const QualificationsManager: React.FC<QualificationsManagerProps> = ({ feature, 
                             ))}
                         </tbody>
                     </table>
+                     {filteredAndSortedGroups.length === 0 && <p className="text-center py-8 text-slate-500">Aucun groupe trouvé.</p>}
                 </div>
             </div>
         </div>

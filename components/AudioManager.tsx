@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import type { Feature, AudioFile } from '../types.ts';
-import { PlusIcon, EditIcon, TrashIcon, PlayIcon, PauseIcon, XMarkIcon } from './Icons.tsx';
+import { PlusIcon, EditIcon, TrashIcon, PlayIcon, PauseIcon, XMarkIcon, ChevronDownIcon } from './Icons.tsx';
 
 // Helper functions
 const formatBytes = (bytes: number, decimals = 2) => {
@@ -152,6 +152,8 @@ interface AudioManagerProps {
 const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSaveAudioFile, onDeleteAudioFile }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingFile, setEditingFile] = useState<AudioFile | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: keyof AudioFile; direction: 'ascending' | 'descending' }>({ key: 'name', direction: 'ascending' });
 
     // Player state
     const [playingFileId, setPlayingFileId] = useState<string | null>(null);
@@ -163,18 +165,64 @@ const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSave
 
     const playingFile = useMemo(() => audioFiles.find(f => f.id === playingFileId), [audioFiles, playingFileId]);
 
+    const filteredAndSortedFiles = useMemo(() => {
+        let sortableFiles = [...audioFiles];
+
+        if (searchTerm) {
+            const lowerCaseSearchTerm = searchTerm.toLowerCase();
+            sortableFiles = sortableFiles.filter(file =>
+                file.name.toLowerCase().includes(lowerCaseSearchTerm) ||
+                file.fileName.toLowerCase().includes(lowerCaseSearchTerm)
+            );
+        }
+
+        sortableFiles.sort((a, b) => {
+            const key = sortConfig.key;
+            const aValue = a[key];
+            const bValue = b[key];
+
+            if (typeof aValue === 'string' && typeof bValue === 'string') {
+                return aValue.localeCompare(bValue, undefined, { numeric: true }) * (sortConfig.direction === 'ascending' ? 1 : -1);
+            }
+            if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
+            if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
+            return 0;
+        });
+
+        return sortableFiles;
+    }, [audioFiles, searchTerm, sortConfig]);
+
+    const requestSort = (key: keyof AudioFile) => {
+        let direction: 'ascending' | 'descending' = 'ascending';
+        if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortableHeader: React.FC<{ sortKey: keyof AudioFile; label: string }> = ({ sortKey, label }) => (
+        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <button onClick={() => requestSort(sortKey)} className="group inline-flex items-center gap-1">
+                {label}
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    {sortConfig.key === sortKey
+                        ? <ChevronDownIcon className={`w-4 h-4 transition-transform ${sortConfig.direction === 'ascending' ? 'rotate-180' : ''}`} />
+                        : <ChevronDownIcon className="w-4 h-4 text-slate-400" />
+                    }
+                </span>
+            </button>
+        </th>
+    );
+
     // Effect to control audio playback
     useEffect(() => {
         const audio = audioRef.current;
         if (!audio) return;
 
         if (playingFileId) {
-            // NOTE: Using a placeholder audio source as we can't access local files.
-            // In a real app, this would be `audio.src = file.url;`
             const dummyAudioSrc = `https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3`; 
             if (audio.src !== dummyAudioSrc) {
                 audio.src = dummyAudioSrc;
-                // Reset progress for new file
                 setProgress(0);
                 setCurrentTime(0);
             }
@@ -254,9 +302,8 @@ const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSave
     };
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="max-w-7xl mx-auto space-y-8">
             {isModalOpen && <AudioModal audioFile={editingFile} onSave={handleSave} onClose={() => setIsModalOpen(false)} />}
-            {/* The audio element is hidden but present in the DOM for playback control */}
             <audio ref={audioRef} />
 
             <header>
@@ -271,22 +318,32 @@ const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSave
                         Importer un fichier
                     </button>
                 </div>
+                
+                 <div className="mb-4">
+                    <input
+                        type="text"
+                        placeholder="Rechercher par nom ou nom de fichier..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full max-w-lg p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                </div>
 
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase"></th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nom</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nom du Fichier</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Durée</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Taille</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Date d'import</th>
+                                <SortableHeader sortKey="name" label="Nom" />
+                                <SortableHeader sortKey="fileName" label="Nom du Fichier" />
+                                <SortableHeader sortKey="duration" label="Durée" />
+                                <SortableHeader sortKey="size" label="Taille" />
+                                <SortableHeader sortKey="uploadDate" label="Date d'import" />
                                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-200">
-                            {audioFiles.map(file => (
+                            {filteredAndSortedFiles.map(file => (
                                 <tr key={file.id}>
                                     <td className="px-6 py-4">
                                         <button onClick={() => handlePlayPauseClick(file.id)} className="text-slate-500 hover:text-indigo-600" title={playingFileId === file.id && isPlaying ? 'Mettre en pause' : 'Écouter'}>
@@ -306,7 +363,7 @@ const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSave
                             ))}
                         </tbody>
                     </table>
-                     {audioFiles.length === 0 && <p className="text-center py-8 text-slate-500">Aucun fichier audio importé.</p>}
+                     {filteredAndSortedFiles.length === 0 && <p className="text-center py-8 text-slate-500">Aucun fichier audio trouvé.</p>}
                 </div>
             </div>
 
