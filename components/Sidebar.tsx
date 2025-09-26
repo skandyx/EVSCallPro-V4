@@ -61,10 +61,10 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
     }, {} as Record<string, Feature[]>);
 
     return (
-        <aside className={`transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white flex-shrink-0 border-r border-slate-200 flex flex-col`}>
-            <div className="h-16 flex items-center justify-center border-b border-slate-200 flex-shrink-0">
+        <aside className={`transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white dark:bg-slate-800 flex-shrink-0 border-r border-slate-200 dark:border-slate-700 flex flex-col`}>
+            <div className="h-16 flex items-center justify-center border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
                 <LogoIcon className="w-8 h-8 text-indigo-600" />
-                {!isSidebarCollapsed && <span className="text-lg font-bold text-slate-800 ml-2">Solution Archi</span>}
+                {!isSidebarCollapsed && <span className="text-lg font-bold text-slate-800 dark:text-slate-100 ml-2">Solution Archi</span>}
             </div>
 
             <nav className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -84,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                                     className={`w-full text-left flex items-center p-2 text-sm font-semibold rounded-md transition-colors ${
                                         isSidebarCollapsed ? 'justify-center' : ''
                                     } ${
-                                        isActiveCategory ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:bg-slate-100'
+                                        isActiveCategory ? 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-slate-50' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
                                     }`}
                                     title={categoryName}
                                 >
@@ -109,8 +109,8 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                                                 onClick={() => onSelectFeature(feature.id)}
                                                 className={`w-full text-left flex items-center pl-4 pr-3 py-2 text-sm font-medium rounded-md transition-colors ${
                                                     activeFeatureId === feature.id
-                                                        ? 'bg-indigo-50 text-indigo-700'
-                                                        : 'text-slate-700 hover:bg-slate-100'
+                                                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
+                                                        : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
                                                 }`}
                                             >
                                                 {feature.title}
@@ -123,11 +123,11 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                 })}
             </nav>
 
-            <div className="p-2 border-t border-slate-200 mt-auto flex-shrink-0">
+            <div className="p-2 border-t border-slate-200 dark:border-slate-700 mt-auto flex-shrink-0">
                 {currentUser && (
                     <button
                         onClick={onOpenProfile}
-                        className={`w-full text-left p-2 rounded-md hover:bg-slate-100 ${isSidebarCollapsed ? 'flex justify-center' : 'flex items-center'}`}
+                        className={`w-full text-left p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 ${isSidebarCollapsed ? 'flex justify-center' : 'flex items-center'}`}
                         title="Mon Profil"
                     >
                         <div className="relative flex-shrink-0">
@@ -140,16 +140,16 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                         </div>
                         {!isSidebarCollapsed && (
                             <div className="ml-3 flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-slate-800 truncate" title={`${currentUser.firstName} ${currentUser.lastName}`}>{currentUser.firstName} {currentUser.lastName}</p>
-                                <p className="text-xs text-slate-500 truncate">{currentUser.loginId} - {currentUser.role}</p>
+                                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate" title={`${currentUser.firstName} ${currentUser.lastName}`}>{currentUser.firstName} {currentUser.lastName}</p>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{currentUser.loginId} - {currentUser.role}</p>
                             </div>
                         )}
                     </button>
                 )}
-                <div className={`space-y-1 ${!isSidebarCollapsed ? 'mt-2 border-t pt-2' : 'mt-2'}`}>
+                <div className={`space-y-1 ${!isSidebarCollapsed ? 'mt-2 border-t border-slate-200 dark:border-slate-700 pt-2' : 'mt-2'}`}>
                     <button
                         onClick={onLogout}
-                        className="w-full flex items-center p-2 text-sm text-slate-600 hover:bg-slate-100 rounded-md"
+                        className="w-full flex items-center p-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
                         title="Déconnexion"
                     >
                         <PowerIcon className={`w-5 h-5 ${isSidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
@@ -157,7 +157,7 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                     </button>
                     <button
                         onClick={() => setIsSidebarCollapsed(p => !p)}
-                        className="w-full flex items-center p-2 text-sm text-slate-600 hover:bg-slate-100 rounded-md"
+                        className="w-full flex items-center p-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
                         title={isSidebarCollapsed ? "Agrandir le menu" : "Réduire le menu"}
                     >
                         <ChevronDoubleLeftIcon className={`w-5 h-5 transition-transform ${isSidebarCollapsed ? 'rotate-180 mx-auto' : 'mr-3'}`} />

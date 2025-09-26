@@ -78,6 +78,7 @@ function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
     }
 }
 
+type Theme = 'light' | 'dark' | 'system';
 
 const App: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -88,6 +89,33 @@ const App: React.FC = () => {
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' | 'info'; key: number } | null>(null);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false); // State for the new modal
     const [liveState, dispatch] = useReducer(liveDataReducer, initialState);
+    const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
+
+     // Effect to apply theme class to <html> element
+    useEffect(() => {
+        const root = window.document.documentElement;
+        const isDark =
+            theme === 'dark' ||
+            (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        
+        root.classList.toggle('dark', isDark);
+        localStorage.setItem('theme', theme);
+    }, [theme]);
+    
+    // Effect to listen to system theme changes when in 'system' mode
+    useEffect(() => {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        
+        const handleChange = () => {
+            if (theme === 'system') {
+                const root = window.document.documentElement;
+                root.classList.toggle('dark', mediaQuery.matches);
+            }
+        };
+
+        mediaQuery.addEventListener('change', handleChange);
+        return () => mediaQuery.removeEventListener('change', handleChange);
+    }, [theme]);
 
     const showAlert = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
         setAlert({ message, type, key: Date.now() });
@@ -305,7 +333,7 @@ const App: React.FC = () => {
 
 
     if (isLoading) {
-        return <div className="h-screen w-screen flex items-center justify-center">Chargement...</div>;
+        return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">Chargement...</div>;
     }
 
     if (!currentUser) {
@@ -374,9 +402,9 @@ const App: React.FC = () => {
      const AlertComponent = () => {
         if (!alert) return null;
         const colors = {
-            success: 'bg-green-100 border-green-500 text-green-700',
-            error: 'bg-red-100 border-red-500 text-red-700',
-            info: 'bg-blue-100 border-blue-500 text-blue-700',
+            success: 'bg-green-100 border-green-500 text-green-700 dark:bg-green-900/50 dark:border-green-700 dark:text-green-200',
+            error: 'bg-red-100 border-red-500 text-red-700 dark:bg-red-900/50 dark:border-red-700 dark:text-red-200',
+            info: 'bg-blue-100 border-blue-500 text-blue-700 dark:bg-blue-900/50 dark:border-blue-700 dark:text-blue-200',
         };
         return (
             <div key={alert.key} className={`fixed bottom-5 right-5 p-4 border-l-4 rounded-md shadow-lg animate-fade-in-up ${colors[alert.type]}`}>
@@ -387,7 +415,7 @@ const App: React.FC = () => {
 
     return (
         <AlertContext.Provider value={{ showAlert }}>
-            <div className="h-screen w-screen flex flex-col font-sans bg-slate-50">
+            <div className="h-screen w-screen flex flex-col font-sans bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
                 {isProfileModalOpen && (
                     <UserProfileModal
                         user={currentUser}
@@ -408,7 +436,12 @@ const App: React.FC = () => {
                         onOpenProfile={() => setIsProfileModalOpen(true)}
                     />
                     <div className="flex-1 flex flex-col min-w-0">
-                        <Header activeView={activeView} onViewChange={setActiveView} />
+                        <Header 
+                            activeView={activeView} 
+                            onViewChange={setActiveView} 
+                            theme={theme}
+                            setTheme={setTheme}
+                        />
                         <main className="flex-1 overflow-y-auto p-8">
                              {activeView === 'app' ? renderFeatureComponent() : <MonitoringDashboard {...({ ...allData, ...liveState, apiCall: apiClient } as any)} />}
                         </main>
