@@ -3,7 +3,7 @@ const pool = require('./connection');
 const { keysToCamel } = require('./utils');
 
 // Define safe columns to be returned, excluding sensitive ones like password_hash
-const SAFE_USER_COLUMNS = 'u.id, u.login_id, u.extension, u.first_name, u.last_name, u.email, u."role", u.is_active, u.site_id, u.created_at, u.updated_at, u.mobile_number, u.use_mobile_as_station';
+const SAFE_USER_COLUMNS = 'u.id, u.login_id, u.extension, u.first_name, u.last_name, u.email, u."role", u.is_active, u.site_id, u.created_at, u.updated_at, u.mobile_number, u.use_mobile_as_station, u.profile_picture_url';
 
 const getUsers = async () => {
     // The query is now enriched with a LEFT JOIN and ARRAY_AGG to fetch assigned campaign IDs for each user.
@@ -232,6 +232,19 @@ const updateUserPassword = async (userId, currentPassword, newPassword) => {
     await pool.query('UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2', [newPassword, userId]);
 };
 
+const updateUserProfilePicture = async (userId, pictureUrl) => {
+    const query = `
+        UPDATE users SET profile_picture_url = $1, updated_at = NOW() 
+        WHERE id = $2 
+        RETURNING profile_picture_url;
+    `;
+    const res = await pool.query(query, [pictureUrl, userId]);
+    if (res.rows.length === 0) {
+        throw new Error('Utilisateur non trouvé.');
+    }
+    return keysToCamel(res.rows[0]);
+};
+
 module.exports = {
     getUsers,
     getUserById,
@@ -240,4 +253,5 @@ module.exports = {
     deleteUser,
     createUsersBulk,
     updateUserPassword,
+    updateUserProfilePicture,
 };

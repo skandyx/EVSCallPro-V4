@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { User, Campaign, Contact, Qualification, SavedScript, QualificationGroup, ContactNote, PersonalCallback } from '../types.ts';
 import { PowerIcon, PhoneIcon, UserCircleIcon, PauseIcon, ChevronDownIcon } from './Icons.tsx';
 import AgentPreview from './AgentPreview.tsx';
+import UserProfileModal from './UserProfileModal.tsx';
 import apiClient from '../src/lib/axios.ts';
 
 // A single object to hold all data, makes prop drilling cleaner
@@ -19,11 +20,13 @@ interface AgentViewProps {
     onLogout: () => void;
     data: AgentData;
     refreshData: () => void;
+    onUpdatePassword: (passwordData: any) => Promise<void>;
+    onUpdateProfilePicture: (base64DataUrl: string) => Promise<void>;
 }
 
 type AgentStatus = 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause';
 
-const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refreshData }) => {
+const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refreshData, onUpdatePassword, onUpdateProfilePicture }) => {
     const [status, setStatus] = useState<AgentStatus>('En Attente');
     const [statusTimer, setStatusTimer] = useState(0);
     const [currentContact, setCurrentContact] = useState<Contact | null>(null);
@@ -32,6 +35,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const [selectedQual, setSelectedQual] = useState<string | null>(null);
     const [isLoadingNextContact, setIsLoadingNextContact] = useState(false);
     const [newNote, setNewNote] = useState('');
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
     // Timer effect
     useEffect(() => {
@@ -127,14 +131,26 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
 
     return (
         <div className="h-screen w-screen flex flex-col font-sans bg-slate-100">
+             {isProfileModalOpen && (
+                <UserProfileModal
+                    user={currentUser}
+                    onClose={() => setIsProfileModalOpen(false)}
+                    onSavePassword={onUpdatePassword}
+                    onSaveProfilePicture={onUpdateProfilePicture}
+                />
+             )}
              <header className="flex-shrink-0 bg-white shadow-md p-3 flex justify-between items-center z-10">
-                <div className="flex items-center gap-4">
-                    <UserCircleIcon className="w-10 h-10 text-slate-400" />
+                <button onClick={() => setIsProfileModalOpen(true)} className="flex items-center gap-4 text-left p-2 rounded-md hover:bg-slate-100 transition-colors">
+                    {currentUser.profilePictureUrl ? (
+                         <img src={currentUser.profilePictureUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                         <UserCircleIcon className="w-10 h-10 text-slate-400" />
+                    )}
                     <div>
                         <h1 className="text-lg font-bold text-slate-800">Interface Agent</h1>
                         <p className="text-sm text-slate-600">{currentUser.firstName} {currentUser.lastName} - Ext: {currentUser.loginId}</p>
                     </div>
-                </div>
+                </button>
                 <button onClick={onLogout} className="font-semibold py-2 px-4 rounded-lg inline-flex items-center bg-slate-200 hover:bg-slate-300">
                     <PowerIcon className="w-5 h-5 mr-2" /> Déconnexion
                 </button>

@@ -48,6 +48,43 @@ router.put('/me/password', async (req, res) => {
     }
 });
 
+/**
+ * @openapi
+ * /users/me/picture:
+ *   put:
+ *     summary: Met à jour la photo de profil de l'utilisateur authentifié.
+ *     tags: [Utilisateurs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               pictureUrl: { type: string, description: "Data URL de l'image (base64)" }
+ *     responses:
+ *       200:
+ *         description: Photo de profil mise à jour.
+ */
+router.put('/me/picture', async (req, res) => {
+    const { pictureUrl } = req.body;
+    const userId = req.user.id;
+
+    if (!pictureUrl) {
+        return res.status(400).json({ error: 'URL de l\'image manquante.' });
+    }
+
+    try {
+        const result = await db.updateUserProfilePicture(userId, pictureUrl);
+        res.json(result);
+    } catch (error) {
+        console.error('Error updating profile picture:', error);
+        res.status(500).json({ error: 'Erreur interne lors de la mise à jour.' });
+    }
+});
+
 
 /**
  * @openapi

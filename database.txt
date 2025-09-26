@@ -57,6 +57,7 @@ CREATE TABLE users (
     site_id TEXT REFERENCES sites(id) ON DELETE SET NULL,
     mobile_number TEXT,
     use_mobile_as_station BOOLEAN NOT NULL DEFAULT FALSE,
+    profile_picture_url TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

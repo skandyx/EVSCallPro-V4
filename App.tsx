@@ -284,6 +284,19 @@ const App: React.FC = () => {
         }
     };
 
+    const handleUpdateProfilePicture = async (base64DataUrl: string) => {
+        try {
+            await apiClient.put('/users/me/picture', { pictureUrl: base64DataUrl });
+            showAlert('Photo de profil mise à jour.', 'success');
+            // Refresh all data to get the updated user object everywhere
+            await fetchApplicationData(); 
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.error || `Échec de la mise à jour.`;
+            showAlert(errorMessage, 'error');
+            throw error; // Rethrow to allow modal to handle UI state
+        }
+    };
+
     const currentUserStatus: AgentStatus | undefined = useMemo(() => {
         if (!currentUser) return undefined;
         const agentState = liveState.agentStates.find(a => a.id === currentUser.id);
@@ -300,10 +313,14 @@ const App: React.FC = () => {
     }
 
     if (currentUser.role === 'Agent') {
-        // FIX: Cast `allData` to `any` to satisfy the `AgentData` type required by `AgentView`.
-        // The `allData` object is fetched from the API and contains all necessary fields,
-        // but its state is typed as `Record<string, any>` for flexibility elsewhere in the app.
-        return <AgentView currentUser={currentUser} onLogout={handleLogout} data={allData as any} refreshData={fetchApplicationData} />;
+        return <AgentView 
+            currentUser={currentUser} 
+            onLogout={handleLogout} 
+            data={allData as any} 
+            refreshData={fetchApplicationData}
+            onUpdatePassword={handleUpdatePassword}
+            onUpdateProfilePicture={handleUpdateProfilePicture}
+        />;
     }
 
     const activeFeature = features.find(f => f.id === activeFeatureId) || null;
@@ -376,6 +393,7 @@ const App: React.FC = () => {
                         user={currentUser}
                         onClose={() => setIsProfileModalOpen(false)}
                         onSavePassword={handleUpdatePassword}
+                        onSaveProfilePicture={handleUpdateProfilePicture}
                     />
                 )}
                 <div className="flex flex-1 min-h-0">
