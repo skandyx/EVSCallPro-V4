@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus } from './types.ts';
+import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
+import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus, ActiveCall, CampaignState } from './types.ts';
 import { features } from './data/features.ts';
 import Sidebar from './components/Sidebar.tsx';
 import LoginScreen from './components/LoginScreen.tsx';
@@ -8,11 +8,76 @@ import Header from './components/Header.tsx';
 import MonitoringDashboard from './components/MonitoringDashboard.tsx';
 import UserProfileModal from './components/UserProfileModal.tsx'; // Import the new modal
 import apiClient from './src/lib/axios.ts'; // Utilisation de l'instance Axios configurée
+import wsClient from './src/services/wsClient.ts';
 
 // Création d'un contexte pour les alertes (toast)
 export const AlertContext = React.createContext<{
     showAlert: (message: string, type: 'success' | 'error' | 'info') => void;
 }>({ showAlert: () => {} });
+
+// State and Reducer for live data (moved from SupervisionDashboard)
+interface LiveState {
+    agentStates: AgentState[];
+    activeCalls: ActiveCall[];
+    campaignStates: CampaignState[];
+}
+
+type LiveAction =
+    | { type: 'INIT_STATE'; payload: { agents: User[], campaigns: Campaign[] } }
+    | { type: 'AGENT_STATUS_UPDATE'; payload: Partial<AgentState> & { agentId: string } }
+    | { type: 'NEW_CALL'; payload: ActiveCall }
+    | { type: 'CALL_HANGUP'; payload: { callId: string } }
+    | { type: 'TICK' };
+
+const initialState: LiveState = {
+    agentStates: [],
+    activeCalls: [],
+    campaignStates: [],
+};
+
+function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
+    switch (action.type) {
+        case 'INIT_STATE': {
+            const initialAgentStates: AgentState[] = action.payload.agents
+                .filter(u => u.role === 'Agent')
+                .map(agent => ({
+                    ...agent,
+                    status: 'En Attente',
+                    statusDuration: 0,
+                    callsHandledToday: 0,
+                    averageHandlingTime: 0,
+                }));
+            const initialCampaignStates: CampaignState[] = action.payload.campaigns.map(c => ({
+                id: c.id, name: c.name, status: c.isActive ? 'running' : 'stopped',
+                offered: 0, answered: 0, hitRate: 0, agentsOnCampaign: 0,
+            }));
+            return { agentStates: initialAgentStates, activeCalls: [], campaignStates: initialCampaignStates };
+        }
+        case 'AGENT_STATUS_UPDATE':
+            return {
+                ...state,
+                agentStates: state.agentStates.map(agent =>
+                    agent.id === action.payload.agentId
+                        ? { ...agent, ...action.payload, statusDuration: 0 } // Reset timer on status change
+                        : agent
+                ),
+            };
+        case 'NEW_CALL':
+            if (state.activeCalls.some(call => call.id === action.payload.id)) return state;
+            return { ...state, activeCalls: [...state.activeCalls, { ...action.payload, duration: 0 }] };
+        case 'CALL_HANGUP':
+            return { ...state, activeCalls: state.activeCalls.filter(call => call.id !== action.payload.callId) };
+        case 'TICK':
+             return {
+                ...state,
+                agentStates: state.agentStates.map(a => ({ ...a, statusDuration: a.statusDuration + 1 })),
+                activeCalls: state.activeCalls.map(c => ({ ...c, duration: c.duration + 1 })),
+            };
+        default:
+            return state;
+    }
+}
+
 
 const App: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -22,6 +87,7 @@ const App: React.FC = () => {
     const [activeView, setActiveView] = useState<'app' | 'monitoring'>('app');
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' | 'info'; key: number } | null>(null);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false); // State for the new modal
+    const [liveState, dispatch] = useReducer(liveDataReducer, initialState);
 
     const showAlert = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
         setAlert({ message, type, key: Date.now() });
@@ -61,6 +127,40 @@ const App: React.FC = () => {
 
         checkSession();
     }, [fetchApplicationData]);
+
+     // Effect to manage WebSocket connection and live data updates
+    useEffect(() => {
+        if (currentUser) {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                wsClient.connect(token);
+            }
+
+            const handleWebSocketMessage = (event: any) => {
+                if (event.type && event.payload) {
+                    const actionType = event.type.replace(/([A-Z])/g, '_$1').toUpperCase();
+                    dispatch({ type: actionType as any, payload: event.payload });
+                }
+            };
+
+            const unsubscribe = wsClient.onMessage(handleWebSocketMessage);
+            const timer = setInterval(() => dispatch({ type: 'TICK' }), 1000);
+
+            return () => {
+                unsubscribe();
+                clearInterval(timer);
+                wsClient.disconnect();
+            };
+        }
+    }, [currentUser]);
+
+    // Effect to initialize live data state once static data is loaded
+    useEffect(() => {
+        if (allData.users && allData.campaigns) {
+            dispatch({ type: 'INIT_STATE', payload: { agents: allData.users, campaigns: allData.campaigns } });
+        }
+    }, [allData.users, allData.campaigns]);
+
 
     const handleLoginSuccess = ({ user, token }: { user: User, token: string }) => {
         localStorage.setItem('authToken', token);
@@ -185,10 +285,10 @@ const App: React.FC = () => {
     };
 
     const currentUserStatus: AgentStatus | undefined = useMemo(() => {
-        if (!currentUser || !allData.agentStates) return undefined;
-        const agentState = (allData.agentStates as AgentState[]).find(a => a.id === currentUser.id);
+        if (!currentUser) return undefined;
+        const agentState = liveState.agentStates.find(a => a.id === currentUser.id);
         return agentState?.status;
-    }, [currentUser, allData.agentStates]);
+    }, [currentUser, liveState.agentStates]);
 
 
     if (isLoading) {
@@ -214,6 +314,7 @@ const App: React.FC = () => {
 
         const componentProps = {
             ...allData,
+            ...liveState,
             features: features, // Pass the main features array to all components
             feature: activeFeature,
             currentUser,
@@ -291,7 +392,7 @@ const App: React.FC = () => {
                     <div className="flex-1 flex flex-col min-w-0">
                         <Header activeView={activeView} onViewChange={setActiveView} />
                         <main className="flex-1 overflow-y-auto p-8">
-                             {activeView === 'app' ? renderFeatureComponent() : <MonitoringDashboard {...({ ...allData, apiCall: apiClient } as any)} />}
+                             {activeView === 'app' ? renderFeatureComponent() : <MonitoringDashboard {...({ ...allData, ...liveState, apiCall: apiClient } as any)} />}
                         </main>
                     </div>
                 </div>

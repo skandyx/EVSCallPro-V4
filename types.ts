@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export type FeatureId =
@@ -296,7 +297,8 @@ export interface BackupSchedule {
     time: string;
 }
 
-export type AgentStatus = 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause';
+// FIX: Added 'Ringing' to AgentStatus to support the new status color in the Sidebar component.
+export type AgentStatus = 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause' | 'Ringing';
 
 export interface AgentState extends User {
     status: AgentStatus;

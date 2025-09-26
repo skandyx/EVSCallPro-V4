@@ -36,6 +36,8 @@ const getStatusColor = (status: AgentStatus | undefined): string => {
         case 'En Attente': return 'bg-green-500';
         case 'En Appel': return 'bg-red-500';
         case 'En Post-Appel': return 'bg-red-500';
+        // FIX: Added 'Ringing' status to turn the status indicator yellow when the phone is ringing, enhancing real-time feedback.
+        case 'Ringing': return 'bg-yellow-400';
         case 'En Pause': return 'bg-slate-400';
         default: return 'bg-slate-400';
     }
@@ -129,8 +131,12 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                         title="Mon Profil"
                     >
                         <div className="relative flex-shrink-0">
-                            <UserCircleIcon className="w-10 h-10 text-slate-400" />
-                            <span className={`absolute bottom-0 right-0 block h-3 w-3 rounded-full ring-2 ring-white ${getStatusColor(agentStatus)}`}></span>
+                            {currentUser.profilePictureUrl ? (
+                                <img src={currentUser.profilePictureUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
+                            ) : (
+                                <UserCircleIcon className="w-10 h-10 text-slate-400" />
+                            )}
+                            <span className={`absolute top-0 right-0 block h-3.5 w-3.5 rounded-full border-2 border-white ${getStatusColor(agentStatus)}`}></span>
                         </div>
                         {!isSidebarCollapsed && (
                             <div className="ml-3 flex-1 min-w-0">
