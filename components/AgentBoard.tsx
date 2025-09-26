@@ -10,8 +10,9 @@ interface AgentBoardProps {
 const STATUS_CONFIG: { [key in AgentState['status']]: { label: string; color: string } } = {
     'En Attente': { label: 'En Attente', color: 'bg-green-100 text-green-800' },
     'En Appel': { label: 'En Appel', color: 'bg-red-100 text-red-800' },
-    'En Post-Appel': { label: 'En Post-Appel', color: 'bg-yellow-100 text-yellow-800' },
+    'En Post-Appel': { label: 'En Post-Appel', color: 'bg-red-100 text-red-800' },
     'En Pause': { label: 'En Pause', color: 'bg-slate-200 text-slate-800' },
+    'Ringing': { label: 'Sonne', color: 'bg-yellow-100 text-yellow-800' },
 };
 
 const formatDuration = (seconds: number) => {
