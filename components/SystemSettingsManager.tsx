@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Feature, SystemSmtpSettings, SystemAppSettings } from '../types.ts';
 import { Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon, PaletteIcon, BuildingOfficeIcon } from './Icons.tsx';
