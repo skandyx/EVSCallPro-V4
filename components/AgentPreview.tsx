@@ -164,21 +164,16 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
                         placeholder={block.content.placeholder}
                         style={commonInputStyles}
                         className="w-full p-2 border rounded-md border-slate-300 flex-1 resize-none disabled:bg-slate-100 disabled:cursor-not-allowed"
-                        value={block.fieldName.toLowerCase().includes('historique') ? newNote : (formValues[block.fieldName] || '')}
-                        onChange={e => block.fieldName.toLowerCase().includes('historique') ? setNewNote(e.target.value) : handleValueChange(block.fieldName, e.target.value)}
+                        value={formValues[block.fieldName] || ''}
+                        onChange={e => handleValueChange(block.fieldName, e.target.value)}
                         disabled={block.readOnly}
                     />
-                    {block.fieldName.toLowerCase().includes('historique') && (
-                        <button onClick={onSaveNote} className="mt-2 w-full text-sm bg-indigo-100 text-indigo-700 font-semibold py-1.5 px-3 rounded-md hover:bg-indigo-200 disabled:opacity-50 flex-shrink-0" disabled={!newNote.trim()}>
-                            Enregistrer la note
-                        </button>
-                    )}
                 </div>
             );
          case 'history':
-            const findAgentName = (agentId: string) => {
+            const findAgentLogin = (agentId: string) => {
                 const agent = users.find(u => u.id === agentId);
-                return agent ? `${agent.firstName} ${agent.lastName}` : 'Inconnu';
+                return agent ? agent.loginId : 'Inconnu';
             };
             return (
                 <div {...commonContainerProps}>
@@ -187,12 +182,24 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
                         {contactNotes.length > 0 ? contactNotes.map((note) => (
                              <div key={note.id} className="p-2 rounded bg-slate-50">
                                  <div className="flex justify-between items-baseline text-slate-500 mb-1">
-                                     <span className="font-semibold">{findAgentName(note.agentId)}</span>
+                                     <span className="font-semibold">{findAgentLogin(note.agentId)}</span>
                                      <span>{new Date(note.createdAt).toLocaleString('fr-FR')}</span>
                                  </div>
                                  <p className="text-slate-800 whitespace-pre-wrap">{note.note}</p>
                              </div>
                         )) : <p className="text-center italic text-slate-400 pt-4">Aucune remarque pour ce contact.</p>}
+                    </div>
+                    <div className="mt-2 pt-2 border-t flex-shrink-0">
+                        <textarea
+                            placeholder="Ajouter une nouvelle note..."
+                            className="w-full p-2 border rounded-md text-sm"
+                            rows={3}
+                            value={newNote}
+                            onChange={e => setNewNote(e.target.value)}
+                        />
+                        <button onClick={onSaveNote} className="mt-2 w-full text-sm bg-indigo-100 text-indigo-700 font-semibold py-1.5 px-3 rounded-md hover:bg-indigo-200 disabled:opacity-50" disabled={!newNote.trim()}>
+                            Enregistrer la note
+                        </button>
                     </div>
                 </div>
             );
