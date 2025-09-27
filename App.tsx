@@ -187,7 +187,6 @@ const App: React.FC = () => {
 
     const fetchApplicationData = useCallback(async () => {
         try {
-            // setIsLoading(true) is not needed here as it's handled by the session check
             const response = await apiClient.get('/application-data');
             setAllData(response.data);
         } catch (error) {
@@ -198,27 +197,61 @@ const App: React.FC = () => {
     
     // Check for existing token on mount and restore session
     useEffect(() => {
-        const checkSession = async () => {
+        const loadApp = async () => {
+            setIsLoading(true);
+
+            // 1. Always fetch public settings first for the login screen.
+            try {
+                const configResponse = await apiClient.get('/public-config');
+                setAllData(prev => ({ ...prev, appSettings: configResponse.data.appSettings }));
+            } catch (e) {
+                console.error("Failed to load public config:", e);
+                // Set defaults on failure to prevent a broken UI
+                setAllData(prev => ({
+                    ...prev,
+                    appSettings: {
+                        companyAddress: '',
+                        appLogoUrl: '',
+                        colorPalette: 'default',
+                        appName: 'Architecte de Solutions',
+                    }
+                }));
+            }
+            
+            // 2. Then, check for an active session token.
             const token = localStorage.getItem('authToken');
             if (token) {
                 try {
-                    // Call the new /me endpoint to verify the token and get user data
-                    const response = await apiClient.get('/auth/me');
-                    setCurrentUser(response.data.user);
-                    // Once user is confirmed, fetch the rest of the app data
-                    await fetchApplicationData();
+                    const meResponse = await apiClient.get('/auth/me');
+                    setCurrentUser(meResponse.data.user);
+                    await fetchApplicationData(); // Fetches all protected data
                 } catch (error) {
-                    // Token is invalid or expired
                     console.error("Session check failed:", error);
-                    localStorage.removeItem('authToken');
-                    setCurrentUser(null);
+                    // The refresh token logic in axios interceptor will handle this.
+                    // If refresh fails, it will dispatch the logout event.
                 }
             }
+            
+            // 3. Finish loading sequence.
             setIsLoading(false);
         };
 
-        checkSession();
+        loadApp();
     }, [fetchApplicationData]);
+
+    // Effect to handle logout event from axios interceptor
+    useEffect(() => {
+        const handleForcedLogout = () => {
+            console.log("Logout event received from API client. Logging out.");
+            handleLogout();
+        };
+
+        window.addEventListener('logoutEvent', handleForcedLogout);
+
+        return () => {
+            window.removeEventListener('logoutEvent', handleForcedLogout);
+        };
+    }, []);
 
      // Effect to manage WebSocket connection and live data updates
     useEffect(() => {
@@ -264,8 +297,8 @@ const App: React.FC = () => {
     const handleLogout = () => {
         localStorage.removeItem('authToken');
         setCurrentUser(null);
-        setAllData({});
-        // No need to call API for logout, token is removed client-side
+        // We keep appSettings in allData so the login screen displays correctly
+        setAllData(prev => ({ appSettings: prev.appSettings }));
     };
 
     const handleSaveOrUpdate = async (dataType: string, data: any, endpoint?: string) => {

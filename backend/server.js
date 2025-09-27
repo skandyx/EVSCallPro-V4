@@ -126,8 +126,36 @@ const contactsRoutes = require(path.join(__dirname, 'routes', 'contacts.js'));
 const systemRoutes = require(path.join(__dirname, 'routes', 'system.js'));
 const audioRoutes = require(path.join(__dirname, 'routes', 'audio.js'));
 
-// Public route
+// Public routes
 app.use('/api/auth', authRoutes);
+
+app.get('/api/public-config', async (req, res) => {
+    try {
+        const envFileContent = await fs.readFile(path.join(__dirname, '.env'), 'utf-8');
+        const envConfig = dotenv.parse(envFileContent);
+        
+        const appSettings = {
+            companyAddress: envConfig.COMPANY_ADDRESS || 'Votre Société\n123 Rue Principale\n75001 Paris, France',
+            appLogoUrl: envConfig.APP_LOGO_URL || '',
+            colorPalette: envConfig.COLOR_PALETTE || 'default',
+            appName: envConfig.APP_NAME || 'Architecte de Solutions',
+        };
+
+        res.json({ appSettings });
+    } catch (error) {
+        console.error("Error fetching public-config:", error);
+        // Send a default object on error to prevent the frontend from crashing.
+        res.status(500).json({ 
+            appSettings: {
+                appName: 'Architecte de Solutions',
+                appLogoUrl: '',
+                colorPalette: 'default',
+                companyAddress: ''
+            }
+         });
+    }
+});
+
 
 // Protected routes
 app.use(authMiddleware); // All routes below this are now protected
