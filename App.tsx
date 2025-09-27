@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
-import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus, ActiveCall, CampaignState } from './types.ts';
+import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus, ActiveCall, CampaignState, SystemSmtpSettings } from './types.ts';
 import { features } from './data/features.ts';
 import Sidebar from './components/Sidebar.tsx';
 import LoginScreen from './components/LoginScreen.tsx';
@@ -264,6 +264,22 @@ const App: React.FC = () => {
         showAlert('Paramètres de visibilité mis à jour.', 'success');
     };
 
+    const handleSaveSmtpSettings = async (settings: SystemSmtpSettings, password?: string) => {
+        try {
+            const payload: any = { ...settings };
+            if (password) {
+                payload.password = password;
+            }
+            await apiClient.put('/system/smtp-settings', payload);
+            await fetchApplicationData(); 
+            showAlert('Paramètres SMTP enregistrés. Un redémarrage du serveur peut être nécessaire.', 'success');
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.error || `Échec de l'enregistrement.`;
+            showAlert(errorMessage, 'error');
+            throw error;
+        }
+    };
+
     const handleSaveUser = async (user: User, groupIds: string[]) => {
        await handleSaveOrUpdate('users', { ...user, groupIds });
     };
@@ -393,6 +409,7 @@ const App: React.FC = () => {
             onSavePlanningEvent: (event: PlanningEvent) => handleSaveOrUpdate('planning-events', event),
             onDeletePlanningEvent: (id: string) => handleDelete('planning-events', id),
             onSaveVisibilitySettings: handleSaveVisibilitySettings,
+            onSaveSmtpSettings: handleSaveSmtpSettings,
             apiCall: apiClient, // Passe l'instance axios configurée
         };
         

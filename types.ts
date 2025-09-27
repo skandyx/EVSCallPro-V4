@@ -417,3 +417,12 @@ export interface SystemConnectionSettings {
         agiPort: number;
     };
 }
+
+export interface SystemSmtpSettings {
+    server: string;
+    port: number;
+    auth: boolean;
+    secure: boolean;
+    user: string;
+    from: string;
+}

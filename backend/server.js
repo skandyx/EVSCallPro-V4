@@ -191,12 +191,22 @@ app.get('/api/application-data', async (req, res) => {
             }
         };
 
+        const smtpSettings = {
+            server: process.env.SMTP_SERVER || '',
+            port: parseInt(process.env.SMTP_PORT || '587'),
+            auth: process.env.SMTP_AUTH === 'true',
+            secure: process.env.SMTP_SECURE === 'true',
+            user: process.env.SMTP_USER || '',
+            from: process.env.SMTP_FROM || '',
+        };
+
         res.json({
             users, userGroups, savedScripts, campaigns, qualifications,
             qualificationGroups, ivrFlows, audioFiles, trunks, dids, sites,
             planningEvents, activityTypes, personalCallbacks, callHistory, agentSessions,
             contactNotes,
             systemConnectionSettings,
+            smtpSettings,
             moduleVisibility: { categories: {}, features: {} },
             backupLogs: [],
             backupSchedule: { frequency: 'daily', time: '02:00' },

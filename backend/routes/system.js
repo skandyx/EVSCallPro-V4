@@ -3,6 +3,8 @@ const express = require('express');
 const router = express.Router();
 const os = require('os');
 const pool = require('../services/db/connection');
+const nodemailer = require('nodemailer');
+const fs = require('fs/promises');
 
 // Middleware to check for SuperAdmin role
 const isSuperAdmin = (req, res, next) => {
@@ -129,6 +131,131 @@ router.post('/db-query', isSuperAdmin, async (req, res) => {
     } catch (error) {
         console.error("Error executing DB query:", error);
         res.status(400).json({ message: error.message });
+    }
+});
+
+/**
+ * @openapi
+ * /system/smtp-settings:
+ *   put:
+ *     summary: Met à jour les paramètres SMTP.
+ *     tags: [Système]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               server: { type: string }
+ *               port: { type: number }
+ *               auth: { type: boolean }
+ *               secure: { type: boolean }
+ *               user: { type: string }
+ *               password: { type: string, description: "Laisser vide pour ne pas changer" }
+ *               from: { type: string }
+ *     responses:
+ *       200: { description: 'Paramètres SMTP enregistrés.' }
+ */
+router.put('/smtp-settings', isSuperAdmin, async (req, res) => {
+    try {
+        const { password, ...settings } = req.body;
+        let envContent = await fs.readFile('.env', 'utf-8');
+        const updates = {
+            SMTP_SERVER: settings.server,
+            SMTP_PORT: settings.port,
+            SMTP_AUTH: settings.auth,
+            SMTP_SECURE: settings.secure,
+            SMTP_USER: settings.user,
+            SMTP_FROM: settings.from,
+            ...(password && { SMTP_PASSWORD: password }),
+        };
+
+        for (const [key, value] of Object.entries(updates)) {
+            const regex = new RegExp(`^${key}=.*`, 'm');
+            if (envContent.match(regex)) {
+                envContent = envContent.replace(regex, `${key}=${value}`);
+            } else {
+                envContent += `\n${key}=${value}`;
+            }
+        }
+        await fs.writeFile('.env', envContent);
+        res.json({ message: 'Paramètres enregistrés. Un redémarrage du serveur peut être nécessaire pour appliquer les changements.' });
+    } catch (err) {
+        console.error("Failed to save SMTP settings:", err);
+        res.status(500).json({ error: "Échec de l'enregistrement des paramètres SMTP." });
+    }
+});
+
+
+/**
+ * @openapi
+ * /system/test-email:
+ *   post:
+ *     summary: Envoie un e-mail de test avec la configuration fournie.
+ *     tags: [Système]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               smtpConfig:
+ *                 type: object
+ *                 properties:
+ *                   server: { type: string }
+ *                   port: { type: number }
+ *                   auth: { type: boolean }
+ *                   secure: { type: boolean }
+ *                   user: { type: string }
+ *                   password: { type: string }
+ *                   from: { type: string }
+ *               recipient: { type: string }
+ *     responses:
+ *       200: { description: 'Email de test envoyé.' }
+ *       500: { description: "Échec de l'envoi." }
+ */
+router.post('/test-email', isSuperAdmin, async (req, res) => {
+    const { smtpConfig, recipient } = req.body;
+    
+    if (!recipient) {
+        return res.status(400).json({ message: 'Destinataire manquant.' });
+    }
+
+    try {
+        const transporter = nodemailer.createTransport({
+            host: smtpConfig.server,
+            port: smtpConfig.port,
+            secure: smtpConfig.secure, // true for 465, false for other ports
+            auth: smtpConfig.auth ? {
+                user: smtpConfig.user,
+                pass: smtpConfig.password || process.env.SMTP_PASSWORD, // Use provided password or one from env
+            } : undefined,
+            tls: {
+                // do not fail on invalid certs
+                rejectUnauthorized: false
+            }
+        });
+
+        await transporter.verify(); // Verify connection configuration
+
+        await transporter.sendMail({
+            from: `"EVSCallPro Test" <${smtpConfig.from}>`,
+            to: recipient,
+            subject: "Email de test - EVSCallPro",
+            text: "Ceci est un e-mail de test pour vérifier votre configuration SMTP.",
+            html: "<b>Ceci est un e-mail de test pour vérifier votre configuration SMTP.</b>",
+        });
+
+        res.json({ message: 'Email de test envoyé avec succès !' });
+    } catch (error) {
+        console.error("Email test failed:", error);
+        res.status(500).json({ message: `Échec de l'envoi de l'email: ${error.message}` });
     }
 });
 

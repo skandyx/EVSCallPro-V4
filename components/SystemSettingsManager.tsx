@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import type { Feature } from '../types.ts';
+import React, { useState, useEffect } from 'react';
+import type { Feature, SystemSmtpSettings } from '../types.ts';
 import { Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon } from './Icons.tsx';
 
 const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void; }> = ({ enabled, onChange }) => (
@@ -10,20 +10,32 @@ const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) =>
 
 interface SystemSettingsManagerProps {
     feature: Feature;
+    smtpSettings: SystemSmtpSettings;
+    onSaveSmtpSettings: (settings: SystemSmtpSettings, password?: string) => Promise<void>;
+    apiCall: any; // AxiosInstance
 }
 
-const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature }) => {
+const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, smtpSettings, onSaveSmtpSettings, apiCall }) => {
     const [activeTab, setActiveTab] = useState('email');
-    const [smtpConfig, setSmtpConfig] = useState({
+    const [smtpConfig, setSmtpConfig] = useState<SystemSmtpSettings>(smtpSettings || {
         server: '',
         port: 587,
         auth: true,
+        secure: false,
         user: '',
-        password: '',
         from: ''
     });
+    const [smtpPassword, setSmtpPassword] = useState('');
     const [testEmail, setTestEmail] = useState('');
     const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+    const [isSaving, setIsSaving] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+
+    useEffect(() => {
+        if (smtpSettings) {
+            setSmtpConfig(smtpSettings);
+        }
+    }, [smtpSettings]);
 
     const handleSmtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
@@ -33,22 +45,43 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature }
         }));
     };
 
-    const handleTestEmail = () => {
+    const handleTestEmail = async () => {
         if (!testEmail) {
             alert("Veuillez entrer une adresse e-mail de destination.");
             return;
         }
         setTestStatus('testing');
-        // Simulate API call
-        setTimeout(() => {
-            const success = Math.random() > 0.2;
-            setTestStatus(success ? 'success' : 'error');
+        try {
+            const payload = {
+                smtpConfig: { ...smtpConfig, password: smtpPassword },
+                recipient: testEmail
+            };
+            await apiCall.post('/system/test-email', payload);
+            setTestStatus('success');
+        } catch (err) {
+            setTestStatus('error');
+        } finally {
             setTimeout(() => setTestStatus('idle'), 4000);
-        }, 1500);
+        }
+    };
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        setShowSuccess(false);
+        try {
+            await onSaveSmtpSettings(smtpConfig, smtpPassword);
+            setShowSuccess(true);
+            setSmtpPassword(''); // Clear password field after successful save
+            setTimeout(() => setShowSuccess(false), 2500);
+        } catch (error) {
+            // Error is handled and shown by the App component's alert system.
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="max-w-7xl mx-auto space-y-8">
             <header>
                 <h1 className="text-4xl font-bold text-slate-900 tracking-tight flex items-center">
                     <Cog6ToothIcon className="w-9 h-9 mr-3 text-indigo-600"/>
@@ -72,16 +105,22 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature }
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div><label className="block text-sm font-medium text-slate-700">Serveur SMTP</label><input type="text" name="server" value={smtpConfig.server} onChange={handleSmtpChange} className="mt-1 block w-full p-2 border border-slate-300 rounded-md" placeholder="smtp.example.com"/></div>
-                        <div><label className="block text-sm font-medium text-slate-700">Port</label><input type="number" name="port" value={smtpConfig.port} onChange={handleSmtpChange} className="mt-1 block w-full p-2 border border-slate-300 rounded-md"/></div>
+                        <div><label className="block text-sm font-medium text-slate-700">Port</label><input type="number" name="port" value={smtpConfig.port} onChange={e => setSmtpConfig(p => ({...p, port: parseInt(e.target.value)}))} className="mt-1 block w-full p-2 border border-slate-300 rounded-md"/></div>
                     </div>
-                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-md border">
-                        <p className="font-medium text-slate-800">Utiliser l'authentification</p>
-                        <ToggleSwitch enabled={smtpConfig.auth} onChange={val => setSmtpConfig(p => ({...p, auth: val}))}/>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-md border">
+                            <p className="font-medium text-slate-800">Utiliser l'authentification</p>
+                            <ToggleSwitch enabled={smtpConfig.auth} onChange={val => setSmtpConfig(p => ({...p, auth: val}))}/>
+                        </div>
+                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-md border">
+                            <p className="font-medium text-slate-800">Utiliser une connexion sécurisée (SSL/TLS)</p>
+                            <ToggleSwitch enabled={smtpConfig.secure} onChange={val => setSmtpConfig(p => ({...p, secure: val}))}/>
+                        </div>
                     </div>
                     {smtpConfig.auth && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div><label className="block text-sm font-medium text-slate-700">Nom d'utilisateur</label><input type="text" name="user" value={smtpConfig.user} onChange={handleSmtpChange} className="mt-1 block w-full p-2 border border-slate-300 rounded-md"/></div>
-                            <div><label className="block text-sm font-medium text-slate-700">Mot de passe</label><input type="password" name="password" value={smtpConfig.password} onChange={handleSmtpChange} className="mt-1 block w-full p-2 border border-slate-300 rounded-md"/></div>
+                            <div><label className="block text-sm font-medium text-slate-700">Mot de passe</label><input type="password" name="password" value={smtpPassword} onChange={e => setSmtpPassword(e.target.value)} className="mt-1 block w-full p-2 border border-slate-300 rounded-md" placeholder="Laisser vide pour ne pas changer"/></div>
                         </div>
                     )}
                     <div>
@@ -103,6 +142,12 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature }
                         {testStatus === 'success' && <p className="text-sm text-green-600 mt-2">E-mail de test envoyé avec succès !</p>}
                         {testStatus === 'error' && <p className="text-sm text-red-600 mt-2">Échec de l'envoi de l'e-mail. Vérifiez la configuration et les logs.</p>}
                     </div>
+                </div>
+                 <div className="bg-slate-50 px-6 py-4 flex justify-end items-center rounded-b-lg border-t">
+                    {showSuccess && <span className="text-green-600 font-semibold mr-4">Enregistré !</span>}
+                    <button onClick={handleSave} disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md disabled:bg-indigo-400">
+                        {isSaving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                    </button>
                 </div>
             </div>
         </div>
