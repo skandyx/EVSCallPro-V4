@@ -86,100 +86,578 @@
   "features": {
     "users": {
       "title": "Users",
-      "description": "Manage user accounts, their roles, and permissions."
+      "description": "Manage user accounts, their roles, and permissions.",
+      "userJourney": {
+        "title": "User Journey: Adding an Agent",
+        "steps": [
+          "The administrator clicks 'Add User'.",
+          "They fill in the agent's information (first name, last name, login ID).",
+          "They assign the 'Agent' role and choose the campaigns the agent will participate in.",
+          "A password is generated and the administrator saves.",
+          "The agent can now log in with their credentials."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Each user must have a unique login ID (4-6 digits).",
+          "Three roles available: Agent, Supervisor, Administrator.",
+          "Administrators can view and modify everything.",
+          "Supervisors can view dashboards and coach agents."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "For a quick demo, use the 'Bulk Generate' feature to create 10 test agents in one click, automatically assigning them IDs and passwords."
+      }
     },
     "groups": {
       "title": "Groups",
-      "description": "Create agent groups for simplified management and routing."
+      "description": "Create agent groups for simplified management and routing.",
+      "userJourney": {
+        "title": "User Journey: Creating an 'Experts' Group",
+        "steps": [
+          "The administrator goes to 'Agent Groups' and clicks 'Create Group'.",
+          "They name the group 'Product A Experts'.",
+          "They select the agents certified for Product A from the list.",
+          "They save the group.",
+          "This group can now be used as a destination in an IVR."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "An agent can belong to multiple groups.",
+          "Groups can be used for routing incoming calls.",
+          "Groups can be used to filter reports."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "Start with a single 'General' group containing all your agents. You can create more specific groups later as your routing needs become more complex."
+      }
     },
     "planning": {
       "title": "Schedules",
-      "description": "Create and manage weekly agent schedules and their activities."
+      "description": "Create and manage weekly agent schedules and their activities.",
+      "userJourney": {
+        "title": "User Journey: Scheduling a Training Session",
+        "steps": [
+          "The supervisor goes to the 'Schedules' menu.",
+          "They navigate to the desired week.",
+          "They click on the Wednesday 2:00 PM slot.",
+          "In the window that opens, they select the agent 'Alice'.",
+          "They choose the 'Training' activity and adjust the end time to 4:00 PM.",
+          "They save, and the new event appears in color on the calendar."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Weekly calendar view.",
+          "Filter by agent or view all agents.",
+          "Customizable activity types with color codes.",
+          "Create, modify, and delete events via a modal interface."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "Start by defining a few basic activity types like 'Outbound Calls', 'Lunch Break', and 'Meeting'. You can then refine the schedules with more specific activities."
+      }
     },
     "outbound": {
       "title": "Outbound Campaigns",
-      "description": "Create and manage outbound call campaigns with advanced dialing strategies."
+      "description": "Create and manage outbound call campaigns with advanced dialing strategies.",
+      "userJourney": {
+        "title": "User Journey: Launching a Prospecting Campaign",
+        "steps": [
+          "The manager clicks 'Create Campaign'.",
+          "They name the campaign, choose the agent script and qualification group.",
+          "They define the schedule (calling days/hours).",
+          "They configure the strategy (dialing mode, retry attempts).",
+          "They import a CSV contact list.",
+          "They activate the campaign. The system starts distributing calls to agents."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Dialing modes: Predictive, Progressive, Manual.",
+          "Fine-grained management of automatic retries based on call qualifications.",
+          "Configuration of the displayed number (Caller ID).",
+          "Configurable answering machine detection (AMD)."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "To start, use 'Progressive' mode. It's simpler than predictive and ensures an agent is always available for each connected call, avoiding abandoned calls."
+      }
     },
     "scripts": {
       "title": "Agent Scripts",
-      "description": "Build interactive call guides for your agents with a visual editor."
+      "description": "Build interactive call guides for your agents with a visual editor.",
+      "userJourney": {
+        "title": "User Journey: Creating a Sales Script",
+        "steps": [
+          "The supervisor clicks 'Create New Script'.",
+          "They drag and drop a 'Title' block for the opening, then a 'Text' block for the pitch.",
+          "They add an 'Input Field' to note the contact's name.",
+          "They add a 'Single Choice' to qualify the prospect's interest.",
+          "They save the script, which becomes available for call campaigns."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Visual drag-and-drop editor.",
+          "Conditional logic to show/hide blocks (coming soon).",
+          "Real-time preview of the agent interface.",
+          "Wide range of field types: texts, inputs, multiple choice, dates, etc."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "Don't try to create a perfect script on the first try. Start with a few simple text blocks for the key conversation points. The goal is to guide, not to force the agent to read a script word for word."
+      }
     },
     "ivr": {
       "title": "IVR Flows",
-      "description": "Design complex inbound call flows with a graphical designer."
+      "description": "Design complex inbound call flows with a graphical designer.",
+      "userJourney": {
+        "title": "User Journey: Creating a Welcome IVR",
+        "steps": [
+          "The admin clicks 'Create New Flow'.",
+          "They connect the 'Start' node to a 'Media' node and type the welcome message.",
+          "They connect the 'Media' to a 'Menu' node ('Press 1 for sales, 2 for support').",
+          "They connect option '1' to a 'Transfer' node to the 'Sales' agent group.",
+          "They connect option '2' to another 'Transfer' node to the 'Support' group.",
+          "They save the flow. It can now be assigned to a number."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Visual node-based editor (connections between blocks).",
+          "Available nodes: Media, Menu, Transfer, Voicemail, Hangup, Calendar.",
+          "The 'Calendar' node allows routing calls differently based on business hours."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "Your first IVR can be very simple: a 'Media' node (welcome message) directly connected to a 'Transfer' node to your main agent group. This already professionalizes how your callers are greeted."
+      }
     },
     "audio": {
       "title": "Media Library",
-      "description": "Import and manage voice prompts for your IVRs and hold music."
+      "description": "Import and manage voice prompts for your IVRs and hold music.",
+      "userJourney": {
+        "title": "Journey: Updating the Welcome Message",
+        "steps": [
+          "The marketing department has recorded a new message for Christmas promotions.",
+          "The admin goes to 'Audio Management', clicks 'Import File'.",
+          "They name the file 'welcome_christmas_2024' and select the MP3 file.",
+          "They then go to the IVR editor, select the welcome 'Media' node.",
+          "They choose the new 'welcome_christmas_2024' file from the dropdown list."
+        ]
+      },
+      "specs": {
+        "title": "Specifications",
+        "points": [
+          "Supports WAV and MP3 formats.",
+          "Automatic conversion to the optimal format for telephony.",
+          "Files can be listened to directly from the interface.",
+          "Organization by folders for complex projects."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Tip",
+        "content": "If you don't have pre-recorded messages, it's not a problem. IVR nodes can use Text-to-Speech to read any message you type."
+      }
     },
     "records": {
       "title": "Recordings",
-      "description": "Listen, download, and archive call recordings for quality and compliance."
+      "description": "Listen, download, and archive call recordings for quality and compliance.",
+      "userJourney": {
+        "title": "Journey: Reviewing a Call for Coaching",
+        "steps": [
+          "A supervisor wants to listen to the call of an agent who had difficulties.",
+          "They go to 'Recordings' and filter by the agent's name and yesterday's date.",
+          "They find the relevant call in the list and click the 'Play' icon.",
+          "The recording is played directly in the browser.",
+          "They can then download the file to archive or share it."
+        ]
+      },
+      "specs": {
+        "title": "Specifications",
+        "points": [
+          "Search by date, agent, campaign, phone number.",
+          "Integrated audio player.",
+          "Download recordings in MP3 format.",
+          "Automatic archiving after a configurable period."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Tip",
+        "content": "Recording activation is done at the level of each outbound campaign or on each inbound queue. Make sure to enable the option where you need it."
+      }
     },
     "qualifications": {
       "title": "Call Qualifications",
-      "description": "Define call-end statuses for reporting and retry strategies."
+      "description": "Define call-end statuses for reporting and retry strategies.",
+      "userJourney": {
+        "title": "User Journey: Creating a Qualification Group",
+        "steps": [
+          "The supervisor clicks 'Create Group'.",
+          "They name the group 'Product A Sales'.",
+          "They add custom qualifications like 'Interested - Call Back' or 'Not Interested - Budget'.",
+          "They assign these new qualifications to the group, in addition to standard qualifications (Answering Machine, No Answer...).",
+          "The group is saved and can be assigned to an outbound call campaign."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Qualifications are grouped into 'Qualification Groups'.",
+          "Types of qualifications: Positive, Negative, Neutral.",
+          "Only neutral and negative qualifications can be used for automatic retries.",
+          "Some qualifications (Answering Machine, No Answer...) are standard and included in all groups."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "Start with a single 'General' group. Simply add the 2 or 3 most important qualifications for your business (e.g., 'Sale Made', 'Appointment Booked')."
+      }
     },
     "supervision": {
       "title": "Real-Time Supervision",
-      "description": "View your contact center's activity live and interact with agents."
+      "description": "View your contact center's activity live and interact with agents.",
+      "userJourney": {
+        "title": "User Journey: Coaching an Agent in Difficulty",
+        "steps": [
+          "The supervisor sees in the dashboard that an agent has been on a call for a very long time.",
+          "They click on the 'Agents' tab to see more details.",
+          "They click the 'Listen' icon next to the agent to listen to the call discreetly.",
+          "They realize the agent is stuck. They click 'Coaching' to speak to the agent without the customer hearing.",
+          "They guide the agent to successfully conclude the call."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Data updates every 2 seconds via WebSocket (simulated).",
+          "Main KPIs: Agents by status, calls waiting, max wait time.",
+          "Supervision actions: Listen, Coaching (whisper), Intervention (barge).",
+          "Detailed view by agent, by call, and by campaign."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "The 'Live' view gives a quick global overview of the contact center's health. It's the first screen to look at to quickly detect a problem (e.g., too many agents on break, a call waiting for too long)."
+      }
     },
     "reporting": {
       "title": "Reports & Analytics",
-      "description": "Explore historical data, create custom reports, and export results."
+      "description": "Explore historical data, create custom reports, and export results.",
+      "userJourney": {
+        "title": "User Journey: Generating a Weekly Performance Report",
+        "steps": [
+          "The manager goes to the 'Reports' section.",
+          "They use the filters to select the 'last 7 days' period and the 'Q4 Sales' campaign.",
+          "They consult the global KPIs and the performance tables by agent.",
+          "They view the charts to identify trends.",
+          "Satisfied with the data, they click 'Export to PDF' to generate a complete report to share."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Powerful filtering by period, agent, and campaign.",
+          "Pivot tables to analyze performance.",
+          "Interactive charts for data visualization.",
+          "Export reports in PDF format."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "Use the predefined periods ('last 7 days', 'This month') for quick access to the most common data. Custom dates are there for more in-depth analysis."
+      }
     },
     "history": {
       "title": "Call History",
-      "description": "Consult, filter, and search the detailed log of all inbound and outbound calls."
+      "description": "Consult, filter, and search the detailed log of all inbound and outbound calls.",
+      "userJourney": {
+        "title": "User Journey: Searching for a Specific Call",
+        "steps": [
+          "A customer calls to complain about a conversation that took place yesterday.",
+          "The supervisor goes to 'Call History'.",
+          "They use the date filters to select yesterday.",
+          "They enter the customer's phone number in the search bar.",
+          "The corresponding call instantly appears, with the agent who handled it and its qualification."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Display of the complete communication history (inbound/outbound calls).",
+          "Multiple filters: by direction, by date/time range.",
+          "Unified search field: search by number, agent name, or campaign name.",
+          "Pagination to handle large volumes of data (coming soon).",
+          "Link to the call recording (coming soon)."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "The date filter is the most powerful to start with. By default, it displays today's calls, giving you a quick view of the day's activity without having to navigate complex reports."
+      }
     },
     "sessions": {
       "title": "Agent Login/Logout",
-      "description": "Consult the detailed log of agent connections, disconnections, and work times."
+      "description": "Consult the detailed log of agent connections, disconnections, and work times.",
+      "userJourney": {
+        "title": "User Journey: Checking an Agent's Hours",
+        "steps": [
+          "A manager wants to check the connection hours of agent 'Alice'.",
+          "They go to the 'Agent Login/Logout' menu.",
+          "They use the filters to select yesterday.",
+          "They enter 'Alice' in the search bar to filter the results.",
+          "The table displays all of Alice's sessions for the day, with her total connection time."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Each agent connection/disconnection generates an entry.",
+          "Filters by date range and agent name.",
+          "Detailed display of each session (start, end, duration).",
+          "Summary panel displaying the total work time per agent over the selected period."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "The date filter is the most powerful. Leave the search empty to see the activity of all agents over the chosen period and quickly identify overall trends."
+      }
     },
     "trunks": {
       "title": "SIP Trunks",
-      "description": "Connect your telephone operators for inbound and outbound calls."
+      "description": "Connect your telephone operators for inbound and outbound calls.",
+      "userJourney": {
+        "title": "User Journey: Configuring a New Operator",
+        "steps": [
+          "The technician receives the SIP credentials from the operator.",
+          "They go to 'SIP Trunks' and click 'Add Trunk'.",
+          "They name the trunk (e.g., 'Main Operator'), and enter the provided domain, login, and password.",
+          "They save the configuration.",
+          "The system registers with the operator and is ready to receive calls."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Supports authentication by login/password.",
+          "Each trunk is registered individually with the operator.",
+          "Numbers (DIDs) are then associated with a specific trunk."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "All the complexity of SIP configuration (codecs, timeouts, etc.) is handled automatically. You only need the 4 main pieces of information from your provider."
+      }
     },
     "dids": {
       "title": "Numbers (DIDs)",
-      "description": "Manage your incoming phone numbers and their initial routing."
+      "description": "Manage your incoming phone numbers and their initial routing.",
+      "userJourney": {
+        "title": "User Journey: Routing a Support Number",
+        "steps": [
+          "The admin goes to 'Numbers (DIDs)' and clicks 'Add'.",
+          "They enter the phone number (e.g., 0123456789) and a description ('Technical Support').",
+          "They select the SIP Trunk through which this number arrives.",
+          "In 'Destination', they choose the previously created 'Main IVR' flow.",
+          "They save. Any call to this number will now be handled by the IVR."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Each number must be unique.",
+          "A number is associated with a single SIP Trunk.",
+          "The destination can be an IVR or directly a campaign/group (future functionality)."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "Make sure you have created at least one SIP Trunk and one IVR flow before adding a number, as these are mandatory fields for routing."
+      }
     },
     "sites-config": {
       "title": "Site Configuration",
-      "description": "Manage different physical sites for outbound call routing."
+      "description": "Manage different physical sites for outbound call routing.",
+      "userJourney": {
+        "title": "User Journey: Adding a New Branch",
+        "steps": [
+          "The administrator goes to 'Site Configuration'.",
+          "They click 'Add Site'.",
+          "They name the site 'Lyon Branch'.",
+          "They save. The site is now available to assign agents to.",
+          "The system will use this site to route outbound calls through the correct telephone gateway."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Each site must have a unique name.",
+          "A site is used by Asterisk to select the correct outbound Trunk.",
+          "Deleting a site will automatically unassign any agents linked to it."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "Even if you only have one physical location, create a 'Main' site. This prepares your configuration for future expansion and ensures proper call routing."
+      }
     },
     "module-settings": {
       "title": "Module Management",
-      "description": "Enable or disable menus for Administrator and Supervisor roles."
+      "description": "Enable or disable menus for Administrator and Supervisor roles.",
+      "userJourney": {
+        "title": "Journey: Hiding Audio Management",
+        "steps": [
+          "The SuperAdmin goes to 'Settings' > 'Module Management'.",
+          "They locate the 'Sound' category or the 'Media Library' submenu.",
+          "They disable the corresponding switch.",
+          "They save the changes.",
+          "Users with the 'Administrator' role will no longer see this menu."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Access to this page is strictly reserved for users with the 'SuperAdmin' role.",
+          "Visibility changes do not affect SuperAdmins.",
+          "Disabling a category hides all its submenus.",
+          "Settings are saved and applied to all future sessions of the affected users."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "For a new client, start by hiding all non-essential modules to simplify onboarding. You can reactivate them progressively based on their needs."
+      }
     },
     "languages": {
-      "title": "Languages",
-      "description": "Manage the languages available in the application."
+        "title": "Languages",
+        "description": "Manage the languages available in the application.",
+        "userJourney": {
+            "title": "Journey: Changing the Interface Language",
+            "steps": [
+                "The user clicks on the language selector in the header.",
+                "They choose 'Français' from the dropdown list.",
+                "The entire interface is instantly translated into French."
+            ]
+        },
+        "specs": {
+            "title": "Technical Specifications",
+            "points": [
+                "The language choice is saved in the browser's local storage.",
+                "Adding new languages is done by creating a new JSON translation file."
+            ]
+        },
+        "simplificationTip": {
+            "title": "Tip",
+            "content": "This module is a placeholder. Active language management is done via the selector in the header for quick access."
+        }
     },
     "database-client": {
       "title": "Database",
-      "description": "Execute SQL queries directly on the database for debugging and advanced reporting."
+      "description": "Execute SQL queries directly on the database for debugging and advanced reporting.",
+      "userJourney": {
+        "title": "Journey: Checking Imported Contacts",
+        "steps": [
+          "The SuperAdmin suspects a problem with the last contact import.",
+          "They go to 'Settings' > 'Database'.",
+          "They click on the predefined query 'List the last 20 contacts'.",
+          "The query `SELECT * FROM contacts ORDER BY created_at DESC LIMIT 20;` appears in the editor.",
+          "They execute the query and examine the results in the table to confirm the data."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Access reserved for users with the 'SuperAdmin' role.",
+          "'Read-Only' mode is enabled by default to prevent accidental modifications.",
+          "Backend query validation to block dangerous commands in read-only mode.",
+          "Dynamic display of results in a table."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Security Tip",
+        "content": "Always use predefined queries when possible. Only disable 'Read-Only' mode when absolutely necessary and after double-checking your `UPDATE` or `DELETE` query, especially the `WHERE` clause."
+      }
     },
     "system-connection": {
       "title": "System Connection",
-      "description": "Configure connections to the database and the Asterisk telephony server."
+      "description": "Configure connections to the database and the Asterisk telephony server.",
+      "userJourney": {
+        "title": "Journey: Initial System Configuration",
+        "steps": [
+          "The administrator goes to 'System Connection'.",
+          "In the 'Database' section, they enter the host, port, and credentials.",
+          "They click 'Test Connection' and wait for the success indicator.",
+          "In the 'Telephony' section, they configure access to the Asterisk Management Interface (AMI).",
+          "They also test this connection.",
+          "Once both connections are validated, they save the settings and the system is operational."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Passwords are stored encrypted and are never displayed in plain text.",
+          "Connection tests attempt a real authentication with the provided credentials.",
+          "Changes are only applied after clicking 'Save Changes'.",
+          "These settings are critical and should only be modified by a system administrator."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "Use the 'Test Connection' button for each section after entering the information. This ensures the settings are correct before saving them and activating the connection."
+      }
     },
     "api-docs": {
       "title": "API Documentation",
-      "description": "Consult the complete API documentation for integration and development."
+      "description": "Consult the complete API documentation for integration and development.",
+      "userJourney": {
+        "title": "Journey: Consulting an Endpoint",
+        "steps": [
+          "The SuperAdmin goes to 'Settings' > 'API Documentation'.",
+          "They navigate to the 'Users' section.",
+          "They click on the 'GET /api/users' endpoint to see its description.",
+          "They examine the request body and response examples to understand how to use it."
+        ]
+      },
+      "specs": {
+        "title": "Technical Specifications",
+        "points": [
+          "Access to this page is strictly reserved for users with the 'SuperAdmin' role.",
+          "The documentation is read-only.",
+          "Provides clear examples for each available endpoint in the API."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Simplification Tip",
+        "content": "This page is a technical reference. Use it to understand the application's data structure or to develop integrations with third-party systems."
+      }
     },
     "billing": {
       "title": "Billing",
-      "description": "Manage subscriptions and view billing history."
+      "description": "Manage subscriptions and view billing history.",
+      "userJourney": { "titleKey": "", "stepsKeys": [] },
+      "specs": { "titleKey": "", "pointsKeys": [] },
+      "simplificationTip": { "titleKey": "", "contentKey": "" }
     },
     "system-settings": {
       "title": "System",
       "description": "Configure low-level system settings, such as email sending.",
-       "tabs": {
-        "appearance": "Appearance",
-        "email": "Email (SMTP)",
-        "licenses": "Licenses"
-      }
+      "userJourney": { "titleKey": "", "stepsKeys": [] },
+      "specs": { "titleKey": "", "pointsKeys": [] },
+      "simplificationTip": { "titleKey": "", "contentKey": "" }
     }
   }
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import type { Feature, SystemSmtpSettings, SystemAppSettings, LicenseStatus } from '../types.ts';
-import { Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon, PaletteIcon, BuildingOfficeIcon, ShieldCheckIcon, UsersIcon, CircleStackIcon } from './Icons.tsx';
+import type { Feature, SystemSmtpSettings, SystemAppSettings } from '../types.ts';
+import { Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon, PaletteIcon, BuildingOfficeIcon } from './Icons.tsx';
 import { useI18n } from '../src/i18n/index.tsx';
 
 const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void; }> = ({ enabled, onChange }) => (
@@ -45,11 +45,6 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
     const [localAppSettings, setLocalAppSettings] = useState<SystemAppSettings>(appSettings);
     const [isSavingApp, setIsSavingApp] = useState(false);
     const [showAppSuccess, setShowAppSuccess] = useState(false);
-    
-    // --- Licence State ---
-    const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>(null);
-    const [licenseKey, setLicenseKey] = useState('');
-    const [isActivating, setIsActivating] = useState(false);
 
 
     useEffect(() => {
@@ -60,20 +55,6 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
             setLocalAppSettings(appSettings);
         }
     }, [smtpSettings, appSettings]);
-    
-     useEffect(() => {
-        const fetchLicenseStatus = async () => {
-            if (activeTab === 'licences') {
-                try {
-                    const response = await apiCall.get('/system/license-status');
-                    setLicenseStatus(response.data);
-                } catch (error) {
-                    console.error("Failed to fetch license status", error);
-                }
-            }
-        };
-        fetchLicenseStatus();
-    }, [activeTab, apiCall]);
     
     // --- Handlers ---
     const handleSmtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -116,21 +97,6 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
             setTimeout(() => setShowAppSuccess(false), 2500);
         } catch(error) { /* Error shown by App component */ }
         finally { setIsSavingApp(false); }
-    };
-    
-    const handleActivateLicense = async () => {
-        if (!licenseKey.trim()) return;
-        setIsActivating(true);
-        try {
-            const response = await apiCall.post('/system/activate-license', { licenseKey });
-            setLicenseStatus(response.data);
-            setLicenseKey('');
-            alert("Licence activée avec succès !");
-        } catch(error: any) {
-            alert(`Erreur d'activation : ${error.response?.data?.error || error.message}`);
-        } finally {
-            setIsActivating(false);
-        }
     };
 
     const TabButton: React.FC<{ tab: string; label: string; icon: React.FC<any>}> = ({ tab, label, icon: Icon }) => (
@@ -216,75 +182,12 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
          </div>
     );
     
-    const renderLicencesContent = () => {
-        if (!licenseStatus) {
-            return <div className="text-center p-8 text-slate-500">Chargement des informations de licence...</div>;
-        }
-
-        const statusInfo = {
-            TRIAL: { text: "Période d'essai", color: 'bg-blue-100 text-blue-800' },
-            ACTIVE: { text: 'Licence Active', color: 'bg-green-100 text-green-800' },
-            EXPIRED: { text: 'Licence Expirée', color: 'bg-red-100 text-red-800' },
-            INVALID: { text: 'Licence Invalide', color: 'bg-red-100 text-red-800' },
-        };
-        
-        const agentUsage = licenseStatus.limits.agents.max > 0 ? (licenseStatus.limits.agents.current / licenseStatus.limits.agents.max) * 100 : 0;
-        const channelUsage = licenseStatus.limits.channels.max > 0 ? (licenseStatus.limits.channels.current / licenseStatus.limits.channels.max) * 100 : 0;
-        
-        return (
-            <div className="space-y-6">
-                <div>
-                    <label className="text-sm font-medium text-slate-600">Empreinte Machine</label>
-                    <input type="text" readOnly value={licenseStatus.machineFingerprint} className="mt-1 w-full p-2 font-mono text-xs bg-slate-100 border rounded-md" />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-slate-50 p-4 rounded-lg border">
-                        <p className="text-sm font-medium text-slate-500">Statut de la Licence</p>
-                        <p className={`mt-1 text-lg font-bold px-2 py-1 rounded-md inline-block ${statusInfo[licenseStatus.status].color}`}>{statusInfo[licenseStatus.status].text}</p>
-                    </div>
-                     <div className="bg-slate-50 p-4 rounded-lg border">
-                        <p className="text-sm font-medium text-slate-500">Expire le</p>
-                        <p className="mt-1 text-lg font-bold text-slate-800">
-                             {licenseStatus.expiresAt ? new Date(licenseStatus.expiresAt).toLocaleDateString('fr-FR') : 'N/A'}
-                             {licenseStatus.daysRemaining !== null && <span className="text-sm font-normal ml-2 text-slate-500">({licenseStatus.daysRemaining} jours restants)</span>}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="space-y-4">
-                    <div>
-                        <div className="flex justify-between items-baseline">
-                             <label className="text-sm font-medium text-slate-600 flex items-center gap-2"><UsersIcon className="w-4 h-4"/>Agents Simultanés</label>
-                             <span className="text-sm font-semibold">{licenseStatus.limits.agents.current} / {licenseStatus.limits.agents.max}</span>
-                        </div>
-                        <div className="w-full bg-slate-200 rounded-full h-2.5 mt-1">
-                            <div className="bg-primary h-2.5 rounded-full" style={{ width: `${agentUsage}%` }}></div>
-                        </div>
-                    </div>
-                     <div>
-                        <div className="flex justify-between items-baseline">
-                            <label className="text-sm font-medium text-slate-600 flex items-center gap-2"><CircleStackIcon className="w-4 h-4"/>Canaux Vocaux Simultanés</label>
-                            <span className="text-sm font-semibold">{licenseStatus.limits.channels.current} / {licenseStatus.limits.channels.max}</span>
-                        </div>
-                        <div className="w-full bg-slate-200 rounded-full h-2.5 mt-1">
-                            <div className="bg-primary h-2.5 rounded-full" style={{ width: `${channelUsage}%` }}></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div className="pt-6 border-t">
-                     <h3 className="text-lg font-semibold text-slate-800">Activer une nouvelle licence</h3>
-                     <textarea value={licenseKey} onChange={e => setLicenseKey(e.target.value)} rows={4} className="mt-2 w-full p-2 font-mono text-xs border rounded-md" placeholder="Collez votre clé de licence ici..."/>
-                     <div className="text-right mt-2">
-                         <button onClick={handleActivateLicense} disabled={isActivating || !licenseKey} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50">
-                            {isActivating ? "Activation..." : "Activer la licence"}
-                         </button>
-                     </div>
-                </div>
-            </div>
-        )
-    };
+    const renderLicencesContent = () => (
+        <div className="text-center p-8 text-slate-500">
+            <h3 className="text-xl font-semibold">Gestion des Licences</h3>
+            <p className="mt-2">Ce module est en cours de développement.</p>
+        </div>
+    );
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
@@ -298,9 +201,9 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
             <div className="bg-white rounded-lg shadow-sm border border-slate-200">
                 <div className="border-b border-slate-200">
                     <nav className="-mb-px flex space-x-6 px-6">
-                        <TabButton tab="apparence" label={t('features.system-settings.tabs.appearance')} icon={PaletteIcon} />
-                        <TabButton tab="email" label={t('features.system-settings.tabs.email')} icon={EnvelopeIcon} />
-                        <TabButton tab="licences" label={t('features.system-settings.tabs.licenses')} icon={ShieldCheckIcon} />
+                        <TabButton tab="apparence" label="Apparence" icon={PaletteIcon} />
+                        <TabButton tab="email" label="Email (SMTP)" icon={EnvelopeIcon} />
+                        <TabButton tab="licences" label="Licences" icon={Cog6ToothIcon} />
                     </nav>
                 </div>
                 <div className="p-6">

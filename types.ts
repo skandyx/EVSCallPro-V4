@@ -436,14 +436,3 @@ export interface SystemAppSettings {
     colorPalette: 'default' | 'forest' | 'ocean' | 'sunset' | 'slate' | 'rose' | 'amber' | 'cyan';
     appName: string;
 }
-
-export interface LicenseStatus {
-    machineFingerprint: string;
-    status: 'TRIAL' | 'ACTIVE' | 'EXPIRED' | 'INVALID';
-    expiresAt: string | null;
-    daysRemaining: number | null;
-    limits: {
-        agents: { current: number; max: number; };
-        channels: { current: number; max: number; };
-    };
-}
