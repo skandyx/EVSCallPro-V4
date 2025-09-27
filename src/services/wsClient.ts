@@ -1,3 +1,4 @@
+
 type MessageHandler = (data: any) => void;
 
 class WebSocketClient {
@@ -11,10 +12,6 @@ class WebSocketClient {
 
   constructor() {
     // URL is now set in connect()
-  }
-
-  public isDisconnected(): boolean {
-    return !this.ws || this.ws.readyState === WebSocket.CLOSED;
   }
 
   connect(token: string): void {

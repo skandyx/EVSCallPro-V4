@@ -6,7 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Architecte de Solutions de Centre de Contact</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="/tailwind.config.js"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
     <link rel="stylesheet" href="/styles.css">
     <!-- PDF Export Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -30,7 +34,7 @@
 }
 </script>
 </head>
-  <body>
+  <body class="bg-slate-50">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

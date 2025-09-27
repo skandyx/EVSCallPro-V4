@@ -1,146 +1,156 @@
 /*
-  EVSCallPro Theme & Design System
-  This file is the single source of truth for the application's appearance.
-  It uses CSS Custom Properties (variables) to define a semantic design system.
-  - `:root` defines light mode defaults.
-  - `:root.dark` defines dark mode overrides.
-  - `html[data-theme="..."]` blocks override the primary accent colors.
-  - The `tailwind.config.js` file is configured to use these variables.
+  EVSCallPro Theme Styles
+  This file defines all color palettes for the application.
+  Themes are activated by setting `data-theme` on the <html> element.
+  Dark mode is activated by adding `class="dark"` to the <html> element.
 */
 
-/* 1. Font Setup */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-/* 2. Base & Light Mode Theme Definition */
+/* 1. Base Variables & Fallbacks (Defaults to Indigo) */
 :root {
-  --font-sans: 'Inter', sans-serif;
-  
-  /* HSL values for colors */
-  --background: 0 0% 100%;
-  --foreground: 222.2 47.4% 11.2%;
-  
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 47.4% 11.2%;
-  
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 47.4% 11.2%;
-
-  --primary: 243 93% 59%; /* Indigo-600 */
-  --primary-foreground: 0 0% 100%;
-  
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 243 93% 59%;
-  
-  --link: 243 93% 59%;
-
-  --radius: 0.5rem; /* for rounded-lg */
+  --color-primary-600-rgb: 79 70 229;
+  --color-primary-700-rgb: 67 56 202;
+  --color-sidebar-active-bg: #eeefff;
+  --color-sidebar-active-text: #4338ca;
+  --color-link-text: #4f46e5;
 }
 
-/* 3. Dark Mode Theme Definition */
 :root.dark {
-  --background: 224 71% 4%;
-  --foreground: 213 31% 91%;
-  
-  --card: 224 71% 4%;
-  --card-foreground: 213 31% 91%;
-
-  --popover: 224 71% 4%;
-  --popover-foreground: 213 31% 91%;
-
-  --primary: 243 93% 59%;
-  --primary-foreground: 0 0% 100%;
-
-  --secondary: 215 28% 17%;
-  --secondary-foreground: 213 31% 91%;
-
-  --muted: 215 28% 17%;
-  --muted-foreground: 215 20% 65%;
-
-  --accent: 215 28% 17%;
-  --accent-foreground: 213 31% 91%;
-
-  --destructive: 0 63% 31%;
-  --destructive-foreground: 213 31% 91%;
-
-  --border: 215 28% 17%;
-  --input: 215 28% 17%;
-  --ring: 243 93% 59%;
-  
-  --link: 243 83% 75%;
+  --color-sidebar-active-bg: rgba(79, 70, 229, 0.2);
+  --color-sidebar-active-text: #a5b4fc;
+  --color-link-text: #a5b4fc;
 }
 
-
-/* 4. Color Palette Overrides (data-theme) */
+/* 2. Theme Overrides */
 
 /* --- Indigo Intense (default) --- */
-html[data-theme="default"] { --primary: 243 93% 59%; }
-html[data-theme="default"].dark { --primary: 243 93% 59%; }
+html[data-theme="default"] {
+  --color-primary-600-rgb: 79 70 229;
+  --color-primary-700-rgb: 67 56 202;
+  --color-sidebar-active-bg: #eeefff;
+  --color-sidebar-active-text: #4338ca;
+  --color-link-text: #4f46e5;
+}
+html[data-theme="default"].dark {
+  --color-sidebar-active-bg: rgba(79, 70, 229, 0.2);
+  --color-sidebar-active-text: #a5b4fc;
+  --color-link-text: #a5b4fc;
+}
 
 /* --- Vert Forêt --- */
-html[data-theme="forest"] { --primary: 142 76% 36%; }
-html[data-theme="forest"].dark { --primary: 142 71% 45%; }
+html[data-theme="forest"] {
+  --color-primary-600-rgb: 22 163 74;
+  --color-primary-700-rgb: 21 128 61;
+  --color-sidebar-active-bg: #f0fdf4;
+  --color-sidebar-active-text: #166534;
+  --color-link-text: #16a34a;
+}
+html[data-theme="forest"].dark {
+  --color-sidebar-active-bg: rgba(34, 197, 94, 0.2);
+  --color-sidebar-active-text: #86efac;
+  --color-link-text: #86efac;
+}
 
 /* --- Bleu Océan --- */
-html[data-theme="ocean"] { --primary: 221 83% 53%; }
-html[data-theme="ocean"].dark { --primary: 221 83% 63%; }
+html[data-theme="ocean"] {
+  --color-primary-600-rgb: 37 99 235;
+  --color-primary-700-rgb: 29 78 216;
+  --color-sidebar-active-bg: #eff6ff;
+  --color-sidebar-active-text: #1e3a8a;
+  --color-link-text: #2563eb;
+}
+html[data-theme="ocean"].dark {
+  --color-sidebar-active-bg: rgba(59, 130, 246, 0.2);
+  --color-sidebar-active-text: #93c5fd;
+  --color-link-text: #93c5fd;
+}
 
 /* --- Coucher de Soleil --- */
-html[data-theme="sunset"] { --primary: 25 95% 53%; }
-html[data-theme="sunset"].dark { --primary: 25 95% 63%; }
+html[data-theme="sunset"] {
+  --color-primary-600-rgb: 234 88 12;
+  --color-primary-700-rgb: 194 65 12;
+  --color-sidebar-active-bg: #fff7ed;
+  --color-sidebar-active-text: #9a3412;
+  --color-link-text: #f97316;
+}
+html[data-theme="sunset"].dark {
+  --color-sidebar-active-bg: rgba(249, 115, 22, 0.2);
+  --color-sidebar-active-text: #fdba74;
+  --color-link-text: #fdba74;
+}
 
 /* --- Gris Ardoise --- */
-html[data-theme="slate"] { --primary: 215 25% 27%; }
-html[data-theme="slate"].dark { --primary: 215 28% 48%; }
+html[data-theme="slate"] {
+  --color-primary-600-rgb: 71 85 105;
+  --color-primary-700-rgb: 51 65 85;
+  --color-sidebar-active-bg: #f1f5f9;
+  --color-sidebar-active-text: #334155;
+  --color-link-text: #475569;
+}
+html[data-theme="slate"].dark {
+  --color-sidebar-active-bg: rgba(100, 116, 139, 0.2);
+  --color-sidebar-active-text: #cbd5e1;
+  --color-link-text: #94a3b8;
+}
 
 /* --- Rose Corail --- */
-html[data-theme="rose"] { --primary: 347 84% 49%; }
-html[data-theme="rose"].dark { --primary: 347 84% 59%; }
+html[data-theme="rose"] {
+  --color-primary-600-rgb: 225 29 72;
+  --color-primary-700-rgb: 190 18 60;
+  --color-sidebar-active-bg: #fff1f2;
+  --color-sidebar-active-text: #9f1239;
+  --color-link-text: #e11d48;
+}
+html[data-theme="rose"].dark {
+  --color-sidebar-active-bg: rgba(244, 63, 94, 0.2);
+  --color-sidebar-active-text: #fda4af;
+  --color-link-text: #fb7185;
+}
 
 /* --- Ambre Doré --- */
-html[data-theme="amber"] { --primary: 36 94% 42%; }
-html[data-theme="amber"].dark { --primary: 36 94% 52%; }
+html[data-theme="amber"] {
+  --color-primary-600-rgb: 217 119 6;
+  --color-primary-700-rgb: 180 83 9;
+  --color-sidebar-active-bg: #fffbeb;
+  --color-sidebar-active-text: #92400e;
+  --color-link-text: #d97706;
+}
+html[data-theme="amber"].dark {
+  --color-sidebar-active-bg: rgba(245, 158, 11, 0.2);
+  --color-sidebar-active-text: #fcd34d;
+  --color-link-text: #fbbf24;
+}
 
 /* --- Cyan Lagon --- */
-html[data-theme="cyan"] { --primary: 190 81% 36%; }
-html[data-theme="cyan"].dark { --primary: 190 81% 46%; }
-
-
-/* 5. Base Body Styles */
-body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: var(--font-sans);
+html[data-theme="cyan"] {
+  --color-primary-600-rgb: 8 145 178;
+  --color-primary-700-rgb: 14 116 144;
+  --color-sidebar-active-bg: #ecfeff;
+  --color-sidebar-active-text: #155e75;
+  --color-link-text: #0891b2;
+}
+html[data-theme="cyan"].dark {
+  --color-sidebar-active-bg: rgba(6, 182, 212, 0.2);
+  --color-sidebar-active-text: #67e8f9;
+  --color-link-text: #22d3ee;
 }
 
-/* 6. Utility classes (kept for compatibility with old system) */
+
+/* 3. Utility classes using the variables */
 .bg-primary {
-  background-color: hsl(var(--primary));
+  background-color: rgb(var(--color-primary-600-rgb));
 }
 .hover\:bg-primary-hover:hover {
-   background-color: hsl(var(--primary) / 0.9);
+  background-color: rgb(var(--color-primary-700-rgb));
 }
 .text-primary-text {
-  color: hsl(var(--primary-foreground));
-}
-.text-link {
-  color: hsl(var(--link));
+  color: white;
 }
 .bg-sidebar-active {
-  background-color: hsl(var(--accent));
+  background-color: var(--color-sidebar-active-bg);
 }
 .text-sidebar-active-text {
-  color: hsl(var(--accent-foreground));
+  color: var(--color-sidebar-active-text);
+}
+.text-link {
+  color: var(--color-link-text);
 }

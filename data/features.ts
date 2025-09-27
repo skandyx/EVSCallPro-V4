@@ -10,12 +10,14 @@ import ScriptFeature from '../components/ScriptFeature.tsx';
 import IvrFeature from '../components/IvrFeature.tsx';
 import AudioManager from '../components/AudioManager.tsx';
 import RecordsManager from '../components/RecordsManager.tsx';
-// FIX: Corrected all component import paths to be relative.
+// FIX: Corrected import path for SupervisionDashboard
 import SupervisionDashboard from '../components/SupervisionDashboard.tsx';
 import ReportingDashboard from '../components/ReportingDashboard.tsx';
 import MaintenanceManager from '../components/MaintenanceManager.tsx';
 import MonitoringDashboard from '../components/MonitoringDashboard.tsx';
+// FIX: Corrected import path for HistoryViewer
 import HistoryViewer from '../components/HistoryViewer.tsx';
+// FIX: Corrected import path for SessionViewer
 import SessionViewer from '../components/SessionViewer.tsx';
 import HelpCenter from '../components/HelpCenter.tsx';
 import PlanningManager from '../components/PlanningManager.tsx';

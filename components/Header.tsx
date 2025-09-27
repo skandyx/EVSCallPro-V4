@@ -1,45 +1,91 @@
 import React, { useState, useEffect } from 'react';
-import type { User } from '../types.ts';
-import { UserCircleIcon, SunIcon, MoonIcon, PowerIcon } from './Icons.tsx';
+import { WrenchScrewdriverIcon, ServerStackIcon, ComputerDesktopIcon, SunIcon, MoonIcon } from './Icons.tsx';
+
+type Theme = 'light' | 'dark' | 'system';
 
 interface HeaderProps {
-    user: User;
-    onLogout: () => void;
+    activeView: 'app' | 'monitoring';
+    onViewChange: (view: 'app' | 'monitoring') => void;
+    theme: Theme;
+    setTheme: (theme: Theme) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
-    const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
+// --- Clock Component ---
+const Clock: React.FC = () => {
     const [time, setTime] = useState(new Date());
 
     useEffect(() => {
-        const timer = setInterval(() => setTime(new Date()), 1000);
-        return () => clearInterval(timer);
+        const timerId = setInterval(() => setTime(new Date()), 1000);
+        return () => clearInterval(timerId);
     }, []);
-    
-    useEffect(() => {
-        if (isDarkMode) {
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('darkMode', 'true');
-        } else {
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('darkMode', 'false');
-        }
-    }, [isDarkMode]);
 
     return (
-        <header className="flex-shrink-0 flex justify-end items-center p-4 bg-card border-b border-border h-16">
-            <div className="flex items-center gap-4">
-                <div className="text-right">
-                    <p className="text-sm font-semibold text-foreground">{time.toLocaleTimeString('fr-FR')}</p>
-                    <p className="text-xs text-muted-foreground">{time.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                </div>
+        <div className="text-sm font-medium text-slate-500 dark:text-slate-400 font-mono">
+            {time.toLocaleTimeString('fr-FR')}
+        </div>
+    );
+};
+
+// --- ThemeSwitcher Component ---
+const ThemeSwitcher: React.FC<{ theme: Theme; setTheme: (theme: Theme) => void; }> = ({ theme, setTheme }) => {
+    const options: { name: Theme; icon: React.FC<any>; title: string }[] = [
+        { name: 'system', icon: ComputerDesktopIcon, title: 'Thème du système' },
+        { name: 'light', icon: SunIcon, title: 'Thème clair' },
+        { name: 'dark', icon: MoonIcon, title: 'Thème sombre' },
+    ];
+
+    return (
+        <div className="flex items-center p-1 space-x-1 bg-slate-100 dark:bg-slate-700 rounded-full">
+            {options.map(option => (
                 <button
-                    onClick={() => setIsDarkMode(!isDarkMode)}
-                    className="p-2 rounded-full hover:bg-secondary text-muted-foreground"
-                    title={isDarkMode ? 'Passer au mode clair' : 'Passer au mode sombre'}
+                    key={option.name}
+                    onClick={() => setTheme(option.name)}
+                    className={`p-1.5 rounded-full transition-colors ${
+                        theme === option.name
+                            ? 'bg-white dark:bg-slate-900 shadow-sm text-indigo-600 dark:text-indigo-400'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                    }`}
+                    title={option.title}
                 >
-                    {isDarkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+                    <option.icon className="w-5 h-5" />
                 </button>
+            ))}
+        </div>
+    );
+};
+
+
+const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, theme, setTheme }) => {
+    const TabButton: React.FC<{
+        viewName: 'app' | 'monitoring';
+        label: string;
+        icon: React.FC<React.SVGProps<SVGSVGElement>>;
+    }> = ({ viewName, label, icon: Icon }) => {
+        const isActive = activeView === viewName;
+        return (
+            <button
+                onClick={() => onViewChange(viewName)}
+                className={`flex items-center space-x-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+                    isActive
+                        ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                        : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
+                }`}
+            >
+                <Icon className="w-5 h-5" />
+                <span>{label}</span>
+            </button>
+        );
+    };
+
+    return (
+        <header className="flex-shrink-0 bg-white dark:bg-slate-800 shadow-sm border-b border-slate-200 dark:border-slate-700 flex justify-between items-center pr-4">
+            <nav className="flex space-x-2">
+                <TabButton viewName="app" label="Application" icon={WrenchScrewdriverIcon} />
+                <TabButton viewName="monitoring" label="Monitoring" icon={ServerStackIcon} />
+            </nav>
+            <div className="flex items-center gap-4">
+                <Clock />
+                <ThemeSwitcher theme={theme} setTheme={setTheme} />
             </div>
         </header>
     );

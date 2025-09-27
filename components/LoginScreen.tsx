@@ -1,45 +1,61 @@
 import React, { useState } from 'react';
 import type { User } from '../types.ts';
-import apiClient from '../src/lib/axios.ts';
 import { LogoIcon } from './Icons.tsx';
+import apiClient from '../src/lib/axios.ts';
 
 interface LoginScreenProps {
-    onLogin: (user: User, token: string) => void;
-    loginError: string | null;
+    onLoginSuccess: (data: { user: User, token: string }) => void;
+    appLogoUrl?: string;
+    appName?: string;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, loginError }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, appLogoUrl, appName }) => {
     const [loginId, setLoginId] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
         setIsLoading(true);
-        setError(null);
+
         try {
             const response = await apiClient.post('/auth/login', { loginId, password });
-            const { user, accessToken } = response.data;
-            onLogin(user, accessToken);
+            const data = response.data;
+
+            if (data.user && data.user.isActive) {
+                onLoginSuccess({ user: data.user, token: data.accessToken });
+            } else {
+                 setError("Ce compte utilisateur est désactivé.");
+            }
         } catch (err: any) {
-            setError(err.response?.data?.error || 'Erreur de connexion');
+            console.error("Login request failed:", err);
+            if (err.response && err.response.data && err.response.data.error) {
+                setError(err.response.data.error);
+            } else {
+                setError("Erreur de connexion au serveur.");
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <LogoIcon className="mx-auto h-12 w-auto text-indigo-600" />
-                <h1 className="mt-6 text-center text-3xl font-extrabold text-slate-900">Architecte de Solutions</h1>
-                <p className="mt-2 text-center text-sm text-slate-600">Connectez-vous à votre compte</p>
-            </div>
-
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10">
-                    <form className="space-y-6" onSubmit={handleSubmit}>
+        <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-100 font-sans p-4">
+            <div className="w-full max-w-sm">
+                <div className="flex justify-center items-center mb-6">
+                    {appLogoUrl ? (
+                        <img src={appLogoUrl} alt="Logo" className="h-12 w-auto max-w-[6rem]" />
+                    ) : (
+                        <LogoIcon className="w-12 h-12 text-indigo-600"/>
+                    )}
+                    <h1 className="text-2xl font-bold text-slate-800 ml-3">{appName || 'Architecte de Solutions'}</h1>
+                </div>
+                <div className="bg-white rounded-lg shadow-lg p-8">
+                    <h2 className="text-xl font-semibold text-center text-slate-700 mb-1">Connexion</h2>
+                    <p className="text-sm text-slate-500 text-center mb-6">Veuillez entrer vos identifiants.</p>
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label htmlFor="loginId" className="block text-sm font-medium text-slate-700">
                                 Identifiant / Extension
@@ -59,7 +75,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, loginError }) => {
                         </div>
 
                         <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                            <label htmlFor="password"  className="block text-sm font-medium text-slate-700">
                                 Mot de passe
                             </label>
                             <div className="mt-1">
@@ -75,24 +91,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, loginError }) => {
                                 />
                             </div>
                         </div>
-
-                        {(error || loginError) && (
-                            <div className="bg-red-50 p-3 rounded-md">
-                                <p className="text-sm text-red-700">{error || loginError}</p>
-                            </div>
-                        )}
+                        
+                        {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
                         <div>
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-text bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                             >
-                                {isLoading ? 'Connexion...' : 'Se connecter'}
+                                {isLoading ? 'Connexion...' : 'Entrer'}
                             </button>
                         </div>
                     </form>
                 </div>
+                <p className="text-center text-xs text-slate-500 mt-6">&copy; 2024 Solution Simplifiée Inc.</p>
             </div>
         </div>
     );
