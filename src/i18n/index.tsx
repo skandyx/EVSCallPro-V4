@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import fr from '/src/i18n/locales/fr.json';
-import en from '/src/i18n/locales/en.json';
-import ar from '/src/i18n/locales/ar.json';
+import fr from '/src/i18n/locales/fr.json' assert { type: 'json' };
+import en from '/src/i18n/locales/en.json' assert { type: 'json' };
+import ar from '/src/i18n/locales/ar.json' assert { type: 'json' };
 
 const translations: Record<string, any> = { fr, en, ar };
 
