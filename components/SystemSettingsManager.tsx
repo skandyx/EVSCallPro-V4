@@ -22,6 +22,10 @@ const PALETTES: { id: SystemAppSettings['colorPalette']; name: string; colors: s
     { id: 'forest', name: 'Vert Forêt', colors: ['#16a34a', '#15803d', '#dcfce7'] },
     { id: 'ocean', name: 'Bleu Océan', colors: ['#2563eb', '#1d4ed8', '#dbeafe'] },
     { id: 'sunset', name: 'Coucher de Soleil', colors: ['#ea580c', '#c2410c', '#fff7ed'] },
+    { id: 'slate', name: 'Gris Ardoise', colors: ['#475569', '#334155', '#f1f5f9'] },
+    { id: 'rose', name: 'Rose Corail', colors: ['#e11d48', '#be123c', '#fff1f2'] },
+    { id: 'amber', name: 'Ambre Doré', colors: ['#d97706', '#b45309', '#fffbeb'] },
+    { id: 'cyan', name: 'Cyan Lagon', colors: ['#0891b2', '#0e7490', '#ecfeff'] },
 ];
 
 const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, smtpSettings, appSettings, onSaveSmtpSettings, onSaveAppSettings, apiCall }) => {

@@ -430,6 +430,6 @@ export interface SystemSmtpSettings {
 export interface SystemAppSettings {
     companyAddress: string;
     appLogoUrl: string;
-    colorPalette: 'default' | 'forest' | 'ocean' | 'sunset';
+    colorPalette: 'default' | 'forest' | 'ocean' | 'sunset' | 'slate' | 'rose' | 'amber' | 'cyan';
     appName: string;
 }

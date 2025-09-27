@@ -159,8 +159,8 @@ const IvrFeature: React.FC<IvrFeatureProps> = ({
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono">{flow.id}</td>
                                         <td className="px-6 py-4 whitespace-nowrap font-medium text-slate-800">{flow.name}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                                            <button onClick={() => handleEdit(flow)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center"><EditIcon className="w-4 h-4 mr-1"/> Modifier</button>
-                                            <button onClick={() => onDuplicateIvrFlow(flow.id)} className="text-slate-500 hover:text-slate-800 inline-flex items-center"><DuplicateIcon className="w-4 h-4 mr-1"/> Dupliquer</button>
+                                            <button onClick={() => handleEdit(flow)} className="text-link hover:underline inline-flex items-center"><EditIcon className="w-4 h-4 mr-1"/> Modifier</button>
+                                            <button onClick={() => onDuplicateIvrFlow(flow.id)} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 inline-flex items-center"><DuplicateIcon className="w-4 h-4 mr-1"/> Dupliquer</button>
                                             <button onClick={() => onDeleteIvrFlow(flow.id)} className="text-red-600 hover:text-red-900 inline-flex items-center"><TrashIcon className="w-4 h-4 mr-1"/> Supprimer</button>
                                         </td>
                                     </tr>

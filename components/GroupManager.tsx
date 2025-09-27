@@ -215,7 +215,7 @@ const GroupManager: React.FC<GroupManagerProps> = ({ feature, users, userGroups,
                                     <td className="px-6 py-4 font-medium text-slate-800">{group.name}</td>
                                     <td className="px-6 py-4 text-slate-600">{group.memberIds.length}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium space-x-4">
-                                        <button onClick={() => handleEdit(group)} className="text-indigo-600 hover:text-indigo-900"><EditIcon className="w-4 h-4 inline-block -mt-1"/> Modifier</button>
+                                        <button onClick={() => handleEdit(group)} className="text-link hover:underline"><EditIcon className="w-4 h-4 inline-block -mt-1"/> Modifier</button>
                                         <button onClick={() => onDeleteUserGroup(group.id)} className="text-red-600 hover:text-red-900"><TrashIcon className="w-4 h-4 inline-block -mt-1"/> Supprimer</button>
                                     </td>
                                 </tr>

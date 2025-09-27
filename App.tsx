@@ -137,6 +137,8 @@ const App: React.FC = () => {
                     '--color-sidebar-active-text': '#4338ca',
                     '--color-sidebar-active-dark-bg': 'rgba(79, 70, 229, 0.2)',
                     '--color-sidebar-active-dark-text': '#a5b4fc',
+                    '--color-link-text-light': '#4f46e5',
+                    '--color-link-text-dark': '#a5b4fc',
                 },
                 forest: { // Green
                     '--color-primary-600': '22 163 74',
@@ -145,6 +147,8 @@ const App: React.FC = () => {
                     '--color-sidebar-active-text': '#166534',
                     '--color-sidebar-active-dark-bg': 'rgba(34, 197, 94, 0.2)',
                     '--color-sidebar-active-dark-text': '#86efac',
+                    '--color-link-text-light': '#16a34a',
+                    '--color-link-text-dark': '#86efac',
                 },
                 ocean: { // Blue
                     '--color-primary-600': '37 99 235',
@@ -153,6 +157,8 @@ const App: React.FC = () => {
                     '--color-sidebar-active-text': '#1e3a8a',
                     '--color-sidebar-active-dark-bg': 'rgba(59, 130, 246, 0.2)',
                     '--color-sidebar-active-dark-text': '#93c5fd',
+                    '--color-link-text-light': '#2563eb',
+                    '--color-link-text-dark': '#93c5fd',
                 },
                 sunset: { // Orange
                     '--color-primary-600': '234 88 12',
@@ -161,6 +167,48 @@ const App: React.FC = () => {
                     '--color-sidebar-active-text': '#9a3412',
                     '--color-sidebar-active-dark-bg': 'rgba(249, 115, 22, 0.2)',
                     '--color-sidebar-active-dark-text': '#fdba74',
+                    '--color-link-text-light': '#f97316',
+                    '--color-link-text-dark': '#fdba74',
+                },
+                slate: { // Slate
+                    '--color-primary-600': '71 85 105',
+                    '--color-primary-700': '51 65 85',
+                    '--color-sidebar-active-bg': '#f1f5f9',
+                    '--color-sidebar-active-text': '#334155',
+                    '--color-sidebar-active-dark-bg': 'rgba(100, 116, 139, 0.2)',
+                    '--color-sidebar-active-dark-text': '#cbd5e1',
+                    '--color-link-text-light': '#475569',
+                    '--color-link-text-dark': '#94a3b8',
+                },
+                rose: { // Rose
+                    '--color-primary-600': '225 29 72',
+                    '--color-primary-700': '190 18 60',
+                    '--color-sidebar-active-bg': '#fff1f2',
+                    '--color-sidebar-active-text': '#9f1239',
+                    '--color-sidebar-active-dark-bg': 'rgba(244, 63, 94, 0.2)',
+                    '--color-sidebar-active-dark-text': '#fda4af',
+                    '--color-link-text-light': '#e11d48',
+                    '--color-link-text-dark': '#fb7185',
+                },
+                amber: { // Amber
+                    '--color-primary-600': '217 119 6',
+                    '--color-primary-700': '180 83 9',
+                    '--color-sidebar-active-bg': '#fffbeb',
+                    '--color-sidebar-active-text': '#92400e',
+                    '--color-sidebar-active-dark-bg': 'rgba(245, 158, 11, 0.2)',
+                    '--color-sidebar-active-dark-text': '#fcd34d',
+                    '--color-link-text-light': '#d97706',
+                    '--color-link-text-dark': '#fbbf24',
+                },
+                cyan: { // Cyan
+                    '--color-primary-600': '8 145 178',
+                    '--color-primary-700': '14 116 144',
+                    '--color-sidebar-active-bg': '#ecfeff',
+                    '--color-sidebar-active-text': '#155e75',
+                    '--color-sidebar-active-dark-bg': 'rgba(6, 182, 212, 0.2)',
+                    '--color-sidebar-active-dark-text': '#67e8f9',
+                    '--color-link-text-light': '#0891b2',
+                    '--color-link-text-dark': '#22d3ee',
                 }
             };
 
@@ -176,6 +224,8 @@ const App: React.FC = () => {
                 .text-sidebar-active-text { color: var(--color-sidebar-active-text); }
                 .dark .bg-sidebar-active { background-color: var(--color-sidebar-active-dark-bg); }
                 .dark .text-sidebar-active-text { color: var(--color-sidebar-active-dark-text); }
+                .text-link { color: var(--color-link-text-light); }
+                .dark .text-link { color: var(--color-link-text-dark); }
             `;
             styleElement.innerHTML = css;
         }

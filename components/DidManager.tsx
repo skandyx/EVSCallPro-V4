@@ -213,7 +213,7 @@ const DidManager: React.FC<DidManagerProps> = ({ feature, dids, trunks, ivrFlows
                                     <td className="px-6 py-4 text-slate-600">{did.description}</td>
                                     <td className="px-6 py-4 text-slate-600">{getIvrFlowName(did.ivrFlowId)}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium space-x-4">
-                                        <button onClick={() => handleEdit(did)} className="text-indigo-600 hover:text-indigo-900"><EditIcon className="w-4 h-4 inline-block -mt-1"/> Modifier</button>
+                                        <button onClick={() => handleEdit(did)} className="text-link hover:underline"><EditIcon className="w-4 h-4 inline-block -mt-1"/> Modifier</button>
                                         <button onClick={() => onDeleteDid(did.id)} className="text-red-600 hover:text-red-900"><TrashIcon className="w-4 h-4 inline-block -mt-1"/> Supprimer</button>
                                     </td>
                                 </tr>

@@ -569,7 +569,7 @@ const UserManager: React.FC<UserManagerProps> = ({ feature, users, campaigns, us
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                      <button onClick={() => handleEdit(user)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center"><EditIcon className="w-4 h-4 mr-1"/> Modifier</button>
+                      <button onClick={() => handleEdit(user)} className="text-link hover:underline inline-flex items-center"><EditIcon className="w-4 h-4 mr-1"/> Modifier</button>
                       <button onClick={() => onDeleteUser(user.id)} className={`inline-flex items-center ${!canDelete ? 'text-slate-400 cursor-not-allowed' : 'text-red-600 hover:text-red-900'}`} disabled={!canDelete} title={tooltip}>
                           <TrashIcon className="w-4 h-4 mr-1"/> Supprimer
                       </button>

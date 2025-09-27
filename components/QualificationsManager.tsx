@@ -356,7 +356,7 @@ const QualificationsManager: React.FC<QualificationsManagerProps> = ({ feature, 
                                         {qualifications.filter(q => q.groupId === group.id || q.isStandard).length}
                                     </td>
                                     <td className="px-6 py-4 text-right text-sm font-medium space-x-4">
-                                        <button onClick={() => { setEditingGroup(group); setIsGroupModalOpen(true); }} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center">
+                                        <button onClick={() => { setEditingGroup(group); setIsGroupModalOpen(true); }} className="text-link hover:underline inline-flex items-center">
                                             <EditIcon className="w-4 h-4 mr-1"/> Modifier
                                         </button>
                                         <button onClick={() => onDeleteQualificationGroup(group.id)} className="text-red-600 hover:text-red-900 inline-flex items-center">

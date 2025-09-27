@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ArrowUpTrayIcon } from './Icons.tsx';
@@ -270,7 +271,7 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = ({
                                 return (
                                     <tr key={campaign.id}>
                                         <td className="px-6 py-4 font-medium">
-                                            <button onClick={() => handleShowDetail(campaign)} className="text-indigo-600 hover:text-indigo-800 hover:underline">
+                                            <button onClick={() => handleShowDetail(campaign)} className="text-link hover:underline">
                                                 {campaign.name}
                                             </button>
                                         </td>
@@ -284,8 +285,8 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = ({
                                         <td className="px-6 py-4 text-sm text-slate-600 font-semibold">{campaign.contacts.length}</td>
                                         <td className="px-6 py-4 text-sm text-slate-600">{remainingContacts}</td>
                                         <td className="px-6 py-4 text-right text-sm font-medium space-x-4">
-                                            <button onClick={() => handleOpenImportModal(campaign)} className="text-slate-500 hover:text-slate-800 inline-flex items-center"><ArrowUpTrayIcon className="w-4 h-4 mr-1"/> Importer</button>
-                                            <button onClick={() => handleEdit(campaign)} className="text-indigo-600 hover:text-indigo-900 inline-flex items-center"><EditIcon className="w-4 h-4 mr-1"/> Modifier</button>
+                                            <button onClick={() => handleOpenImportModal(campaign)} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 inline-flex items-center"><ArrowUpTrayIcon className="w-4 h-4 mr-1"/> Importer</button>
+                                            <button onClick={() => handleEdit(campaign)} className="text-link hover:underline inline-flex items-center"><EditIcon className="w-4 h-4 mr-1"/> Modifier</button>
                                             <button 
                                                 onClick={() => onDeleteCampaign(campaign.id)} 
                                                 disabled={!deletionState.canDelete}
