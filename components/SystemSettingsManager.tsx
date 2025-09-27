@@ -34,7 +34,7 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
     const { t } = useI18n();
 
     // --- SMTP State ---
-    const [smtpConfig, setSmtpConfig] = useState<SystemSmtpSettings>(smtpSettings);
+    const [smtpConfig, setSmtpConfig] = useState<SystemSmtpSettings>(smtpSettings || { server: '', port: 0, auth: false, secure: false, user: '', from: '' });
     const [smtpPassword, setSmtpPassword] = useState('');
     const [testEmail, setTestEmail] = useState('');
     const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
@@ -48,8 +48,12 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
 
 
     useEffect(() => {
-        setSmtpConfig(smtpSettings);
-        setLocalAppSettings(appSettings);
+        if (smtpSettings) {
+            setSmtpConfig(smtpSettings);
+        }
+        if (appSettings) {
+            setLocalAppSettings(appSettings);
+        }
     }, [smtpSettings, appSettings]);
     
     // --- Handlers ---
@@ -112,15 +116,15 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
     const renderSmtpContent = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2">Paramètres du Serveur</h3></div>
-            <div><label className="text-sm font-medium">Serveur SMTP</label><input type="text" name="server" value={smtpConfig.server} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
-            <div><label className="text-sm font-medium">Port</label><input type="number" name="port" value={smtpConfig.port} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
-            <div className="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-md border"><div><p className="font-medium">Authentification Requise</p><p className="text-xs text-slate-500">Si votre serveur SMTP requiert un login/mot de passe.</p></div><ToggleSwitch enabled={smtpConfig.auth} onChange={e => setSmtpConfig(c => ({...c, auth: e}))} /></div>
-            {smtpConfig.auth && <>
+            <div><label className="text-sm font-medium">Serveur SMTP</label><input type="text" name="server" value={smtpConfig?.server || ''} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
+            <div><label className="text-sm font-medium">Port</label><input type="number" name="port" value={smtpConfig?.port || 0} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
+            <div className="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-md border"><div><p className="font-medium">Authentification Requise</p><p className="text-xs text-slate-500">Si votre serveur SMTP requiert un login/mot de passe.</p></div><ToggleSwitch enabled={smtpConfig?.auth || false} onChange={e => setSmtpConfig(c => ({...c, auth: e}))} /></div>
+            {smtpConfig?.auth && <>
                 <div><label className="text-sm font-medium">Utilisateur</label><input type="text" name="user" value={smtpConfig.user} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
                 <div><label className="text-sm font-medium">Mot de passe</label><input type="password" value={smtpPassword} onChange={e => setSmtpPassword(e.target.value)} placeholder="Laisser vide pour ne pas changer" className="mt-1 w-full p-2 border rounded-md"/></div>
             </>}
-            <div className="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-md border"><div><p className="font-medium">Type de sécurité</p><p className="text-xs text-slate-500">Utiliser une connexion sécurisée (SSL/TLS).</p></div><ToggleSwitch enabled={smtpConfig.secure} onChange={e => setSmtpConfig(c => ({...c, secure: e}))} /></div>
-            <div><label className="text-sm font-medium">Adresse d'expédition "From"</label><input type="email" name="from" value={smtpConfig.from} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
+            <div className="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-md border"><div><p className="font-medium">Type de sécurité</p><p className="text-xs text-slate-500">Utiliser une connexion sécurisée (SSL/TLS).</p></div><ToggleSwitch enabled={smtpConfig?.secure || false} onChange={e => setSmtpConfig(c => ({...c, secure: e}))} /></div>
+            <div><label className="text-sm font-medium">Adresse d'expédition "From"</label><input type="email" name="from" value={smtpConfig?.from || ''} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
             <div className="md:col-span-2 pt-4 border-t flex justify-end items-center gap-4">
                 {showSmtpSuccess && <span className="text-green-600 font-semibold">Enregistré !</span>}
                 <button onClick={handleSaveSmtp} disabled={isSavingSmtp} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50">{isSavingSmtp ? 'Enregistrement...' : 'Enregistrer les paramètres SMTP'}</button>
@@ -140,18 +144,18 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
             <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2 flex items-center gap-2"><BuildingOfficeIcon className="w-5 h-5"/>Informations Société</h3></div>
             <div>
                 <label className="text-sm font-medium">Adresse de la société</label>
-                <textarea value={localAppSettings.companyAddress} onChange={e => handleAppSettingChange('companyAddress', e.target.value)} rows={4} className="mt-1 w-full p-2 border rounded-md"/>
+                <textarea value={localAppSettings?.companyAddress || ''} onChange={e => handleAppSettingChange('companyAddress', e.target.value)} rows={4} className="mt-1 w-full p-2 border rounded-md"/>
             </div>
              <div>
                 <label className="text-sm font-medium">URL du Logo de l'application</label>
-                <input type="url" value={localAppSettings.appLogoUrl} onChange={e => handleAppSettingChange('appLogoUrl', e.target.value)} className="mt-1 w-full p-2 border rounded-md" placeholder="https://.../logo.png"/>
-                {localAppSettings.appLogoUrl && <img src={localAppSettings.appLogoUrl} alt="Aperçu du logo" className="mt-2 h-12 w-auto bg-slate-100 p-1 rounded-md"/>}
+                <input type="url" value={localAppSettings?.appLogoUrl || ''} onChange={e => handleAppSettingChange('appLogoUrl', e.target.value)} className="mt-1 w-full p-2 border rounded-md" placeholder="https://.../logo.png"/>
+                {localAppSettings?.appLogoUrl && <img src={localAppSettings.appLogoUrl} alt="Aperçu du logo" className="mt-2 h-12 w-auto bg-slate-100 p-1 rounded-md"/>}
             </div>
             <div className="md:col-span-2">
                 <label className="text-sm font-medium">Nom de l'application</label>
                 <input 
                     type="text" 
-                    value={localAppSettings.appName} 
+                    value={localAppSettings?.appName || ''} 
                     onChange={e => handleAppSettingChange('appName', e.target.value)} 
                     className="mt-1 w-full p-2 border rounded-md" 
                     placeholder="Le nom affiché sur la page de connexion et dans la barre latérale"
@@ -162,7 +166,7 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
                 <p className="text-sm text-slate-600 mb-3">Choisissez une palette de couleurs pour personnaliser l'apparence des boutons et des menus.</p>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {PALETTES.map(palette => (
-                        <button key={palette.id} onClick={() => handleAppSettingChange('colorPalette', palette.id)} className={`p-3 rounded-lg border-2 transition-all ${localAppSettings.colorPalette === palette.id ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-300 hover:border-indigo-400'}`}>
+                        <button key={palette.id} onClick={() => handleAppSettingChange('colorPalette', palette.id)} className={`p-3 rounded-lg border-2 transition-all ${localAppSettings?.colorPalette === palette.id ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-300 hover:border-indigo-400'}`}>
                             <p className="font-semibold text-slate-800">{palette.name}</p>
                             <div className="flex items-center gap-2 mt-2">
                                 {palette.colors.map(color => <div key={color} style={{ backgroundColor: color }} className="w-6 h-6 rounded-full border border-slate-200"/>)}

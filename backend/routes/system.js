@@ -5,7 +5,8 @@ const os = require('os');
 const pool = require('../services/db/connection');
 const nodemailer = require('nodemailer');
 const fs = require('fs/promises');
-const path = require('path'); // Ajout de l'import path
+const path = require('path');
+const dotenv = require('dotenv'); // Import dotenv
 
 // Middleware to check for SuperAdmin role
 const isSuperAdmin = (req, res, next) => {
@@ -230,21 +231,32 @@ router.post('/test-email', isSuperAdmin, async (req, res) => {
     }
 
     try {
+        let passwordToUse = smtpConfig.password;
+        if (smtpConfig.auth && !passwordToUse) {
+            try {
+                const envPath = path.join(__dirname, '..', '.env');
+                const envFileContent = await fs.readFile(envPath, 'utf-8');
+                const envConfig = dotenv.parse(envFileContent);
+                passwordToUse = envConfig.SMTP_PASSWORD;
+            } catch (e) {
+                console.error("Could not read .env to get SMTP password for test email", e);
+            }
+        }
+
         const transporter = nodemailer.createTransport({
             host: smtpConfig.server,
             port: smtpConfig.port,
-            secure: smtpConfig.secure, // true for 465, false for other ports
+            secure: smtpConfig.secure,
             auth: smtpConfig.auth ? {
                 user: smtpConfig.user,
-                pass: smtpConfig.password || process.env.SMTP_PASSWORD, // Use provided password or one from env
+                pass: passwordToUse,
             } : undefined,
             tls: {
-                // do not fail on invalid certs
                 rejectUnauthorized: false
             }
         });
 
-        await transporter.verify(); // Verify connection configuration
+        await transporter.verify();
 
         await transporter.sendMail({
             from: `"EVSCallPro Test" <${smtpConfig.from}>`,
