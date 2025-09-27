@@ -185,6 +185,17 @@ const App: React.FC = () => {
         setAlert({ message, type, key: Date.now() });
     }, []);
 
+    // Effect to automatically hide the alert after a delay
+    useEffect(() => {
+        if (alert) {
+            const timer = setTimeout(() => {
+                setAlert(null);
+            }, 3000); // Hide after 3 seconds
+
+            return () => clearTimeout(timer);
+        }
+    }, [alert]);
+
     const fetchApplicationData = useCallback(async () => {
         try {
             const response = await apiClient.get('/application-data');
@@ -195,6 +206,13 @@ const App: React.FC = () => {
         }
     }, [showAlert]);
     
+    const handleLogout = useCallback(() => {
+        localStorage.removeItem('authToken');
+        setCurrentUser(null);
+        // We keep appSettings in allData so the login screen displays correctly
+        setAllData(prev => ({ appSettings: prev.appSettings }));
+    }, []);
+
     // Check for existing token on mount and restore session
     useEffect(() => {
         const loadApp = async () => {
@@ -251,7 +269,7 @@ const App: React.FC = () => {
         return () => {
             window.removeEventListener('logoutEvent', handleForcedLogout);
         };
-    }, []);
+    }, [handleLogout]);
 
      // Effect to manage WebSocket connection and live data updates
     useEffect(() => {
@@ -292,13 +310,6 @@ const App: React.FC = () => {
         setCurrentUser(user);
         setIsLoading(true);
         fetchApplicationData().finally(() => setIsLoading(false));
-    };
-
-    const handleLogout = () => {
-        localStorage.removeItem('authToken');
-        setCurrentUser(null);
-        // We keep appSettings in allData so the login screen displays correctly
-        setAllData(prev => ({ appSettings: prev.appSettings }));
     };
 
     const handleSaveOrUpdate = async (dataType: string, data: any, endpoint?: string) => {

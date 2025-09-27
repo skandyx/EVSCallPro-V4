@@ -3,57 +3,77 @@ import axios from 'axios';
 const isServer = typeof window === 'undefined';
 const getToken = () => !isServer ? localStorage.getItem('authToken') : null;
 
+// La baseURL est intentionnellement laissée vide. La construction de l'URL complète
+// est désormais gérée de manière explicite dans l'intercepteur de requêtes pour
+// une robustesse maximale et pour éviter les erreurs de construction d'URL internes à Axios.
 const apiClient = axios.create({
-  timeout: 15000, // 15 s
+  timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 });
 
-/* ------- request ------- */
-apiClient.interceptors.request.use(cfg => {
-  const token = getToken();
-  if (token) {
-    cfg.headers.Authorization = `Bearer ${token}`;
-  }
+/* ------- REQUEST INTERCEPTOR ------- */
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
 
-  // Préfixe l'URL de la requête avec /api pour s'assurer qu'elle est correctement routée par le proxy.
-  // Ceci corrige l'erreur "Invalid URL" causée par la gestion des baseURLs relatives.
-  if (cfg.url && !cfg.url.startsWith('/api')) {
-      cfg.url = `/api${cfg.url}`;
-  }
+    // Cette logique garantit que chaque requête a une URL absolue complète, ce qui est
+    // le correctif définitif pour l'erreur "Failed to construct 'URL': Invalid URL".
+    let path = config.url || '';
+    if (!path.startsWith('/api')) {
+      path = `/api${path.startsWith('/') ? '' : '/'}${path}`;
+    }
+    
+    if (!isServer) {
+        // Transformer le chemin relatif (ex: /api/users) en URL absolue
+        config.url = new URL(path, window.location.origin).href;
+    } else {
+        // Fallback pour les environnements non-navigateur (non utilisé dans ce projet)
+        config.url = `http://localhost:3001${path}`;
+    }
 
-  return cfg;
-});
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-/* ------- response ------- */
+/* ------- RESPONSE INTERCEPTOR ------- */
 apiClient.interceptors.response.use(
-  res => res,
-  async err => {
-    const original = err.config;
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // L'URL de la requête de rafraîchissement est maintenant absolue, la vérification doit donc s'adapter.
+    const isRefreshRequest = originalRequest.url.endsWith('/api/auth/refresh');
 
-    // Si le token a expiré (401) et qu'on n'a pas déjà réessayé
-    if (err.response?.status === 401 && !original._retry) {
-      original._retry = true; // Marquer comme "réessayé" pour éviter les boucles
+    if (error.response?.status === 401 && !originalRequest._retry && !isRefreshRequest) {
+      originalRequest._retry = true;
 
       try {
-        // Tenter de rafraîchir le token
-        const { data } = await axios.post('/api/auth/refresh');
+        // L'intercepteur se chargera de transformer '/auth/refresh' en une URL complète.
+        const { data } = await apiClient.post('/auth/refresh'); 
+        
         if (!isServer) {
-            // Ajustement : le backend renvoie { accessToken: '...' }
-            localStorage.setItem('authToken', data.accessToken);
+          localStorage.setItem('authToken', data.accessToken);
         }
-        // Réessayer la requête originale avec le nouveau token
-        return apiClient(original);
-      } catch {
-        // Si le refresh échoue, c'est une vraie déconnexion
+        
+        originalRequest.headers['Authorization'] = `Bearer ${data.accessToken}`;
+        
+        // L'URL de la requête originale est déjà absolue, il suffit de la réexécuter.
+        return apiClient(originalRequest);
+
+      } catch (refreshError) {
         if (!isServer) {
           localStorage.removeItem('authToken');
-          // Envoyer un événement propre pour que l'UI puisse réagir
           window.dispatchEvent(new CustomEvent('logoutEvent'));
         }
-        return Promise.reject(err);
+        return Promise.reject(refreshError);
       }
     }
-    return Promise.reject(err);
+    
+    return Promise.reject(error);
   }
 );
 

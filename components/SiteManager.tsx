@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Feature, Site } from '../types.ts';
-import { PlusIcon, EditIcon, TrashIcon } from './Icons.tsx';
+import { PlusIcon, EditIcon, TrashIcon, ChevronDownIcon } from './Icons.tsx';
 
 interface SiteModalProps {
     site: Site | null;
@@ -58,6 +58,49 @@ interface SiteManagerProps {
 const SiteManager: React.FC<SiteManagerProps> = ({ feature, sites, onSaveSite, onDeleteSite }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSite, setEditingSite] = useState<Site | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: keyof Site; direction: 'ascending' | 'descending' }>({ key: 'name', direction: 'ascending' });
+
+    const filteredAndSortedSites = useMemo(() => {
+        let sortableSites = [...sites];
+
+        if (searchTerm) {
+            const lowerCaseSearchTerm = searchTerm.toLowerCase();
+            sortableSites = sortableSites.filter(site =>
+                site.name.toLowerCase().includes(lowerCaseSearchTerm)
+            );
+        }
+
+        sortableSites.sort((a, b) => {
+            if (a.name < b.name) return sortConfig.direction === 'ascending' ? -1 : 1;
+            if (a.name > b.name) return sortConfig.direction === 'ascending' ? 1 : -1;
+            return 0;
+        });
+
+        return sortableSites;
+    }, [sites, searchTerm, sortConfig]);
+
+    const requestSort = (key: keyof Site) => {
+        let direction: 'ascending' | 'descending' = 'ascending';
+        if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const SortableHeader: React.FC<{ sortKey: keyof Site; label: string }> = ({ sortKey, label }) => (
+        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+            <button onClick={() => requestSort(sortKey)} className="group inline-flex items-center gap-1">
+                {label}
+                <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    {sortConfig.key === sortKey
+                        ? <ChevronDownIcon className={`w-4 h-4 transition-transform ${sortConfig.direction === 'ascending' ? 'rotate-180' : ''}`} />
+                        : <ChevronDownIcon className="w-4 h-4 text-slate-400" />
+                    }
+                </span>
+            </button>
+        </th>
+    );
 
     const handleAddNew = () => {
         setEditingSite(null);
@@ -76,7 +119,7 @@ const SiteManager: React.FC<SiteManagerProps> = ({ feature, sites, onSaveSite, o
     };
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="max-w-7xl mx-auto space-y-8">
             {isModalOpen && <SiteModal site={editingSite} onSave={handleSave} onClose={() => setIsModalOpen(false)} />}
             <header>
                 <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
@@ -91,16 +134,26 @@ const SiteManager: React.FC<SiteManagerProps> = ({ feature, sites, onSaveSite, o
                     </button>
                 </div>
 
+                <div className="mb-4">
+                    <input
+                        type="text"
+                        placeholder="Rechercher par nom de site..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full max-w-lg p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                </div>
+
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nom</th>
+                                <SortableHeader sortKey="name" label="Nom" />
                                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-200">
-                            {sites.map(site => (
+                            {filteredAndSortedSites.map(site => (
                                 <tr key={site.id}>
                                     <td className="px-6 py-4 font-medium text-slate-800">{site.name}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium space-x-4">
@@ -111,7 +164,7 @@ const SiteManager: React.FC<SiteManagerProps> = ({ feature, sites, onSaveSite, o
                             ))}
                         </tbody>
                     </table>
-                     {sites.length === 0 && <p className="text-center py-8 text-slate-500">Aucun site configuré.</p>}
+                     {filteredAndSortedSites.length === 0 && <p className="text-center py-8 text-slate-500">Aucun site configuré.</p>}
                 </div>
             </div>
         </div>

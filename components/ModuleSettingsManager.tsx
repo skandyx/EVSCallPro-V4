@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { Feature, FeatureCategory, ModuleVisibility, FeatureId } from '../types.ts';
 
@@ -89,7 +88,7 @@ const ModuleSettingsManager: React.FC<ModuleSettingsManagerProps> = ({ feature, 
     }, {} as Record<FeatureCategory, Feature[]>);
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="max-w-7xl mx-auto space-y-8">
             <header>
                 <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
                 <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
