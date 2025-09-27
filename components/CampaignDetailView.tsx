@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { Campaign, Contact, SavedScript, Qualification, QualificationGroup, CallHistoryRecord, User } from '../types.ts';
 import { ArrowLeftIcon, UserCircleIcon, ChartBarIcon, WrenchScrewdriverIcon, TrashIcon, PlusIcon } from './Icons.tsx';
@@ -118,10 +117,13 @@ const CampaignStatsTab: React.FC<{ campaign: Campaign; callHistory: CallHistoryR
         return <div className="p-8 text-center text-slate-500">Aucun contact n'a encore été importé dans cette campagne. Les statistiques apparaîtront ici une fois les contacts ajoutés et les appels effectués.</div>
     }
 
+    const totalContacts = campaign.contacts.length;
+    const processedContacts = totalContacts - stats.statusCounts.pending;
+
     return (
         <div className="p-6 space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <KpiCard title="Taux de Pénétration" value={`${stats.penetrationRate.toFixed(1)}%`} subtext={`${campaign.contacts.length - stats.statusCounts.pending} / ${campaign.contacts.length} contacts`} />
+                <KpiCard title="Taux de Pénétration" value={`${stats.penetrationRate.toFixed(1)}%`} subtext={`${processedContacts} / ${totalContacts} contacts`} />
                 <KpiCard title="Appels Effectués" value={stats.callsMade} />
                 <KpiCard title="Taux de Succès" value={`${stats.successRate.toFixed(1)}%`} subtext="Basé sur les appels qualifiés" />
                 <KpiCard title="Durée Moyenne de Comm." value={formatDuration(stats.avgCallDuration)} />
@@ -136,72 +138,122 @@ const CampaignStatsTab: React.FC<{ campaign: Campaign; callHistory: CallHistoryR
                      <div className="h-64"><ChartComponent chartId="qualifChart" type="bar" data={qualifChartData} options={{ responsive: true, maintainAspectRatio: false, indexAxis: 'y' }} /></div>
                 </div>
              </div>
+             <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <h3 className="font-semibold text-slate-800 mb-3">Détail par Qualification</h3>
+                <div className="overflow-x-auto max-h-64">
+                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                        <thead className="bg-slate-50 sticky top-0">
+                            <tr>
+                                <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Qualification</th>
+                                <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Nombre d'appels</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-slate-200">
+                            {Object.entries(stats.qualifCounts).map(([qualif, count]) => (
+                                <tr key={qualif}>
+                                    <td className="px-4 py-2 font-medium text-slate-700">{qualif}</td>
+                                    <td className="px-4 py-2 text-slate-600 font-semibold">{count}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 };
 
-const CampaignSettingsTab: React.FC<{ campaign: Campaign; onSave: (campaign: Campaign) => void; scripts: SavedScript[]; qualificationGroups: QualificationGroup[]; availableFields: any[] }> = ({ campaign, onSave, scripts, qualificationGroups, availableFields }) => {
-    const [formData, setFormData] = useState<Campaign>(campaign);
+const CampaignQuotaTab: React.FC<{ campaign: Campaign; callHistory: CallHistoryRecord[]; qualifications: Qualification[] }> = ({ campaign, callHistory, qualifications }) => {
     
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value, type } = e.target;
-        if (type === 'checkbox') setFormData(prev => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
-        else if (name === 'scriptId') setFormData(prev => ({ ...prev, scriptId: value === '' ? null : value }));
-        else if (e.target.getAttribute('type') === 'number') setFormData(prev => ({ ...prev, [name]: isNaN(parseInt(value, 10)) ? 0 : parseInt(value, 10) }));
-        else setFormData(prev => ({ ...prev, [name]: value }));
-    };
-    
-    const handleRuleChange = (type: 'quota' | 'filter', index: number, field: string, value: any) => {
-        const key = type === 'quota' ? 'quotaRules' : 'filterRules';
-        const updatedRules = [...formData[key]];
-        (updatedRules[index] as any)[field] = value;
-        setFormData(prev => ({ ...prev, [key]: updatedRules }));
-    };
-    
-    const addRule = (type: 'quota' | 'filter') => {
-        const key = type === 'quota' ? 'quotaRules' : 'filterRules';
-        const newRule = type === 'quota' 
-            ? { id: `qr-${Date.now()}`, contactField: 'postalCode', operator: 'equals', value: '', limit: 0, currentCount: 0 } 
-            : { id: `fr-${Date.now()}`, type: 'include', contactField: 'postalCode', operator: 'equals', value: '' };
-        setFormData(prev => ({ ...prev, [key]: [...prev[key], newRule] as any }));
-    };
-    
-    const removeRule = (type: 'quota' | 'filter', index: number) => {
-        const key = type === 'quota' ? 'quotaRules' : 'filterRules';
-        setFormData(prev => ({ ...prev, [key]: prev[key].filter((_, i) => i !== index) }));
+    const getContactValue = (contact: Contact, fieldId: string): any => {
+        const standardFields: Record<string, keyof Contact> = {
+            postalCode: 'postalCode',
+            phoneNumber: 'phoneNumber',
+            lastName: 'lastName',
+        };
+        if (fieldId in standardFields) return contact[standardFields[fieldId] as keyof Contact];
+        return contact.customFields ? contact.customFields[fieldId] : undefined;
     };
 
+    const matchRule = (contact: Contact, rule: any): boolean => {
+        const contactValue = getContactValue(contact, rule.contactField);
+        if (contactValue === null || contactValue === undefined) return false;
+        const contactString = String(contactValue).trim().toLowerCase();
+        const ruleString = String(rule.value).trim().toLowerCase();
+        switch (rule.operator) {
+            case 'equals': return contactString === ruleString;
+            case 'starts_with': return contactString.startsWith(ruleString);
+            case 'contains': return contactString.includes(ruleString);
+            case 'is_not_empty': return contactString !== '';
+            default: return false;
+        }
+    };
+
+    const quotaStats = useMemo(() => {
+        if (!campaign.quotaRules || campaign.quotaRules.length === 0) return [];
+
+        const positiveQualIds = new Set(qualifications.filter(q => q.type === 'positive').map(q => q.id));
+        const successfulCallsForCampaign = callHistory.filter(c => c.campaignId === campaign.id && c.qualificationId && positiveQualIds.has(c.qualificationId));
+        
+        return campaign.quotaRules.map(rule => {
+            const totalMatchingContacts = campaign.contacts.filter(c => matchRule(c, rule));
+            const totalFiches = totalMatchingContacts.length;
+            const fichesTraitees = totalMatchingContacts.filter(c => c.status !== 'pending').length;
+            
+            const successfulContactsForCampaign = successfulCallsForCampaign.map(call => campaign.contacts.find(c => c.id === call.contactId)).filter((c): c is Contact => !!c);
+            const quotaAtteint = successfulContactsForCampaign.filter(c => matchRule(c, rule)).length;
+            
+            const limite = rule.limit;
+            const reste = Math.max(0, limite - quotaAtteint);
+
+            return {
+                id: rule.id,
+                rule,
+                totalFiches,
+                fichesTraitees,
+                quotaAtteint,
+                reste,
+                limite,
+            };
+        });
+    }, [campaign, callHistory, qualifications]);
+    
+    const renderRule = (rule: any) => {
+        return `Si "${rule.contactField}" ${rule.operator.replace('_', ' ')} "${rule.value}"`;
+    };
+
+    if (!campaign.quotaRules || campaign.quotaRules.length === 0) {
+         return <div className="p-8 text-center text-slate-500">Aucune règle de quota n'a été configurée pour cette campagne.</div>
+    }
+
     return (
-        <div className="p-6 space-y-6">
-            <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-slate-800 border-b pb-2">Informations Générales</h3>
-                <div><label className="block text-sm font-medium text-slate-700">Nom</label><input type="text" name="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full p-2 border border-slate-300 rounded-md" /></div>
-                <div><label className="block text-sm font-medium text-slate-700">Description</label><textarea name="description" value={formData.description} onChange={handleChange} className="mt-1 block w-full p-2 border border-slate-300 rounded-md" rows={2} /></div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium text-slate-700">Script d'agent</label><select name="scriptId" value={formData.scriptId || ''} onChange={handleChange} className="mt-1 block w-full p-2 border bg-white rounded-md"><option value="">Aucun script</option>{scripts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-                    <div><label className="block text-sm font-medium text-slate-700">Groupe de qualifications</label><select name="qualificationGroupId" value={formData.qualificationGroupId || ''} onChange={handleChange} required className="mt-1 block w-full p-2 border bg-white rounded-md">{qualificationGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
-                </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium text-slate-700">Mode de numérotation</label><select name="dialingMode" value={formData.dialingMode} onChange={handleChange} className="mt-1 block w-full p-2 border bg-white rounded-md"><option value="PREDICTIVE">Prédictif</option><option value="PROGRESSIVE">Progressif</option><option value="MANUAL">Manuel</option></select></div>
-                    <div><label className="block text-sm font-medium text-slate-700">Numéro présenté (Caller ID)</label><input type="text" name="callerId" value={formData.callerId} onChange={handleChange} required className="mt-1 block w-full p-2 border border-slate-300 rounded-md" /></div>
-                </div>
-                <div><label className="block text-sm font-medium text-slate-700">Temps de Post-Appel (secondes)</label><input type="number" name="wrapUpTime" value={formData.wrapUpTime} onChange={handleChange} min="0" max="120" required className="mt-1 block w-full p-2 border rounded-md" /></div>
-            </div>
-             <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-slate-800 border-b pb-2">Règles de Quotas</h3>
-                <div className="space-y-3">
-                    {formData.quotaRules.map((rule, index) => <div key={rule.id} className="grid grid-cols-12 gap-2 items-center">
-                        <select value={rule.contactField} onChange={e => handleRuleChange('quota', index, 'contactField', e.target.value)} className="col-span-3 p-1.5 border bg-white rounded-md text-sm">{availableFields.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
-                        <select value={rule.operator} onChange={e => handleRuleChange('quota', index, 'operator', e.target.value)} className="col-span-3 p-1.5 border bg-white rounded-md text-sm"><option value="equals">est égal à</option><option value="starts_with">commence par</option></select>
-                        <input type="text" value={rule.value} onChange={e => handleRuleChange('quota', index, 'value', e.target.value)} placeholder="Valeur" className="col-span-3 p-1.5 border rounded-md text-sm" />
-                        <input type="number" value={rule.limit} onChange={e => handleRuleChange('quota', index, 'limit', parseInt(e.target.value))} placeholder="Limite" className="col-span-2 p-1.5 border rounded-md text-sm" />
-                        <button type="button" onClick={() => removeRule('quota', index)} className="text-red-500 hover:text-red-700 p-1"><TrashIcon className="w-4 h-4" /></button>
-                    </div>)}
-                    <button type="button" onClick={() => addRule('quota')} className="text-sm font-medium text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1"><PlusIcon className="w-4 h-4"/>Ajouter une règle</button>
-                </div>
-            </div>
-             <div className="flex justify-end pt-6 border-t">
-                <button onClick={() => onSave(formData)} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md">Enregistrer les modifications</button>
+        <div className="p-6">
+            <h3 className="text-xl font-semibold text-slate-800 mb-4">Suivi des Quotas</h3>
+             <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                    <thead className="bg-slate-100">
+                        <tr>
+                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Règle de Quota</th>
+                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Total Fiches</th>
+                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Fiches Traitées</th>
+                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Quota Atteint</th>
+                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Reste</th>
+                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Limite Fixée</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-200">
+                        {quotaStats.map(stat => (
+                            <tr key={stat.id}>
+                                <td className="px-4 py-3 font-medium text-slate-700">{renderRule(stat.rule)}</td>
+                                <td className="px-4 py-3 text-slate-600 font-semibold">{stat.totalFiches}</td>
+                                <td className="px-4 py-3 text-slate-600">{stat.fichesTraitees}</td>
+                                <td className="px-4 py-3 text-slate-600 font-semibold">{stat.quotaAtteint}</td>
+                                <td className="px-4 py-3 font-bold text-indigo-600">{stat.reste}</td>
+                                <td className="px-4 py-3 text-slate-600">{stat.limite}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         </div>
     );
@@ -211,20 +263,11 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const { campaign, script, onBack, onSaveCampaign, onUpdateContact, onDeleteContacts, callHistory, qualifications, qualificationGroups, savedScripts, users } = props;
     const [activeTab, setActiveTab] = useState<'contacts' | 'stats' | 'settings'>('stats');
 
-     const availableFieldsForRules = useMemo(() => {
-        const standard = [
-            { id: 'postalCode', name: 'Code Postal' }, { id: 'phoneNumber', name: 'Numéro de Téléphone' }, { id: 'lastName', name: 'Nom de famille' },
-        ];
-        if (!script) return standard;
-        const scriptFields = script.pages.flatMap(p => p.blocks).filter(b => ['input', 'email', 'phone', 'date', 'time', 'radio', 'checkbox', 'dropdown', 'textarea'].includes(b.type)).map(b => ({ id: b.fieldName, name: b.name }));
-        return [...standard, ...scriptFields];
-    }, [script]);
-
     const renderContent = () => {
         switch (activeTab) {
             case 'contacts': return <ContactList contacts={campaign.contacts} />;
             case 'stats': return <CampaignStatsTab campaign={campaign} callHistory={callHistory} qualifications={qualifications} />;
-            case 'settings': return <CampaignSettingsTab campaign={campaign} onSave={onSaveCampaign} scripts={savedScripts} qualificationGroups={qualificationGroups} availableFields={availableFieldsForRules} />;
+            case 'settings': return <CampaignQuotaTab campaign={campaign} callHistory={callHistory} qualifications={qualifications} />;
             default: return null;
         }
     };

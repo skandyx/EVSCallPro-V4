@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export type FeatureId =
@@ -334,6 +335,8 @@ export interface CallHistoryRecord {
     direction: 'inbound' | 'outbound';
     agentId: string;
     campaignId: string | null;
+    // FIX: Added 'contactId' to the CallHistoryRecord type to correctly link call history with contacts.
+    contactId: string;
     callerNumber: string;
     duration: number;
     qualificationId: string | null;
