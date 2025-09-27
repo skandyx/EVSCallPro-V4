@@ -32,28 +32,28 @@ const deleteCampaign = async (id) => {
     await pool.query('DELETE FROM campaigns WHERE id = $1', [id]);
 };
 
-const importContacts = async (campaignId, contacts, deduplicationConfig) => {
+const importContacts = async (campaignId, contactsToValidate, deduplicationConfig) => {
     const client = await pool.connect();
+    const valids = [];
+    const invalids = [];
+
     try {
         await client.query('BEGIN');
 
         const createCompositeKey = (contact, fields) => {
-            return fields
-                .map(fieldId => {
-                    if (contact.customFields && Object.prototype.hasOwnProperty.call(contact.customFields, fieldId)) {
-                         return String(contact.customFields[fieldId]);
-                    }
-                    if (Object.prototype.hasOwnProperty.call(contact, fieldId)) {
-                        return String(contact[fieldId]);
-                    }
-                    return '';
-                })
-                .map(v => String(v).trim().toLowerCase())
-                .join('||');
+            return fields.map(fieldId => {
+                let value = '';
+                if (contact.customFields && Object.prototype.hasOwnProperty.call(contact.customFields, fieldId)) {
+                    value = String(contact.customFields[fieldId]);
+                } else if (Object.prototype.hasOwnProperty.call(contact, fieldId)) {
+                    value = String(contact[fieldId]);
+                }
+                return value.trim().toLowerCase();
+            }).join('||');
         };
 
         const existingValues = new Set();
-        if (deduplicationConfig && deduplicationConfig.enabled && deduplicationConfig.fieldIds && deduplicationConfig.fieldIds.length > 0) {
+        if (deduplicationConfig.enabled && deduplicationConfig.fieldIds.length > 0) {
             const { rows: existingContacts } = await client.query('SELECT * FROM contacts WHERE campaign_id = $1', [campaignId]);
             const camelCasedExisting = existingContacts.map(keysToCamel);
             
@@ -63,27 +63,38 @@ const importContacts = async (campaignId, contacts, deduplicationConfig) => {
             });
         }
         
-        for (const contact of contacts) {
+        for (const contact of contactsToValidate) {
+            if (!contact.phoneNumber) {
+                invalids.push({ row: contact.originalRow, reason: "Le numéro de téléphone est manquant." });
+                continue;
+            }
+
             let isDuplicate = false;
-            if (deduplicationConfig && deduplicationConfig.enabled && deduplicationConfig.fieldIds && deduplicationConfig.fieldIds.length > 0) {
+            if (deduplicationConfig.enabled && deduplicationConfig.fieldIds.length > 0) {
                 const key = createCompositeKey(contact, deduplicationConfig.fieldIds);
                 if (key && existingValues.has(key)) {
                     isDuplicate = true;
+                    invalids.push({ row: contact.originalRow, reason: "Doublon détecté dans la base existante." });
                 }
             }
-            
+
             if (!isDuplicate) {
                 await client.query(
                     'INSERT INTO contacts (id, campaign_id, first_name, last_name, phone_number, postal_code, status, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
                     [contact.id, campaignId, contact.firstName, contact.lastName, contact.phoneNumber, contact.postalCode, 'pending', JSON.stringify(contact.customFields || {})]
                 );
-                if (deduplicationConfig && deduplicationConfig.enabled && deduplicationConfig.fieldIds && deduplicationConfig.fieldIds.length > 0) {
+                valids.push(contact);
+
+                if (deduplicationConfig.enabled && deduplicationConfig.fieldIds.length > 0) {
                     const key = createCompositeKey(contact, deduplicationConfig.fieldIds);
-                    if(key) existingValues.add(key);
+                    if (key) existingValues.add(key);
                 }
             }
         }
+
         await client.query('COMMIT');
+        return { valids, invalids };
+
     } catch (e) {
         await client.query('ROLLBACK');
         throw e;

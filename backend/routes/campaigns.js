@@ -90,8 +90,17 @@ router.delete('/:id', async (req, res) => {
 router.post('/:id/contacts', async (req, res) => {
     try {
         const { contacts, deduplicationConfig } = req.body;
-        await db.importContacts(req.params.id, contacts, deduplicationConfig);
-        res.status(201).json({ message: 'Contacts imported successfully' });
+        const { valids, invalids } = await db.importContacts(req.params.id, contacts, deduplicationConfig);
+        
+        res.status(200).json({ 
+            message: 'Import processed.',
+            summary: {
+                total: contacts.length,
+                valids: valids.length,
+                invalids: invalids.length,
+            },
+            invalids: invalids
+        });
     } catch (error) {
         console.error('Error importing contacts:', error);
         res.status(500).json({ error: 'Failed to import contacts' });

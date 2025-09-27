@@ -138,7 +138,8 @@ interface OutboundCampaignsManagerProps {
     qualificationGroups: QualificationGroup[];
     onSaveCampaign: (campaign: Campaign) => void;
     onDeleteCampaign: (campaignId: string) => void;
-    onImportContacts: (campaignId: string, contacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => void;
+    // FIX: Changed return type from 'void' to 'Promise<any>' to match the async nature of the import process and align with the child component's expectations.
+    onImportContacts: (campaignId: string, contacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => Promise<any>;
     onUpdateContact: (contact: Contact) => void;
     onDeleteContacts: (contactIds: string[]) => void;
 }
@@ -188,11 +189,12 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = ({
         setIsImportModalOpen(true);
     };
 
-    const handleImport = (newContacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => {
+    // FIX: Converted the function to `async` and now it returns the promise from `onImportContacts`, allowing the modal to await the result and display a summary.
+    const handleImport = async (newContacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => {
         if (importTargetCampaign) {
-            onImportContacts(importTargetCampaign.id, newContacts, deduplicationConfig);
+            return onImportContacts(importTargetCampaign.id, newContacts, deduplicationConfig);
         }
-        setIsImportModalOpen(false);
+        return Promise.resolve(null);
     };
     
     const selectedScript = useMemo(() => {

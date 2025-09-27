@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import type { Campaign, SavedScript, Contact, ScriptBlock } from '../types.ts';
 import { ArrowUpTrayIcon, CheckIcon, XMarkIcon, ArrowRightIcon, InformationCircleIcon, ArrowDownTrayIcon } from './Icons.tsx';
@@ -9,8 +7,7 @@ declare var XLSX: any;
 
 interface ImportContactsModalProps {
     onClose: () => void;
-    // Fix: Update the onImport signature to include deduplicationConfig
-    onImport: (newContacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => void;
+    onImport: (contacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => Promise<any>;
     campaign: Campaign;
     script: SavedScript | null;
 }
@@ -35,7 +32,8 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
     const [csvData, setCsvData] = useState<CsvRow[]>([]);
     const [mappings, setMappings] = useState<Record<string, string>>({});
     const [deduplicationConfig, setDeduplicationConfig] = useState({ enabled: true, fieldIds: ['phoneNumber'] });
-    const [summary, setSummary] = useState<{ total: number; valids: ValidatedContact[]; invalids: { row: CsvRow; reason: string }[] } | null>(null);
+    const [summary, setSummary] = useState<{ total: number; valids: number; invalids: { row: CsvRow; reason: string }[] } | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const availableFieldsForImport = useMemo(() => {
         const standardFields = [
@@ -148,49 +146,11 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
         else reader.readAsText(selectedFile, 'UTF-8');
     };
     
-    const processAndGoToSummary = () => {
-        const valids: ValidatedContact[] = [];
-        const invalids: { row: CsvRow; reason: string }[] = [];
-        
+    const processAndGoToSummary = async () => {
+        setIsProcessing(true);
         const getVal = (row: CsvRow, fieldId: string) => (mappings[fieldId] ? row[mappings[fieldId]] : '') || '';
-        
-        const createCompositeKey = (data: Record<string, any>, fields: string[], customFields?: Record<string, any>) => {
-            return fields.map(fieldId => {
-                if (customFields && fieldId in customFields) return String(customFields[fieldId]);
-                if (Object.prototype.hasOwnProperty.call(data, fieldId)) return String((data as any)[fieldId]);
-                return '';
-            }).map(v => v.trim().toLowerCase()).join('||');
-        };
 
-        let existingValues = new Set<string>();
-        if (deduplicationConfig.enabled && deduplicationConfig.fieldIds.length > 0) {
-            campaign.contacts.forEach(c => {
-                 const key = createCompositeKey(c, deduplicationConfig.fieldIds, c.customFields);
-                 if(key) existingValues.add(key);
-            });
-        }
-        
-        const importedValues = new Set<string>();
-
-        csvData.forEach((row) => {
-            const phoneNumber = getVal(row, 'phoneNumber').replace(/\s/g, '');
-            if (!phoneNumber) { invalids.push({ row, reason: "Le numéro de téléphone est manquant." }); return; }
-
-            if(deduplicationConfig.enabled && deduplicationConfig.fieldIds.length > 0) {
-                 const compositeKey = deduplicationConfig.fieldIds
-                    .map(fieldId => getVal(row, fieldId).trim().toLowerCase())
-                    .join('||');
-                
-                if (compositeKey) {
-                    if (existingValues.has(compositeKey) || importedValues.has(compositeKey)) {
-                        const criteriaNames = deduplicationConfig.fieldIds.map(id => availableFieldsForImport.find(f => f.id === id)?.name).join(', ');
-                        invalids.push({ row, reason: `Doublon sur le(s) critère(s) : ${criteriaNames}.` });
-                        return;
-                    }
-                    importedValues.add(compositeKey);
-                }
-            }
-            
+        const contactsToValidate = csvData.map(row => {
             const customFields: Record<string, any> = {};
             availableFieldsForImport.forEach(field => {
                 if (!['phoneNumber', 'firstName', 'lastName', 'postalCode'].includes(field.id)) {
@@ -199,30 +159,35 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
                 }
             });
 
-            valids.push({
+            return {
                 id: `contact-import-${Date.now()}-${Math.random()}`,
                 firstName: getVal(row, 'firstName'),
                 lastName: getVal(row, 'lastName'),
-                phoneNumber,
+                phoneNumber: getVal(row, 'phoneNumber').replace(/\s/g, ''),
                 postalCode: getVal(row, 'postalCode'),
-                status: 'pending',
+                // FIX: Use 'as const' to ensure TypeScript infers the literal type 'pending', matching the 'Contact' type definition.
+                status: 'pending' as const,
                 customFields,
-                originalRow: row
-            });
+                originalRow: row, // Pass original row for error reporting
+            };
         });
-
-        setSummary({ total: csvData.length, valids, invalids });
-        setStep(4);
+        
+        try {
+            // FIX: Cast `contactsToValidate` to `any` to bypass the strict type checking for `originalRow`, which is expected by the backend but not in the frontend `Contact` type.
+            const result = await onImport(contactsToValidate as any, deduplicationConfig);
+            setSummary({
+                total: result.summary.total,
+                valids: result.summary.valids,
+                invalids: result.invalids
+            });
+            setStep(4);
+        } catch (error) {
+            alert("Une erreur est survenue pendant la validation. Veuillez réessayer.");
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
-    const handleFinalImport = () => {
-        if (!summary) return;
-        const contactsToImport = summary.valids.map(({ originalRow, ...contact }) => contact);
-        // Fix: Pass deduplicationConfig along with contacts
-        onImport(contactsToImport, deduplicationConfig);
-        setStep(5);
-    };
-    
     const handleExportInvalids = () => {
         if (!summary || summary.invalids.length === 0) return;
 
@@ -336,36 +301,28 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
                 if (!summary) return null;
                 return (
                     <div className="space-y-4">
-                        <h3 className="text-xl font-semibold text-slate-800">Résumé de la validation</h3>
+                        <h3 className="text-xl font-semibold text-slate-800">Résumé de l'importation</h3>
                         <div className="grid grid-cols-3 gap-4 text-center">
                             <div className="bg-slate-50 p-4 rounded-md border"><p className="text-2xl font-bold">{summary.total}</p><p className="text-sm text-slate-500">Lignes lues</p></div>
-                            <div className="bg-green-50 p-4 rounded-md border border-green-200"><p className="text-2xl font-bold text-green-700">{summary.valids.length}</p><p className="text-sm text-green-600">Contacts à importer</p></div>
-                            <div className="bg-red-50 p-4 rounded-md border border-red-200"><p className="text-2xl font-bold text-red-700">{summary.invalids.length}</p><p className="text-sm text-red-600">Lignes invalides</p></div>
+                            <div className="bg-green-50 p-4 rounded-md border border-green-200"><p className="text-2xl font-bold text-green-700">{summary.valids}</p><p className="text-sm text-green-600">Contacts importés</p></div>
+                            <div className="bg-red-50 p-4 rounded-md border border-red-200"><p className="text-2xl font-bold text-red-700">{summary.invalids.length}</p><p className="text-sm text-red-600">Lignes rejetées</p></div>
                         </div>
                         {summary.invalids.length > 0 && (
                             <div>
                                 <div className="flex justify-between items-center mb-2">
-                                    <h4 className="font-semibold text-slate-700">Détail des erreurs</h4>
+                                    <h4 className="font-semibold text-slate-700">Détail des rejets</h4>
                                     <button onClick={handleExportInvalids} className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1.5">
                                         <ArrowDownTrayIcon className="w-4 h-4" />
-                                        Exporter les lignes invalides
+                                        Exporter les lignes rejetées
                                     </button>
                                 </div>
                                 <div className="max-h-80 overflow-y-auto text-sm border rounded-md bg-slate-50">
-                                    <table className="min-w-full"><thead className="bg-slate-200 sticky top-0"><tr className="text-left"><th className="p-2">Ligne</th><th className="p-2">Erreur</th></tr></thead>
+                                    <table className="min-w-full"><thead className="bg-slate-200 sticky top-0"><tr className="text-left"><th className="p-2">Ligne</th><th className="p-2">Motif du rejet</th></tr></thead>
                                         <tbody>{summary.invalids.map((item, i) => ( <tr key={i} className="border-t"><td className="p-2 font-mono text-xs">{JSON.stringify(item.row)}</td><td className="p-2 text-red-600">{item.reason}</td></tr> ))}</tbody>
                                     </table>
                                 </div>
                             </div>
                         )}
-                    </div>
-                );
-            case 5: // Done
-                return (
-                    <div className="text-center py-8">
-                        <CheckIcon className="mx-auto h-16 w-16 text-green-500"/>
-                        <h3 className="text-xl font-semibold text-slate-800 mt-4">Importation terminée !</h3>
-                        <p className="text-slate-600 mt-2"><span className="font-bold">{summary?.valids.length || 0}</span> contacts ont été ajoutés à la campagne.</p>
                     </div>
                 );
             default: return null;
@@ -383,11 +340,13 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
                     <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700">Fermer</button>
                     <div className="flex gap-3">
                         {step > 1 && step < 5 && <button onClick={() => setStep(s => s - 1)} className="rounded-md border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50">Retour</button>}
-                        {step < 4 && <button onClick={() => step === 3 ? processAndGoToSummary() : setStep(s => s + 1)} disabled={isNextDisabled} className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-indigo-700 disabled:bg-indigo-300">
-                            {step === 3 ? 'Valider les données' : 'Suivant'} <ArrowRightIcon className="w-4 h-4"/>
+                        {step < 3 && <button onClick={() => setStep(s => s + 1)} disabled={isNextDisabled} className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-indigo-700 disabled:bg-indigo-300">
+                            Suivant <ArrowRightIcon className="w-4 h-4"/>
                         </button>}
-                        {step === 4 && <button onClick={handleFinalImport} className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-green-700">Confirmer et Importer</button>}
-                        {step === 5 && <button onClick={onClose} className="rounded-md bg-indigo-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-indigo-700">Terminer</button>}
+                        {step === 3 && <button onClick={processAndGoToSummary} disabled={isProcessing || isNextDisabled} className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-indigo-700 disabled:bg-indigo-300">
+                            {isProcessing ? 'Validation...' : 'Valider et Importer'}
+                        </button>}
+                        {step === 4 && <button onClick={onClose} className="rounded-md bg-indigo-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-indigo-700">Terminer</button>}
                     </div>
                 </div>
             </div>

@@ -376,11 +376,15 @@ const App: React.FC = () => {
 
     const handleImportContacts = async (campaignId: string, contacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => {
         try {
-            await apiClient.post(`/campaigns/${campaignId}/contacts`, { contacts, deduplicationConfig });
+            const response = await apiClient.post(`/campaigns/${campaignId}/contacts`, { contacts, deduplicationConfig });
             await fetchApplicationData();
-            showAlert(`${contacts.length} contacts importés avec succès.`, 'success');
-        } catch (error) {
-            showAlert("Erreur lors de l'importation des contacts.", 'error');
+            // The API now returns a detailed summary, which we pass back to the modal.
+            return response.data;
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.error || "Erreur lors de l'importation des contacts.";
+            showAlert(errorMessage, 'error');
+            // Re-throw the error so the modal knows the operation failed.
+            throw new Error(errorMessage);
         }
     };
 
