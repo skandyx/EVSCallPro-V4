@@ -1,8 +1,10 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Feature, User, UserRole, Campaign, UserGroup, Site } from '../types.ts';
 import { UsersIcon, PlusIcon, EditIcon, TrashIcon, ChevronDownIcon } from './Icons.tsx';
 import ImportUsersModal from './ImportUsersModal.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 const generatePassword = (): string => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -339,6 +341,7 @@ const UserManager: React.FC<UserManagerProps> = ({ feature, users, campaigns, us
   const [isGeneratingModalOpen, setIsGeneratingModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: keyof User; direction: 'ascending' | 'descending' }>({ key: 'firstName', direction: 'ascending' });
+  const { t } = useI18n();
 
 
   const usersToDisplay = useMemo(() => {
@@ -506,8 +509,10 @@ const UserManager: React.FC<UserManagerProps> = ({ feature, users, campaigns, us
       {isImportModalOpen && <ImportUsersModal onClose={() => setIsImportModalOpen(false)} onImport={onImportUsers} existingUsers={users} />}
       {isGeneratingModalOpen && <GenerateModal onClose={() => setIsGeneratingModalOpen(false)} onConfirm={handleConfirmGeneration} />}
       <header>
-        <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{feature.title}</h1>
-        <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{feature.description}</p>
+        {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+        <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{t(feature.titleKey)}</h1>
+        {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+        <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{t(feature.descriptionKey)}</p>
       </header>
       
       <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">

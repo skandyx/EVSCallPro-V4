@@ -1,7 +1,9 @@
 
+
 import React, { useState, useMemo } from 'react';
 import type { Feature, Did, Trunk, IvrFlow } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ChevronDownIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface DidModalProps {
     did: Did | null;
@@ -84,6 +86,7 @@ const DidManager: React.FC<DidManagerProps> = ({ feature, dids, trunks, ivrFlows
     const [editingDid, setEditingDid] = useState<Did | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: keyof Did | 'destination'; direction: 'ascending' | 'descending' }>({ key: 'number', direction: 'ascending' });
+    const { t } = useI18n();
 
     const getIvrFlowName = (flowId: string | null, forSorting = false): string | React.ReactNode => {
         if (!flowId) return forSorting ? 'Non assigné' : <span className="text-slate-400 italic">Non assigné</span>;
@@ -175,8 +178,10 @@ const DidManager: React.FC<DidManagerProps> = ({ feature, dids, trunks, ivrFlows
         <div className="max-w-7xl mx-auto space-y-8">
             {isModalOpen && <DidModal did={editingDid} trunks={trunks} ivrFlows={ivrFlows} onSave={handleSave} onClose={() => setIsModalOpen(false)} />}
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{t(feature.descriptionKey)}</p>
             </header>
             
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">

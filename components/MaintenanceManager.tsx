@@ -1,6 +1,8 @@
+
 import React, { useState } from 'react';
 import type { Feature, BackupLog, BackupSchedule } from '../types.ts';
 import { PlusIcon, TrashIcon, CheckIcon, XMarkIcon, InformationCircleIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface MaintenanceManagerProps {
     feature: Feature;
@@ -14,6 +16,7 @@ const MaintenanceManager: React.FC<MaintenanceManagerProps> = ({ feature, backup
     const [schedule, setSchedule] = useState<BackupSchedule>(backupSchedule);
     const [isSaving, setIsSaving] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const { t } = useI18n();
 
     const handleScheduleChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -40,8 +43,10 @@ const MaintenanceManager: React.FC<MaintenanceManagerProps> = ({ feature, backup
     return (
         <div className="max-w-5xl mx-auto space-y-8">
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

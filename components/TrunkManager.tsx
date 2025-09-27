@@ -1,7 +1,9 @@
 
+
 import React, { useState } from 'react';
 import type { Feature, Trunk } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, InformationCircleIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface TrunkModalProps {
     trunk: Trunk | null;
@@ -108,6 +110,7 @@ interface TrunkManagerProps {
 const TrunkManager: React.FC<TrunkManagerProps> = ({ feature, trunks, onSaveTrunk, onDeleteTrunk }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTrunk, setEditingTrunk] = useState<Trunk | null>(null);
+    const { t } = useI18n();
 
     const handleAddNew = () => {
         setEditingTrunk(null);
@@ -129,8 +132,10 @@ const TrunkManager: React.FC<TrunkManagerProps> = ({ feature, trunks, onSaveTrun
         <div className="max-w-7xl mx-auto space-y-8">
             {isModalOpen && <TrunkModal trunk={editingTrunk} onSave={handleSave} onClose={() => setIsModalOpen(false)} />}
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{t(feature.descriptionKey)}</p>
             </header>
             
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">

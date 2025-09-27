@@ -1,8 +1,11 @@
 
 
+
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Feature, CallHistoryRecord, User, Campaign, Qualification, AgentSession } from '../types.ts';
 import { ArrowUpTrayIcon, TimeIcon, PhoneIcon, ChartBarIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 // Déclaration pour TypeScript afin de reconnaître les variables globales injectées par les scripts CDN
 declare var jspdf: any;
@@ -89,6 +92,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         campaignId: 'all',
         agentId: 'all',
     });
+    const { t } = useI18n();
 
     const handleDateRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const range = e.target.value;
@@ -573,8 +577,10 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
          <div className="max-w-7xl mx-auto space-y-6">
             <header className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
-                    <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+                    {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                    <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                    {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                    <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
                 </div>
                  <button onClick={handleExportPDF} className="bg-slate-700 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded-lg shadow-md inline-flex items-center">
                     <ArrowUpTrayIcon className="w-5 h-5 mr-2"/>

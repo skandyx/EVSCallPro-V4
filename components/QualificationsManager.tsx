@@ -1,6 +1,8 @@
+
 import React, { useState, useMemo } from 'react';
 import type { Feature, Qualification, QualificationGroup } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ArrowLeftIcon, ArrowRightIcon, ChevronDownIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 const TYPE_DOT_COLORS: { [key in Qualification['type']]: string } = {
     positive: 'bg-green-500',
@@ -262,6 +264,7 @@ const QualificationsManager: React.FC<QualificationsManagerProps> = ({ feature, 
     const [editingGroup, setEditingGroup] = useState<QualificationGroup | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: SortableKeys; direction: 'ascending' | 'descending' }>({ key: 'name', direction: 'ascending' });
+    const { t } = useI18n();
 
     const handleSaveGroup = (group: QualificationGroup, assignedQualIds: string[]) => {
         onSaveQualificationGroup(group, assignedQualIds);
@@ -317,8 +320,10 @@ const QualificationsManager: React.FC<QualificationsManagerProps> = ({ feature, 
             />}
             
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
             
             <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">

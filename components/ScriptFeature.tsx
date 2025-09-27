@@ -1,9 +1,11 @@
 
+
 import React, { useState, useMemo } from 'react';
 import type { Feature, SavedScript, Page, ScriptBlock } from '../types.ts';
 import ScriptBuilder from './ScriptBuilder.tsx';
 import AgentPreview from './AgentPreview.tsx';
 import { EditIcon, DuplicateIcon, TrashIcon, PlusIcon, ChevronDownIcon, EyeIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface ScriptFeatureProps {
     feature: Feature;
@@ -24,6 +26,7 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
     const [activeScript, setActiveScript] = useState<SavedScript | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: keyof SavedScript; direction: 'ascending' | 'descending' }>({ key: 'name', direction: 'ascending' });
+    const { t } = useI18n();
 
     const filteredAndSortedScripts = useMemo(() => {
         let sortableScripts = [...savedScripts];
@@ -140,8 +143,10 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
     return (
         <div className="max-w-7xl mx-auto space-y-8">
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
             
             <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">

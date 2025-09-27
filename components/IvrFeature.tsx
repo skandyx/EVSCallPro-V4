@@ -1,8 +1,10 @@
 
+
 import React, { useState, useMemo } from 'react';
 import type { Feature, IvrFlow, IvrNode } from '../types.ts';
 import IvrDesigner from './IvrDesigner.tsx';
 import { EditIcon, DuplicateIcon, TrashIcon, PlusIcon, ChevronDownIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface IvrFeatureProps {
     feature: Feature;
@@ -23,6 +25,7 @@ const IvrFeature: React.FC<IvrFeatureProps> = ({
     const [activeFlow, setActiveFlow] = useState<IvrFlow | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: keyof IvrFlow; direction: 'ascending' | 'descending' }>({ key: 'name', direction: 'ascending' });
+    const { t } = useI18n();
 
     const filteredAndSortedFlows = useMemo(() => {
         let sortableFlows = [...ivrFlows];
@@ -118,8 +121,10 @@ const IvrFeature: React.FC<IvrFeatureProps> = ({
     return (
         <div className="max-w-7xl mx-auto space-y-8">
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
             
             <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">

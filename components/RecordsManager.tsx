@@ -1,6 +1,8 @@
+
 import React, { useState, useMemo, useRef } from 'react';
 import type { Feature, CallHistoryRecord, User, Campaign } from '../types.ts';
 import { InformationCircleIcon, PlayIcon, PauseIcon, ArrowDownTrayIcon, ChevronDownIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface RecordsManagerProps {
     feature: Feature;
@@ -26,6 +28,7 @@ const RecordsManager: React.FC<RecordsManagerProps> = ({ feature, callHistory, u
     const [sortConfig, setSortConfig] = useState<{ key: keyof CallHistoryRecord; direction: 'ascending' | 'descending' }>({ key: 'timestamp', direction: 'descending' });
     const [playingRecordId, setPlayingRecordId] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
+    const { t } = useI18n();
 
     const filteredAndSortedRecords = useMemo(() => {
         let sortableRecords = [...callHistory];
@@ -96,8 +99,10 @@ const RecordsManager: React.FC<RecordsManagerProps> = ({ feature, callHistory, u
             {/* Hidden audio element for playback */}
             <audio ref={audioRef} onPlay={() => {}} onPause={() => {}} onEnded={() => setPlayingRecordId(null)} />
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
             <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
                  <div className="mb-4">

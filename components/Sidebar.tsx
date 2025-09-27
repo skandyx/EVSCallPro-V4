@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import type { Feature, FeatureId, User, FeatureCategory, ModuleVisibility, AgentStatus } from '../types.ts';
 import {
@@ -5,6 +6,7 @@ import {
     UsersIcon, PhoneArrowUpRightIcon, InboxArrowDownIcon, SpeakerWaveIcon, WrenchScrewdriverIcon,
     ChartBarIcon, ServerStackIcon, SettingsIcon, PowerIcon, ChevronDoubleLeftIcon
 } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface SidebarProps {
     features: Feature[];
@@ -50,6 +52,7 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
     const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const isSuperAdmin = currentUser?.role === 'SuperAdmin';
+    const { t } = useI18n();
 
     const toggleCategory = (category: string) => {
         setExpandedCategories(prev =>
@@ -119,7 +122,8 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                                                         : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
                                                 }`}
                                             >
-                                                {feature.title}
+                                                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                                                {t(feature.titleKey)}
                                             </button>
                                         ))}
                                     </div>

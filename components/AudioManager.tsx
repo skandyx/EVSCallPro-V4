@@ -1,7 +1,9 @@
 
+
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import type { Feature, AudioFile } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, PlayIcon, PauseIcon, XMarkIcon, ChevronDownIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 // Helper functions
 const formatBytes = (bytes: number, decimals = 2) => {
@@ -155,6 +157,7 @@ const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSave
     const [editingFile, setEditingFile] = useState<AudioFile | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: keyof AudioFile; direction: 'ascending' | 'descending' }>({ key: 'name', direction: 'ascending' });
+    const { t } = useI18n();
 
     // Player state
     const [playingFileId, setPlayingFileId] = useState<string | null>(null);
@@ -308,8 +311,10 @@ const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSave
             <audio ref={audioRef} />
 
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
             <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
                 <div className="flex justify-between items-center mb-4">
@@ -347,39 +352,4 @@ const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSave
                             {filteredAndSortedFiles.map(file => (
                                 <tr key={file.id}>
                                     <td className="px-6 py-4">
-                                        <button onClick={() => handlePlayPauseClick(file.id)} className="text-slate-500 hover:text-indigo-600" title={playingFileId === file.id && isPlaying ? 'Mettre en pause' : 'Écouter'}>
-                                            {playingFileId === file.id && isPlaying ? <PauseIcon className="w-5 h-5 text-indigo-600"/> : <PlayIcon className="w-5 h-5"/>}
-                                        </button>
-                                    </td>
-                                    <td className="px-6 py-4 font-medium text-slate-800">{file.name}</td>
-                                    <td className="px-6 py-4 text-slate-600 font-mono text-sm">{file.fileName}</td>
-                                    <td className="px-6 py-4 text-slate-600 font-mono text-sm">{formatDuration(file.duration)}</td>
-                                    <td className="px-6 py-4 text-slate-600">{formatBytes(file.size)}</td>
-                                    <td className="px-6 py-4 text-slate-600">{new Date(file.uploadDate).toLocaleDateString('fr-FR')}</td>
-                                    <td className="px-6 py-4 text-right text-sm font-medium space-x-4">
-                                        <button onClick={() => handleEdit(file)} className="text-indigo-600 hover:text-indigo-900"><EditIcon className="w-4 h-4 inline-block -mt-1"/> Modifier</button>
-                                        <button onClick={() => handleDelete(file.id, file.name)} className="text-red-600 hover:text-red-900"><TrashIcon className="w-4 h-4 inline-block -mt-1"/> Supprimer</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                     {filteredAndSortedFiles.length === 0 && <p className="text-center py-8 text-slate-500">Aucun fichier audio trouvé.</p>}
-                </div>
-            </div>
-
-            <Player
-                file={playingFile}
-                isPlaying={isPlaying}
-                progress={progress}
-                currentTime={currentTime}
-                duration={duration}
-                onPlayPause={() => playingFileId && handlePlayPauseClick(playingFileId)}
-                onSeek={handleSeek}
-                onClose={() => setPlayingFileId(null)}
-            />
-        </div>
-    );
-};
-
-export default AudioManager;
+                                        <button onClick={() => handlePlayPauseClick(file.id)} className="text-slate-

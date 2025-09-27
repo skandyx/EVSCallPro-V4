@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 export type FeatureId =
@@ -26,7 +25,8 @@ export type FeatureId =
   | 'api-docs'
   | 'database-client'
   | 'billing'
-  | 'system-settings';
+  | 'system-settings'
+  | 'languages';
 
 export type FeatureCategory = 'Agent' | 'Outbound' | 'Inbound' | 'Sound' | 'Configuration' | 'Supervision & Reporting' | 'Système' | 'Paramètres';
 
@@ -37,21 +37,21 @@ export interface ModuleVisibility {
 
 export interface Feature {
   id: FeatureId;
-  title: string;
+  titleKey: string;
   category: FeatureCategory;
-  description: string;
+  descriptionKey: string;
   component: React.FC<any>;
   userJourney: {
-    title: string;
-    steps: string[];
+    titleKey: string;
+    stepsKeys: string[];
   };
   specs: {
-    title: string;
-    points: string[];
+    titleKey: string;
+    pointsKeys: string[];
   };
   simplificationTip: {
-    title: string;
-    content: string;
+    titleKey: string;
+    contentKey: string;
   };
 }
 

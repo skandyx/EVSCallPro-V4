@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
 import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus, ActiveCall, CampaignState, SystemSmtpSettings, SystemAppSettings } from './types.ts';
 import { features } from './data/features.ts';
@@ -10,6 +9,7 @@ import MonitoringDashboard from './components/MonitoringDashboard.tsx';
 import UserProfileModal from './components/UserProfileModal.tsx'; // Import the new modal
 import apiClient from './src/lib/axios.ts'; // Utilisation de l'instance Axios configurée
 import wsClient from './src/services/wsClient.ts';
+import { I18nProvider, useI18n } from './src/i18n/index.tsx';
 
 // Création d'un contexte pour les alertes (toast)
 export const AlertContext = React.createContext<{
@@ -81,7 +81,7 @@ function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
 
 type Theme = 'light' | 'dark' | 'system';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [activeFeatureId, setActiveFeatureId] = useState<FeatureId>('outbound');
     const [allData, setAllData] = useState<Record<string, any> & { appSettings?: SystemAppSettings }>({});
@@ -91,6 +91,7 @@ const App: React.FC = () => {
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false); // State for the new modal
     const [liveState, dispatch] = useReducer(liveDataReducer, initialState);
     const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
+    const { t } = useI18n();
 
      // Effect to apply theme class to <html> element
     useEffect(() => {
@@ -146,9 +147,9 @@ const App: React.FC = () => {
             setAllData(response.data);
         } catch (error) {
             console.error("Failed to fetch application data:", error);
-            showAlert("Impossible de charger les données de l'application.", 'error');
+            showAlert(t('alerts.appDataLoadError'), 'error');
         }
-    }, [showAlert]);
+    }, [showAlert, t]);
     
     const handleLogout = useCallback(() => {
         localStorage.removeItem('authToken');
@@ -281,10 +282,10 @@ const App: React.FC = () => {
                 : await apiClient.put(`${url}/${data.id}`, data);
             
             await fetchApplicationData(); // Re-fetch all data to ensure consistency
-            showAlert('Enregistrement réussi !', 'success');
+            showAlert(t('alerts.saveSuccess'), 'success');
             return response.data;
         } catch (error: any) {
-            const errorMessage = error.response?.data?.error || `Échec de l'enregistrement.`;
+            const errorMessage = error.response?.data?.error || t('alerts.saveError');
             console.error(`Failed to save ${dataType}:`, error);
             showAlert(errorMessage, 'error');
             throw error;
@@ -293,14 +294,14 @@ const App: React.FC = () => {
     
     // FIX: Corrected the signature and implementation of the `handleDelete` function to accept an optional `endpoint` parameter. This resolves errors where it was called with three arguments instead of the expected two, ensuring that API calls for deletion are made to the correct custom endpoints when provided.
     const handleDelete = async (dataType: string, id: string, endpoint?: string) => {
-        if (window.confirm("Êtes-vous sûr de vouloir supprimer cet élément ?")) {
+        if (window.confirm(t('alerts.confirmDelete'))) {
             try {
                 const url = endpoint || `/${dataType.toLowerCase()}`;
                 await apiClient.delete(`${url}/${id}`);
                 await fetchApplicationData();
-                showAlert('Suppression réussie !', 'success');
+                showAlert(t('alerts.deleteSuccess'), 'success');
             } catch (error: any) {
-                const errorMessage = error.response?.data?.error || `Échec de la suppression.`;
+                const errorMessage = error.response?.data?.error || t('alerts.deleteError');
                 console.error(`Failed to delete ${dataType}:`, error);
                 showAlert(errorMessage, 'error');
             }
@@ -313,7 +314,7 @@ const App: React.FC = () => {
             ...prevData,
             moduleVisibility: visibility,
         }));
-        showAlert('Paramètres de visibilité mis à jour.', 'success');
+        showAlert(t('alerts.visibilitySettingsUpdated'), 'success');
     };
 
     const handleSaveSmtpSettings = async (settings: SystemSmtpSettings, password?: string) => {
@@ -324,9 +325,9 @@ const App: React.FC = () => {
             }
             await apiClient.put('/system/smtp-settings', payload);
             await fetchApplicationData(); 
-            showAlert('Paramètres SMTP enregistrés. Un redémarrage du serveur peut être nécessaire.', 'success');
+            showAlert(t('alerts.smtpSettingsSaved'), 'success');
         } catch (error: any) {
-            const errorMessage = error.response?.data?.error || `Échec de l'enregistrement.`;
+            const errorMessage = error.response?.data?.error || t('alerts.saveError');
             showAlert(errorMessage, 'error');
             throw error;
         }
@@ -342,9 +343,9 @@ const App: React.FC = () => {
                 ...prevData,
                 appSettings: settings,
             }));
-            showAlert("Paramètres de l'application enregistrés.", 'success');
+            showAlert(t('alerts.appSettingsSaved'), 'success');
         } catch (error: any) {
-            const errorMessage = error.response?.data?.error || `Échec de l'enregistrement.`;
+            const errorMessage = error.response?.data?.error || t('alerts.saveError');
             showAlert(errorMessage, 'error');
             throw error;
         }
@@ -360,7 +361,7 @@ const App: React.FC = () => {
             await fetchApplicationData();
             showAlert(successMessage, 'success');
         } catch (error: any) {
-            const errorMessage = error.response?.data?.error || `Échec de la création en masse.`;
+            const errorMessage = error.response?.data?.error || t('alerts.bulkCreateError');
             console.error(`Failed to bulk create users:`, error);
             showAlert(errorMessage, 'error');
             throw error;
@@ -368,11 +369,11 @@ const App: React.FC = () => {
     };
     
     const handleGenerateUsers = async (users: User[]) => {
-        await handleBulkUsers(users, `${users.length} utilisateurs générés avec succès.`);
+        await handleBulkUsers(users, t('alerts.usersGenerated', { count: users.length }));
     };
 
     const handleImportUsers = async (users: User[]) => {
-        await handleBulkUsers(users, `${users.length} utilisateurs importés avec succès.`);
+        await handleBulkUsers(users, t('alerts.usersImported', { count: users.length }));
     };
 
     const handleImportContacts = async (campaignId: string, contacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => {
@@ -382,7 +383,7 @@ const App: React.FC = () => {
             // The API now returns a detailed summary, which we pass back to the modal.
             return response.data;
         } catch (error: any) {
-            const errorMessage = error.response?.data?.error || "Erreur lors de l'importation des contacts.";
+            const errorMessage = error.response?.data?.error || t('alerts.contactImportError');
             showAlert(errorMessage, 'error');
             // Re-throw the error so the modal knows the operation failed.
             throw new Error(errorMessage);
@@ -392,10 +393,10 @@ const App: React.FC = () => {
     const handleUpdatePassword = async (passwordData: any) => {
         try {
             await apiClient.put('/users/me/password', passwordData);
-            showAlert('Mot de passe mis à jour avec succès.', 'success');
+            showAlert(t('alerts.passwordUpdateSuccess'), 'success');
             setIsProfileModalOpen(false);
         } catch (error: any) {
-             const errorMessage = error.response?.data?.error || `Échec de la mise à jour.`;
+             const errorMessage = error.response?.data?.error || t('alerts.updateError');
             console.error(`Failed to update password:`, error);
             showAlert(errorMessage, 'error');
             throw error; // Rethrow to keep modal open and show error
@@ -405,11 +406,11 @@ const App: React.FC = () => {
     const handleUpdateProfilePicture = async (base64DataUrl: string) => {
         try {
             await apiClient.put('/users/me/picture', { pictureUrl: base64DataUrl });
-            showAlert('Photo de profil mise à jour.', 'success');
+            showAlert(t('alerts.profilePictureUpdateSuccess'), 'success');
             // Refresh all data to get the updated user object everywhere
             await fetchApplicationData(); 
         } catch (error: any) {
-            const errorMessage = error.response?.data?.error || `Échec de la mise à jour.`;
+            const errorMessage = error.response?.data?.error || t('alerts.updateError');
             showAlert(errorMessage, 'error');
             throw error; // Rethrow to allow modal to handle UI state
         }
@@ -423,7 +424,7 @@ const App: React.FC = () => {
 
 
     if (isLoading) {
-        return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">Chargement...</div>;
+        return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">{t('common.loading')}...</div>;
     }
 
     if (!currentUser) {
@@ -550,5 +551,11 @@ const App: React.FC = () => {
         </AlertContext.Provider>
     );
 };
+
+const App: React.FC = () => (
+    <I18nProvider>
+        <AppContent />
+    </I18nProvider>
+);
 
 export default App;
