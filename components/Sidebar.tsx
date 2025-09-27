@@ -97,7 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                                         {featuresInCategory
                                             .filter(feature => {
                                                 // Special rules for SuperAdmin-only features
-                                                if (['module-settings', 'system-connection', 'api-docs', 'database-client'].includes(feature.id)) {
+                                                if (['module-settings', 'system-connection', 'api-docs', 'database-client', 'billing', 'system-settings'].includes(feature.id)) {
                                                     return currentUser?.role === 'SuperAdmin';
                                                 }
                                                 // Default rule for all other features

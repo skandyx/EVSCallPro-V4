@@ -1,4 +1,3 @@
-
 // data/features.ts
 import type { Feature } from '../types.ts';
 import UserManager from '../components/UserManager.tsx';
@@ -27,6 +26,8 @@ import SiteManager from '../components/SiteManager.tsx';
 import SystemConnectionManager from '../components/SystemConnectionManager.tsx';
 import ApiDocs from '../components/ApiDocs.tsx';
 import DatabaseManager from '../components/DatabaseManager.tsx';
+import BillingManager from '../components/BillingManager.tsx';
+import SystemSettingsManager from '../components/SystemSettingsManager.tsx';
 
 export const features: Feature[] = [
     {
@@ -628,5 +629,25 @@ export const features: Feature[] = [
             title: 'Conseil de Simplification',
             content: "Cette page est une référence technique. Utilisez-la pour comprendre la structure des données de l'application ou pour développer des intégrations avec des systèmes tiers."
         }
+    },
+    {
+        id: 'billing',
+        title: 'Facturation',
+        category: 'Paramètres',
+        description: "Gérez les abonnements et consultez l'historique de facturation.",
+        component: BillingManager,
+        userJourney: { title: '', steps: [] },
+        specs: { title: '', points: [] },
+        simplificationTip: { title: '', content: '' }
+    },
+    {
+        id: 'system-settings',
+        title: 'Système',
+        category: 'Paramètres',
+        description: "Configurez les paramètres système de bas niveau, comme l'envoi d'e-mails.",
+        component: SystemSettingsManager,
+        userJourney: { title: '', steps: [] },
+        specs: { title: '', points: [] },
+        simplificationTip: { title: '', content: '' }
     },
 ];

@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 export type FeatureId =
@@ -24,7 +23,9 @@ export type FeatureId =
   | 'sites-config'
   | 'system-connection'
   | 'api-docs'
-  | 'database-client';
+  | 'database-client'
+  | 'billing'
+  | 'system-settings';
 
 export type FeatureCategory = 'Agent' | 'Outbound' | 'Inbound' | 'Sound' | 'Configuration' | 'Supervision & Reporting' | 'Système' | 'Paramètres';
 
