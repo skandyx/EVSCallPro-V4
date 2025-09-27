@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import type { Feature, PlanningEvent, ActivityType, User, UserGroup } from '../types.ts';
 import { PlusIcon, ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon } from './Icons.tsx';
@@ -185,17 +184,42 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
     }
     
     const handleModalSave = (eventData: Omit<PlanningEvent, 'id' | 'agentId'>, targetId: string) => {
+        const isEditing = !!modalState.event?.id;
         const [type, id] = targetId.split('-');
+
         if (type === 'group') {
+            // Group creation is always 'new' in the current UI, so this logic is fine.
             const group = userGroups.find(g => g.id === id);
             if (group) {
                 group.memberIds.forEach((memberId, index) => {
-                    const newEvent = { ...eventData, id: `plan-${Date.now() + index}`, agentId: memberId };
+                    const newEvent: PlanningEvent = {
+                        ...eventData,
+                        id: `plan-${Date.now() + index}`,
+                        agentId: memberId
+                    };
                     onSavePlanningEvent(newEvent);
                 });
             }
-        } else {
-            onSavePlanningEvent({ ...eventData, id: `plan-${Date.now()}`, agentId: id });
+        } else if (type === 'user') {
+            if (isEditing && modalState.event) {
+                // This is an UPDATE of an existing event
+                const updatedEvent: PlanningEvent = {
+                    id: modalState.event.id!,
+                    agentId: modalState.event.agentId!,
+                    activityId: eventData.activityId,
+                    startDate: eventData.startDate,
+                    endDate: eventData.endDate,
+                };
+                onSavePlanningEvent(updatedEvent);
+            } else {
+                // This is a CREATE for a new event
+                const newEvent: PlanningEvent = {
+                    ...eventData,
+                    id: `plan-${Date.now()}`,
+                    agentId: id,
+                };
+                onSavePlanningEvent(newEvent);
+            }
         }
     };
     
