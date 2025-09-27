@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { Feature, User, Campaign, Contact, Qualification, SavedScript, QualificationGroup, ContactNote, PersonalCallback, UserGroup, Trunk, Did, Site, PlanningEvent, ActivityType, AudioFile, SystemConnectionSettings, SystemSmtpSettings, SystemAppSettings, ModuleVisibility, BackupLog, BackupSchedule, SystemLog, VersionInfo, ConnectivityService, IvrFlow, CallHistoryRecord, AgentSession } from './types.ts';
 import { features as allFeatures } from './data/features.ts';
 import Sidebar from './components/Sidebar.tsx';
-import FeatureDetail from './components/FeatureDetail.tsx';
+import Header from './components/Header.tsx';
 import LoginScreen from './components/LoginScreen.tsx';
 import AgentView from './components/AgentView.tsx';
 import apiClient from './src/lib/axios.ts';
@@ -45,6 +45,16 @@ const App: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [activeFeatureId, setActiveFeatureId] = useState<string>('users');
 
+    useEffect(() => {
+        // Apply theme and dark mode on initial load
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+        const savedTheme = localStorage.getItem('colorPalette') || 'default';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    }, []);
+
+
     const handleLogout = useCallback(() => {
         localStorage.removeItem('authToken');
         setCurrentUser(null);
@@ -55,6 +65,10 @@ const App: React.FC = () => {
         try {
             const response = await apiClient.get('/application-data');
             setData(response.data);
+            // Apply theme from fetched data as well
+            const theme = response.data.appSettings.colorPalette || 'default';
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('colorPalette', theme);
         } catch (err) {
             console.error("Failed to refresh data", err);
             setError('Could not refresh application data.');
@@ -113,7 +127,7 @@ const App: React.FC = () => {
     };
 
     if (isLoading) {
-        return <div className="flex h-screen w-screen items-center justify-center">Loading...</div>;
+        return <div className="flex h-screen w-screen items-center justify-center bg-background text-foreground">Chargement...</div>;
     }
 
     if (!currentUser || !data) {
@@ -143,7 +157,7 @@ const App: React.FC = () => {
     const FeatureComponent = activeFeature.component;
 
     return (
-        <div className="flex h-screen bg-slate-100">
+        <div className="flex h-screen bg-background text-foreground">
             <Sidebar
                 features={allFeatures}
                 user={currentUser}
@@ -151,38 +165,44 @@ const App: React.FC = () => {
                 activeFeatureId={activeFeatureId}
                 onLogout={handleLogout}
             />
-            <main className="flex-1 p-8 overflow-y-auto">
-                <FeatureComponent 
-                    feature={activeFeature}
-                    {...data}
-                    apiClient={apiClient}
-                    refreshData={refreshData}
-                    onSaveOrUpdateScript={async (script: SavedScript) => { 
-                        await apiClient.put(`/scripts/${script.id}`, script);
-                        refreshData();
-                    }}
-                    onDeleteScript={async (scriptId: string) => {
-                        await apiClient.delete(`/scripts/${scriptId}`);
-                        refreshData();
-                    }}
-                    onDuplicateScript={async (scriptId: string) => {
-                        await apiClient.post(`/scripts/${scriptId}/duplicate`);
-                        refreshData();
-                    }}
-                    onSaveOrUpdateIvrFlow={async (flow: IvrFlow) => {
-                        await apiClient.put(`/ivr-flows/${flow.id}`, flow);
-                        refreshData();
-                    }}
-                    onDeleteIvrFlow={async (flowId: string) => {
-                        await apiClient.delete(`/ivr-flows/${flowId}`);
-                        refreshData();
-                    }}
-                    onDuplicateIvrFlow={async (flowId: string) => {
-                        await apiClient.post(`/ivr-flows/${flowId}/duplicate`);
-                        refreshData();
-                    }}
+            <div className="flex-1 flex flex-col overflow-hidden">
+                <Header 
+                    user={currentUser}
+                    onLogout={handleLogout}
                 />
-            </main>
+                <main className="flex-1 p-8 overflow-y-auto">
+                    <FeatureComponent 
+                        feature={activeFeature}
+                        {...data}
+                        apiClient={apiClient}
+                        refreshData={refreshData}
+                        onSaveOrUpdateScript={async (script: SavedScript) => { 
+                            await apiClient.put(`/scripts/${script.id}`, script);
+                            refreshData();
+                        }}
+                        onDeleteScript={async (scriptId: string) => {
+                            await apiClient.delete(`/scripts/${scriptId}`);
+                            refreshData();
+                        }}
+                        onDuplicateScript={async (scriptId: string) => {
+                            await apiClient.post(`/scripts/${scriptId}/duplicate`);
+                            refreshData();
+                        }}
+                        onSaveOrUpdateIvrFlow={async (flow: IvrFlow) => {
+                            await apiClient.put(`/ivr-flows/${flow.id}`, flow);
+                            refreshData();
+                        }}
+                        onDeleteIvrFlow={async (flowId: string) => {
+                            await apiClient.delete(`/ivr-flows/${flowId}`);
+                            refreshData();
+                        }}
+                        onDuplicateIvrFlow={async (flowId: string) => {
+                            await apiClient.post(`/ivr-flows/${flowId}/duplicate`);
+                            refreshData();
+                        }}
+                    />
+                </main>
+            </div>
         </div>
     );
 };
