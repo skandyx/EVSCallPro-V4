@@ -1,7 +1,8 @@
 
 
+
 import React, { useState, useMemo } from 'react';
-import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact } from '../types.ts';
+import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact, CallHistoryRecord, Qualification } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ArrowUpTrayIcon } from './Icons.tsx';
 import ImportContactsModal from './ImportContactsModal.tsx';
 // FIX: Corrected import path for CampaignDetailView
@@ -136,6 +137,8 @@ interface OutboundCampaignsManagerProps {
     users: User[];
     savedScripts: SavedScript[];
     qualificationGroups: QualificationGroup[];
+    callHistory: CallHistoryRecord[];
+    qualifications: Qualification[];
     onSaveCampaign: (campaign: Campaign) => void;
     onDeleteCampaign: (campaignId: string) => void;
     // FIX: Changed return type from 'void' to 'Promise<any>' to match the async nature of the import process and align with the child component's expectations.
@@ -144,18 +147,8 @@ interface OutboundCampaignsManagerProps {
     onDeleteContacts: (contactIds: string[]) => void;
 }
 
-const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = ({
-    feature,
-    campaigns,
-    users,
-    savedScripts,
-    qualificationGroups,
-    onSaveCampaign,
-    onDeleteCampaign,
-    onImportContacts,
-    onUpdateContact,
-    onDeleteContacts,
-}) => {
+const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props) => {
+    const { feature, campaigns, users, savedScripts, qualificationGroups, onSaveCampaign, onDeleteCampaign, onImportContacts, onUpdateContact, onDeleteContacts, callHistory, qualifications } = props;
     const [view, setView] = useState<'list' | 'detail'>('list');
     const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -211,6 +204,12 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = ({
                 onSaveCampaign={onSaveCampaign}
                 onUpdateContact={onUpdateContact}
                 onDeleteContacts={onDeleteContacts}
+                // Pass all required data for stats and settings
+                callHistory={callHistory}
+                qualifications={qualifications}
+                qualificationGroups={qualificationGroups}
+                savedScripts={savedScripts}
+                users={users}
             />
         )
     }

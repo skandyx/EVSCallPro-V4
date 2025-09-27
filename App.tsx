@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
 import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus, ActiveCall, CampaignState, SystemSmtpSettings, SystemAppSettings } from './types.ts';
 import { features } from './data/features.ts';
@@ -82,7 +83,7 @@ type Theme = 'light' | 'dark' | 'system';
 
 const App: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [activeFeatureId, setActiveFeatureId] = useState<FeatureId>('users');
+    const [activeFeatureId, setActiveFeatureId] = useState<FeatureId>('outbound');
     const [allData, setAllData] = useState<Record<string, any> & { appSettings?: SystemAppSettings }>({});
     const [isLoading, setIsLoading] = useState(true);
     const [activeView, setActiveView] = useState<'app' | 'monitoring'>('app');
