@@ -16,14 +16,20 @@ const asteriskRouter = require('../services/asteriskRouter');
  *           schema:
  *             type: object
  *             properties:
- *               agentId: { type: string }
- *               destination: { type: string }
+ *               agentId:
+ *                 type: string
+ *               destination:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Appel initié avec succès.
  *         content:
  *           application/json:
- *             schema: { type: object, properties: { callId: { type: string } } }
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 callId:
+ *                   type: string
  *       404:
  *         description: Agent, site ou configuration PBX non trouvé.
  *       500:

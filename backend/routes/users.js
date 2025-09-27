@@ -18,13 +18,15 @@ const db = require('../services/db');
  *           schema:
  *             type: object
  *             properties:
- *               currentPassword: { type: string }
- *               newPassword: { type: string }
+ *               currentPassword:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Mot de passe mis à jour avec succès.
  *       400:
- *         description: "Données invalides (ex: mot de passe actuel incorrect)."
+ *         description: Données invalides (ex: mot de passe actuel incorrect).
  *       401:
  *         description: Non authentifié.
  */
@@ -63,7 +65,9 @@ router.put('/me/password', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               pictureUrl: { type: string, description: "Data URL de l'image (base64)" }
+ *               pictureUrl:
+ *                 type: string
+ *                 description: "Data URL de l'image (base64)"
  *     responses:
  *       200:
  *         description: Photo de profil mise à jour.
@@ -101,7 +105,8 @@ router.put('/me/picture', async (req, res) => {
  *             properties:
  *               users:
  *                 type: array
- *                 items: { $ref: '#/components/schemas/User' }
+ *                 items:
+ *                   $ref: '#/components/schemas/User'
  *     responses:
  *       201:
  *         description: Utilisateurs créés.
@@ -133,12 +138,19 @@ router.post('/bulk', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               groupIds: { type: array, items: { type: 'string' } }
- *               user: { $ref: '#/components/schemas/User' }
+ *               groupIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               user:
+ *                 $ref: '#/components/schemas/User'
  *     responses:
  *       201:
  *         description: Utilisateur créé.
- *         content: { application/json: { schema: { $ref: '#/components/schemas/User' } } }
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
  */
 router.post('/', async (req, res) => {
     try {
@@ -161,7 +173,8 @@ router.post('/', async (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -169,12 +182,19 @@ router.post('/', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               groupIds: { type: array, items: { type: 'string' } }
- *               user: { $ref: '#/components/schemas/User' }
+ *               groupIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               user:
+ *                 $ref: '#/components/schemas/User'
  *     responses:
  *       200:
  *         description: Utilisateur mis à jour.
- *         content: { application/json: { schema: { $ref: '#/components/schemas/User' } } }
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
  */
 router.put('/:id', async (req, res) => {
     try {
@@ -197,7 +217,8 @@ router.put('/:id', async (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *     responses:
  *       204:
  *         description: Utilisateur supprimé.

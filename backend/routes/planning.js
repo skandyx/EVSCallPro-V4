@@ -11,9 +11,13 @@ const db = require('../services/db');
  *     tags: [Planning]
  *     requestBody:
  *       required: true
- *       content: { application/json: { schema: { $ref: '#/components/schemas/PlanningEvent' } } }
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PlanningEvent'
  *     responses:
- *       201: { description: 'Événement créé' }
+ *       201:
+ *         description: Événement créé
  */
 router.post('/', async (req, res) => {
     try { res.status(201).json(await db.savePlanningEvent(req.body)); }
@@ -26,12 +30,21 @@ router.post('/', async (req, res) => {
  *   put:
  *     summary: Met à jour un événement de planning.
  *     tags: [Planning]
- *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
- *       content: { application/json: { schema: { $ref: '#/components/schemas/PlanningEvent' } } }
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PlanningEvent'
  *     responses:
- *       200: { description: 'Événement mis à jour' }
+ *       200:
+ *         description: Événement mis à jour
  */
 router.put('/:id', async (req, res) => {
     try { res.json(await db.savePlanningEvent(req.body, req.params.id)); }
@@ -44,9 +57,15 @@ router.put('/:id', async (req, res) => {
  *   delete:
  *     summary: Supprime un événement de planning.
  *     tags: [Planning]
- *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     responses:
- *       204: { description: 'Événement supprimé' }
+ *       204:
+ *         description: Événement supprimé
  */
 router.delete('/:id', async (req, res) => {
     try { await db.deletePlanningEvent(req.params.id); res.status(204).send(); }

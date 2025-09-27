@@ -11,9 +11,13 @@ const db = require('../services/db');
  *     tags: [Téléphonie]
  *     requestBody:
  *       required: true
- *       content: { application/json: { schema: { $ref: '#/components/schemas/Trunk' } } }
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Trunk'
  *     responses:
- *       201: { description: 'Trunk créé' }
+ *       201:
+ *         description: Trunk créé
  */
 router.post('/trunks', async (req, res) => {
     try { res.status(201).json(await db.saveTrunk(req.body)); }
@@ -26,12 +30,21 @@ router.post('/trunks', async (req, res) => {
  *   put:
  *     summary: Met à jour un Trunk SIP.
  *     tags: [Téléphonie]
- *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
- *       content: { application/json: { schema: { $ref: '#/components/schemas/Trunk' } } }
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Trunk'
  *     responses:
- *       200: { description: 'Trunk mis à jour' }
+ *       200:
+ *         description: Trunk mis à jour
  */
 router.put('/trunks/:id', async (req, res) => {
     try { res.json(await db.saveTrunk(req.body, req.params.id)); }
@@ -44,9 +57,15 @@ router.put('/trunks/:id', async (req, res) => {
  *   delete:
  *     summary: Supprime un Trunk SIP.
  *     tags: [Téléphonie]
- *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     responses:
- *       204: { description: 'Trunk supprimé' }
+ *       204:
+ *         description: Trunk supprimé
  */
 router.delete('/trunks/:id', async (req, res) => {
     try { await db.deleteTrunk(req.params.id); res.status(204).send(); }
@@ -61,9 +80,13 @@ router.delete('/trunks/:id', async (req, res) => {
  *     tags: [Téléphonie]
  *     requestBody:
  *       required: true
- *       content: { application/json: { schema: { $ref: '#/components/schemas/Did' } } }
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Did'
  *     responses:
- *       201: { description: 'DID créé' }
+ *       201:
+ *         description: DID créé
  */
 router.post('/dids', async (req, res) => {
     try { res.status(201).json(await db.saveDid(req.body)); }
@@ -76,12 +99,21 @@ router.post('/dids', async (req, res) => {
  *   put:
  *     summary: Met à jour un numéro SDA/DID.
  *     tags: [Téléphonie]
- *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
- *       content: { application/json: { schema: { $ref: '#/components/schemas/Did' } } }
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Did'
  *     responses:
- *       200: { description: 'DID mis à jour' }
+ *       200:
+ *         description: DID mis à jour
  */
 router.put('/dids/:id', async (req, res) => {
     try { res.json(await db.saveDid(req.body, req.params.id)); }
@@ -94,9 +126,15 @@ router.put('/dids/:id', async (req, res) => {
  *   delete:
  *     summary: Supprime un numéro SDA/DID.
  *     tags: [Téléphonie]
- *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     responses:
- *       204: { description: 'DID supprimé' }
+ *       204:
+ *         description: DID supprimé
  */
 router.delete('/dids/:id', async (req, res) => {
     try { await db.deleteDid(req.params.id); res.status(204).send(); }

@@ -18,7 +18,10 @@ const db = require('../services/db');
  *     responses:
  *       201:
  *         description: Groupe créé.
- *         content: { application/json: { schema: { $ref: '#/components/schemas/UserGroup' } } }
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserGroup'
  */
 router.post('/', async (req, res) => {
     try {
@@ -41,7 +44,8 @@ router.post('/', async (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -51,7 +55,10 @@ router.post('/', async (req, res) => {
  *     responses:
  *       200:
  *         description: Groupe mis à jour.
- *         content: { application/json: { schema: { $ref: '#/components/schemas/UserGroup' } } }
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserGroup'
  */
 router.put('/:id', async (req, res) => {
     try {
@@ -74,7 +81,8 @@ router.put('/:id', async (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *     responses:
  *       204:
  *         description: Groupe supprimé.
