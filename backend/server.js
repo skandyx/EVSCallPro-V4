@@ -187,8 +187,8 @@ app.use('/api/audio-files', audioRoutes);
  *     security:
  *       - bearerAuth: []
  *     responses:
- *       200:
- *         description: Un objet contenant toutes les collections de données.
+ *       '200':
+ *         description: "Un objet contenant toutes les collections de données."
  */
 app.get('/api/application-data', async (req, res) => {
     try {

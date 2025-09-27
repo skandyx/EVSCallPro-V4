@@ -11,9 +11,17 @@ const db = require('../services/db');
  *     tags: [Scripts]
  *     requestBody:
  *       required: true
- *       content: { application/json: { schema: { $ref: '#/components/schemas/Script' } } }
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Script'
  *     responses:
- *       201: { description: 'Script créé.', content: { application/json: { schema: { $ref: '#/components/schemas/Script' } } } }
+ *       '201':
+ *         description: 'Script créé.'
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Script'
  */
 router.post('/', async (req, res) => {
     try {
@@ -30,12 +38,25 @@ router.post('/', async (req, res) => {
  *   put:
  *     summary: Met à jour un script d'agent.
  *     tags: [Scripts]
- *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
- *       content: { application/json: { schema: { $ref: '#/components/schemas/Script' } } }
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Script'
  *     responses:
- *       200: { description: 'Script mis à jour.', content: { application/json: { schema: { $ref: '#/components/schemas/Script' } } } }
+ *       '200':
+ *         description: 'Script mis à jour.'
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Script'
  */
 router.put('/:id', async (req, res) => {
     try {
@@ -52,9 +73,15 @@ router.put('/:id', async (req, res) => {
  *   delete:
  *     summary: Supprime un script d'agent.
  *     tags: [Scripts]
- *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     responses:
- *       204: { description: 'Script supprimé.' }
+ *       '204':
+ *         description: 'Script supprimé.'
  */
 router.delete('/:id', async (req, res) => {
     try {
@@ -71,9 +98,19 @@ router.delete('/:id', async (req, res) => {
  *   post:
  *     summary: Duplique un script d'agent.
  *     tags: [Scripts]
- *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     responses:
- *       201: { description: 'Script dupliqué.', content: { application/json: { schema: { $ref: '#/components/schemas/Script' } } } }
+ *       '201':
+ *         description: 'Script dupliqué.'
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Script'
  */
 router.post('/:id/duplicate', async (req, res) => {
     try {

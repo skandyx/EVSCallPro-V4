@@ -11,9 +11,17 @@ const db = require('../services/db');
  *     tags: [Campagnes]
  *     requestBody:
  *       required: true
- *       content: { application/json: { schema: { $ref: '#/components/schemas/Campaign' } } }
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Campaign'
  *     responses:
- *       201: { description: 'Campagne créée', content: { application/json: { schema: { $ref: '#/components/schemas/Campaign' } } } }
+ *       '201':
+ *         description: 'Campagne créée'
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Campaign'
  */
 router.post('/', async (req, res) => {
     try {
@@ -31,12 +39,25 @@ router.post('/', async (req, res) => {
  *   put:
  *     summary: Met à jour une campagne.
  *     tags: [Campagnes]
- *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
- *       content: { application/json: { schema: { $ref: '#/components/schemas/Campaign' } } }
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Campaign'
  *     responses:
- *       200: { description: 'Campagne mise à jour', content: { application/json: { schema: { $ref: '#/components/schemas/Campaign' } } } }
+ *       '200':
+ *         description: 'Campagne mise à jour'
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Campaign'
  */
 router.put('/:id', async (req, res) => {
     try {
@@ -54,9 +75,15 @@ router.put('/:id', async (req, res) => {
  *   delete:
  *     summary: Supprime une campagne.
  *     tags: [Campagnes]
- *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     responses:
- *       204: { description: 'Campagne supprimée' }
+ *       '204':
+ *         description: 'Campagne supprimée'
  */
 router.delete('/:id', async (req, res) => {
     try {
@@ -74,7 +101,12 @@ router.delete('/:id', async (req, res) => {
  *   post:
  *     summary: Importe des contacts dans une campagne.
  *     tags: [Campagnes]
- *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -82,10 +114,15 @@ router.delete('/:id', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               contacts: { type: array, items: { $ref: '#/components/schemas/Contact' } }
- *               deduplicationConfig: { type: object }
+ *               contacts:
+ *                 type: array
+ *                 items:
+ *                   $ref: '#/components/schemas/Contact'
+ *               deduplicationConfig:
+ *                 type: object
  *     responses:
- *       201: { description: 'Contacts importés' }
+ *       '201':
+ *         description: 'Contacts importés'
  */
 router.post('/:id/contacts', async (req, res) => {
     try {
@@ -120,10 +157,11 @@ router.post('/:id/contacts', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               agentId: { type: string }
+ *               agentId:
+ *                 type: string
  *     responses:
- *       200:
- *         description: Contact et campagne retournés.
+ *       '200':
+ *         description: "Contact et campagne retournés."
  */
 router.post('/next-contact', async (req, res) => {
     try {

@@ -16,9 +16,12 @@ const db = require('../services/db');
  *           schema:
  *             $ref: '#/components/schemas/UserGroup'
  *     responses:
- *       201:
- *         description: Groupe créé.
- *         content: { application/json: { schema: { $ref: '#/components/schemas/UserGroup' } } }
+ *       '201':
+ *         description: "Groupe créé."
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserGroup'
  */
 router.post('/', async (req, res) => {
     try {
@@ -41,7 +44,8 @@ router.post('/', async (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -49,9 +53,12 @@ router.post('/', async (req, res) => {
  *           schema:
  *             $ref: '#/components/schemas/UserGroup'
  *     responses:
- *       200:
- *         description: Groupe mis à jour.
- *         content: { application/json: { schema: { $ref: '#/components/schemas/UserGroup' } } }
+ *       '200':
+ *         description: "Groupe mis à jour."
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserGroup'
  */
 router.put('/:id', async (req, res) => {
     try {
@@ -74,10 +81,11 @@ router.put('/:id', async (req, res) => {
  *       - in: path
  *         name: id
  *         required: true
- *         schema: { type: string }
+ *         schema:
+ *           type: string
  *     responses:
- *       204:
- *         description: Groupe supprimé.
+ *       '204':
+ *         description: "Groupe supprimé."
  */
 router.delete('/:id', async (req, res) => {
     try {

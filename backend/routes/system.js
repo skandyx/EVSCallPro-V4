@@ -24,8 +24,8 @@ const isSuperAdmin = (req, res, next) => {
  *     summary: Récupère les statistiques de santé du système.
  *     tags: [Système]
  *     responses:
- *       200:
- *         description: Statistiques du système.
+ *       '200':
+ *         description: "Statistiques du système."
  */
 router.get('/stats', (req, res) => {
     const cpus = os.cpus();
@@ -69,8 +69,8 @@ router.get('/stats', (req, res) => {
  *     summary: Récupère le schéma de la base de données.
  *     tags: [Système]
  *     responses:
- *       200:
- *         description: Schéma de la base de données.
+ *       '200':
+ *         description: "Schéma de la base de données."
  */
 router.get('/db-schema', isSuperAdmin, async (req, res) => {
     try {
@@ -113,8 +113,8 @@ router.get('/db-schema', isSuperAdmin, async (req, res) => {
  *               query: { type: string }
  *               readOnly: { type: boolean }
  *     responses:
- *       200:
- *         description: Résultats de la requête.
+ *       '200':
+ *         description: "Résultats de la requête."
  */
 router.post('/db-query', isSuperAdmin, async (req, res) => {
     const { query, readOnly } = req.body;
@@ -159,7 +159,8 @@ router.post('/db-query', isSuperAdmin, async (req, res) => {
  *               password: { type: string, description: "Laisser vide pour ne pas changer" }
  *               from: { type: string }
  *     responses:
- *       200: { description: 'Paramètres SMTP enregistrés.' }
+ *       '200':
+ *         description: "Paramètres SMTP enregistrés."
  */
 router.put('/smtp-settings', isSuperAdmin, async (req, res) => {
     try {
@@ -220,8 +221,10 @@ router.put('/smtp-settings', isSuperAdmin, async (req, res) => {
  *                   from: { type: string }
  *               recipient: { type: string }
  *     responses:
- *       200: { description: 'Email de test envoyé.' }
- *       500: { description: "Échec de l'envoi." }
+ *       '200':
+ *         description: "Email de test envoyé."
+ *       '500':
+ *         description: "Échec de l'envoi."
  */
 router.post('/test-email', isSuperAdmin, async (req, res) => {
     const { smtpConfig, recipient } = req.body;
@@ -293,7 +296,8 @@ router.post('/test-email', isSuperAdmin, async (req, res) => {
  *               colorPalette: { type: string }
  *               appName: { type: string }
  *     responses:
- *       200: { description: 'Paramètres de l\'application enregistrés.' }
+ *       '200':
+ *         description: "Paramètres de l'application enregistrés."
  */
 router.put('/app-settings', isSuperAdmin, async (req, res) => {
     try {
