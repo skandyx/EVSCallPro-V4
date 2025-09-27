@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import fr from './locales/fr.json';
 import en from './locales/en.json';
+import ar from './locales/ar.json';
 
-const translations: Record<string, any> = { fr, en };
+const translations: Record<string, any> = { fr, en, ar };
 
 interface I18nContextType {
     language: string;
@@ -19,7 +20,7 @@ const I18nContext = createContext<I18nContextType>({
 export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [language, setLanguageState] = useState(() => {
         const savedLang = localStorage.getItem('language');
-        return savedLang && ['fr', 'en'].includes(savedLang) ? savedLang : 'fr';
+        return savedLang && ['fr', 'en', 'ar'].includes(savedLang) ? savedLang : 'fr';
     });
 
     useEffect(() => {
@@ -28,7 +29,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [language]);
 
     const setLanguage = (lang: string) => {
-        if (['fr', 'en'].includes(lang)) {
+        if (['fr', 'en', 'ar'].includes(lang)) {
             setLanguageState(lang);
         }
     };

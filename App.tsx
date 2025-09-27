@@ -91,7 +91,7 @@ const AppContent: React.FC = () => {
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false); // State for the new modal
     const [liveState, dispatch] = useReducer(liveDataReducer, initialState);
     const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
-    const { t } = useI18n();
+    const { t, language } = useI18n();
 
      // Effect to apply theme class to <html> element
     useEffect(() => {
@@ -103,6 +103,11 @@ const AppContent: React.FC = () => {
         root.classList.toggle('dark', isDark);
         localStorage.setItem('theme', theme);
     }, [theme]);
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        root.dir = language === 'ar' ? 'rtl' : 'ltr';
+    }, [language]);
     
     // Effect to listen to system theme changes when in 'system' mode
     useEffect(() => {
