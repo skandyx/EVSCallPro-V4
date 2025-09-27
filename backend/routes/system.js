@@ -293,7 +293,7 @@ router.post('/test-email', isSuperAdmin, async (req, res) => {
  *               colorPalette: { type: string }
  *               appName: { type: string }
  *     responses:
- *       200: { description: 'Paramètres de l\'application enregistrés.' }
+ *       200: { description: "Paramètres de l'application enregistrés." }
  */
 router.put('/app-settings', isSuperAdmin, async (req, res) => {
     try {

@@ -24,7 +24,7 @@ const db = require('../services/db');
  *       200:
  *         description: Mot de passe mis à jour avec succès.
  *       400:
- *         description: Données invalides (ex: mot de passe actuel incorrect).
+ *         description: "Données invalides (ex: mot de passe actuel incorrect)."
  *       401:
  *         description: Non authentifié.
  */
