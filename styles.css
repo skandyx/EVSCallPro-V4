@@ -154,3 +154,6 @@ html[data-theme="cyan"].dark {
 .text-link {
   color: var(--color-link-text);
 }
+.border-primary {
+  border-color: var(--color-link-text);
+}

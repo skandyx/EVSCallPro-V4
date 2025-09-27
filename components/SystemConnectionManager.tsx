@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Feature, SystemConnectionSettings } from '../types.ts';
 import { DatabaseIcon, ServerStackIcon, CheckIcon, XMarkIcon } from './Icons.tsx';
@@ -147,7 +148,7 @@ const SystemConnectionManager: React.FC<SystemConnectionManagerProps> = ({ featu
             </div>
              <div className="flex justify-end items-center mt-2">
                 {showSuccess && <span className="text-green-600 font-semibold mr-4">Modifications enregistrées !</span>}
-                <button onClick={handleSave} disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg shadow-md disabled:bg-indigo-400">
+                <button onClick={handleSave} disabled={isSaving} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-6 rounded-lg shadow-md disabled:opacity-50">
                     {isSaving ? 'Enregistrement...' : 'Enregistrer les modifications'}
                 </button>
             </div>

@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import type { Feature, SystemSmtpSettings, SystemAppSettings } from '../types.ts';
 import { Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon, PaletteIcon, BuildingOfficeIcon } from './Icons.tsx';
@@ -102,7 +103,7 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
             onClick={() => setActiveTab(tab)}
             className={`flex items-center gap-2 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors ${
               activeTab === tab
-                ? 'border-indigo-500 text-indigo-600'
+                ? 'border-primary text-link'
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
         >

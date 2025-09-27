@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Feature } from '../types.ts';
 import { DatabaseIcon, PlayIcon, InformationCircleIcon, CheckIcon, XMarkIcon } from './Icons.tsx';
@@ -171,7 +172,7 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({ feature, apiCall }) =
                                 onClick={handleExecuteQuery}
                                 disabled={isLoading}
                                 className={`inline-flex items-center gap-2 font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50
-                                    ${isWriteQuery ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
+                                    ${isWriteQuery ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-primary hover:bg-primary-hover text-primary-text'}`}
                             >
                                 {isLoading ? 'Exécution...' : <><PlayIcon className="w-5 h-5"/> Exécuter la requête</>}
                             </button>

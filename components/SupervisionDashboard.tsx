@@ -74,7 +74,7 @@ const SupervisionDashboard: React.FC<SupervisionDashboardProps> = ({ feature, us
     const TabButton: React.FC<{ tabName: Tab; label: string; }> = ({ tabName, label }) => (
         <button
             onClick={() => setActiveTab(tabName)}
-            className={`px-4 py-2 text-sm font-semibold rounded-md ${activeTab === tabName ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 hover:bg-slate-200'}`}
+            className={`px-4 py-2 text-sm font-semibold rounded-md ${activeTab === tabName ? 'bg-primary text-primary-text shadow' : 'text-slate-600 hover:bg-slate-200'}`}
         >
             {label}
         </button>

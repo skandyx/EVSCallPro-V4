@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import type { Feature, PlanningEvent, ActivityType, User, UserGroup } from '../types.ts';
 import { PlusIcon, ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon } from './Icons.tsx';
@@ -92,7 +93,7 @@ const PlanningEventModal: React.FC<PlanningEventModalProps> = ({ event, onSave, 
                      {isEditing && event?.id && <button onClick={() => { onDelete(event.id!); onClose(); }} className="bg-red-100 text-red-700 px-4 py-2 rounded-md hover:bg-red-200">Supprimer</button>}
                     <div className="flex justify-end gap-2 w-full">
                         <button onClick={onClose} className="bg-white border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50">Annuler</button>
-                        <button onClick={handleSave} className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Enregistrer</button>
+                        <button onClick={handleSave} className="bg-primary text-primary-text px-4 py-2 rounded-md hover:bg-primary-hover">Enregistrer</button>
                     </div>
                 </div>
             </div>
@@ -357,7 +358,7 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                         {weekInfo.start.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })} - {weekInfo.end.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
                     </span>
                     <button onClick={() => handleDateChange(7)} className="p-2 rounded-md hover:bg-slate-100"><ArrowRightIcon className="w-5 h-5"/></button>
-                     <button onClick={() => setCurrentDate(new Date())} className="text-sm font-semibold text-indigo-600 hover:text-indigo-800">Aujourd'hui</button>
+                     <button onClick={() => setCurrentDate(new Date())} className="text-sm font-semibold text-link hover:underline">Aujourd'hui</button>
                 </div>
                 <div>
                      <label className="text-sm font-medium text-slate-600 mr-2">Afficher:</label>
