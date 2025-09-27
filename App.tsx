@@ -347,7 +347,13 @@ const App: React.FC = () => {
     const handleSaveAppSettings = async (settings: SystemAppSettings) => {
         try {
             await apiClient.put('/system/app-settings', settings);
-            await fetchApplicationData();
+            // FIX: Update state locally instead of refetching.
+            // The backend saves to .env but the running Node process doesn't see the change.
+            // This local update ensures the theme is applied instantly.
+            setAllData(prevData => ({
+                ...prevData,
+                appSettings: settings,
+            }));
             showAlert("Paramètres de l'application enregistrés.", 'success');
         } catch (error: any) {
             const errorMessage = error.response?.data?.error || `Échec de l'enregistrement.`;
