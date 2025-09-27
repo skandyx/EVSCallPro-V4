@@ -277,6 +277,7 @@ router.post('/test-email', isSuperAdmin, async (req, res) => {
  *               companyAddress: { type: string }
  *               appLogoUrl: { type: string }
  *               colorPalette: { type: string }
+ *               appName: { type: string }
  *     responses:
  *       200: { description: 'Paramètres de l\'application enregistrés.' }
  */
@@ -288,6 +289,7 @@ router.put('/app-settings', isSuperAdmin, async (req, res) => {
             COMPANY_ADDRESS: settings.companyAddress,
             APP_LOGO_URL: settings.appLogoUrl,
             COLOR_PALETTE: settings.colorPalette,
+            APP_NAME: settings.appName,
         };
 
         for (const [key, value] of Object.entries(updates)) {

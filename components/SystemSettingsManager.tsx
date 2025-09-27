@@ -141,6 +141,16 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
                 <input type="url" value={localAppSettings.appLogoUrl} onChange={e => handleAppSettingChange('appLogoUrl', e.target.value)} className="mt-1 w-full p-2 border rounded-md" placeholder="https://.../logo.png"/>
                 {localAppSettings.appLogoUrl && <img src={localAppSettings.appLogoUrl} alt="Aperçu du logo" className="mt-2 h-12 w-auto bg-slate-100 p-1 rounded-md"/>}
             </div>
+            <div className="md:col-span-2">
+                <label className="text-sm font-medium">Nom de l'application</label>
+                <input 
+                    type="text" 
+                    value={localAppSettings.appName} 
+                    onChange={e => handleAppSettingChange('appName', e.target.value)} 
+                    className="mt-1 w-full p-2 border rounded-md" 
+                    placeholder="Le nom affiché sur la page de connexion et dans la barre latérale"
+                />
+            </div>
             <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2 mt-4 flex items-center gap-2"><PaletteIcon className="w-5 h-5"/>Thème de l'Application</h3></div>
             <div className="md:col-span-2">
                 <p className="text-sm text-slate-600 mb-3">Choisissez une palette de couleurs pour personnaliser l'apparence des boutons et des menus.</p>

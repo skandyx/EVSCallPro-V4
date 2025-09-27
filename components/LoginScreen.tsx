@@ -5,9 +5,11 @@ import apiClient from '../src/lib/axios.ts';
 
 interface LoginScreenProps {
     onLoginSuccess: (data: { user: User, token: string }) => void;
+    appLogoUrl?: string;
+    appName?: string;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, appLogoUrl, appName }) => {
     const [loginId, setLoginId] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -43,8 +45,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-100 font-sans p-4">
             <div className="w-full max-w-sm">
                 <div className="flex justify-center items-center mb-6">
-                    <LogoIcon className="w-12 h-12 text-indigo-600"/>
-                    <h1 className="text-2xl font-bold text-slate-800 ml-3">Architecte de Solutions</h1>
+                    {appLogoUrl ? (
+                        <img src={appLogoUrl} alt="Logo" className="h-12 w-auto max-w-[6rem]" />
+                    ) : (
+                        <LogoIcon className="w-12 h-12 text-indigo-600"/>
+                    )}
+                    <h1 className="text-2xl font-bold text-slate-800 ml-3">{appName || 'Architecte de Solutions'}</h1>
                 </div>
                 <div className="bg-white rounded-lg shadow-lg p-8">
                     <h2 className="text-xl font-semibold text-center text-slate-700 mb-1">Connexion</h2>

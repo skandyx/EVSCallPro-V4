@@ -431,4 +431,5 @@ export interface SystemAppSettings {
     companyAddress: string;
     appLogoUrl: string;
     colorPalette: 'default' | 'forest' | 'ocean' | 'sunset';
+    appName: string;
 }

@@ -435,7 +435,11 @@ const App: React.FC = () => {
     }
 
     if (!currentUser) {
-        return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
+        return <LoginScreen
+            onLoginSuccess={handleLoginSuccess}
+            appLogoUrl={allData.appSettings?.appLogoUrl}
+            appName={allData.appSettings?.appName}
+        />;
     }
 
     if (currentUser.role === 'Agent') {
@@ -535,6 +539,7 @@ const App: React.FC = () => {
                         agentStatus={currentUserStatus}
                         onOpenProfile={() => setIsProfileModalOpen(true)}
                         appLogoUrl={allData.appSettings?.appLogoUrl}
+                        appName={allData.appSettings?.appName}
                     />
                     <div className="flex-1 flex flex-col min-w-0">
                         <Header 

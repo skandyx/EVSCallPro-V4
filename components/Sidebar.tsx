@@ -16,6 +16,7 @@ interface SidebarProps {
     agentStatus: AgentStatus | undefined;
     onOpenProfile: () => void;
     appLogoUrl?: string;
+    appName?: string;
 }
 
 const categoryIcons: Record<FeatureCategory, React.FC<any>> = {
@@ -45,7 +46,7 @@ const getStatusColor = (status: AgentStatus | undefined): string => {
 };
 
 
-const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFeature, currentUser, onLogout, moduleVisibility, agentStatus, onOpenProfile, appLogoUrl }) => {
+const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFeature, currentUser, onLogout, moduleVisibility, agentStatus, onOpenProfile, appLogoUrl, appName }) => {
     const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const isSuperAdmin = currentUser?.role === 'SuperAdmin';
@@ -69,7 +70,7 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                 ) : (
                     <LogoIcon className="w-8 h-8 text-indigo-600" />
                 )}
-                {!isSidebarCollapsed && <span className="text-lg font-bold text-slate-800 dark:text-slate-100 ml-2 truncate">Solution Archi</span>}
+                {!isSidebarCollapsed && <span className="text-lg font-bold text-slate-800 dark:text-slate-100 ml-2 truncate">{appName || 'Architecte de Solutions'}</span>}
             </div>
 
             <nav className="flex-1 overflow-y-auto p-2 space-y-1">

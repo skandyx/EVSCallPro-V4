@@ -204,6 +204,7 @@ app.get('/api/application-data', async (req, res) => {
             companyAddress: process.env.COMPANY_ADDRESS || 'Votre Société\n123 Rue Principale\n75001 Paris, France',
             appLogoUrl: process.env.APP_LOGO_URL || '',
             colorPalette: process.env.COLOR_PALETTE || 'default',
+            appName: process.env.APP_NAME || 'Architecte de Solutions',
         };
 
         res.json({
