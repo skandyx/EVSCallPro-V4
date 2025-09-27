@@ -163,17 +163,49 @@ const CampaignStatsTab: React.FC<{ campaign: Campaign; callHistory: CallHistoryR
     );
 };
 
-const CampaignQuotaTab: React.FC<{ campaign: Campaign; callHistory: CallHistoryRecord[]; qualifications: Qualification[] }> = ({ campaign, callHistory, qualifications }) => {
+const CampaignQuotaTab: React.FC<{ campaign: Campaign; callHistory: CallHistoryRecord[]; qualifications: Qualification[], script: SavedScript | null }> = ({ campaign, callHistory, qualifications, script }) => {
     
+    // Helper function to get a contact's value for a given field, checking standard and custom fields.
     const getContactValue = (contact: Contact, fieldId: string): any => {
-        const standardFields: Record<string, keyof Contact> = {
+        // Map of standard fields to their snake_case equivalents if they differ, or just the field name.
+        const standardFieldsMap: Record<string, keyof Contact> = {
             postalCode: 'postalCode',
             phoneNumber: 'phoneNumber',
             lastName: 'lastName',
+            firstName: 'firstName',
         };
-        if (fieldId in standardFields) return contact[standardFields[fieldId] as keyof Contact];
-        return contact.customFields ? contact.customFields[fieldId] : undefined;
+
+        const standardFieldName = Object.keys(standardFieldsMap).find(key => 
+            script?.pages.flatMap(p => p.blocks).find(b => b.fieldName === key && b.isStandard)
+        );
+        
+        // This logic is tricky. Let's simplify: check if the fieldId is a known standard field.
+        const standardFields = ['postalCode', 'phoneNumber', 'lastName', 'firstName'];
+        const scriptStandardFields = script?.pages.flatMap(p=>p.blocks).filter(b=>b.isStandard).map(b=>b.fieldName) || [];
+
+        if (scriptStandardFields.includes(fieldId)){
+            // This is a standard field, but its key in the Contact object might be camelCase.
+            // Example: fieldId might be 'first_name', but on the Contact object it's 'firstName'.
+            // This requires a mapping which we don't have.
+            // A simpler, more robust way is to check the `customFields` first.
+        }
+
+        if (contact.customFields && fieldId in contact.customFields) {
+            return contact.customFields[fieldId];
+        }
+
+        // Fallback for standard fields if not in customFields. This is less robust if fieldNames differ.
+        if (fieldId === 'first_name') return contact.firstName;
+        if (fieldId === 'last_name') return contact.lastName;
+        if (fieldId === 'phone_number') return contact.phoneNumber;
+        if (fieldId === 'postal_code') return contact.postalCode;
+        
+        // Final fallback for direct key match
+        if(fieldId in contact) return contact[fieldId as keyof Contact];
+
+        return undefined;
     };
+
 
     const matchRule = (contact: Contact, rule: any): boolean => {
         const contactValue = getContactValue(contact, rule.contactField);
@@ -192,7 +224,7 @@ const CampaignQuotaTab: React.FC<{ campaign: Campaign; callHistory: CallHistoryR
     const quotaStats = useMemo(() => {
         if (!campaign.quotaRules || campaign.quotaRules.length === 0) return [];
 
-        const positiveQualIds = new Set(qualifications.filter(q => q.type === 'positive').map(q => q.id));
+        const positiveQualIds = new Set(qualifications.filter(q => q.type === 'positive' && q.groupId === campaign.qualificationGroupId).map(q => q.id));
         const successfulCallsForCampaign = callHistory.filter(c => c.campaignId === campaign.id && c.qualificationId && positiveQualIds.has(c.qualificationId));
         
         return campaign.quotaRules.map(rule => {
@@ -219,8 +251,10 @@ const CampaignQuotaTab: React.FC<{ campaign: Campaign; callHistory: CallHistoryR
     }, [campaign, callHistory, qualifications]);
     
     const renderRule = (rule: any) => {
-        return `Si "${rule.contactField}" ${rule.operator.replace('_', ' ')} "${rule.value}"`;
+        const field = script?.pages.flatMap(p=>p.blocks).find(b=>b.fieldName === rule.contactField)?.name || rule.contactField;
+        return `Si "${field}" est égal à "${rule.value}"`;
     };
+
 
     if (!campaign.quotaRules || campaign.quotaRules.length === 0) {
          return <div className="p-8 text-center text-slate-500">Aucune règle de quota n'a été configurée pour cette campagne.</div>
@@ -267,7 +301,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         switch (activeTab) {
             case 'contacts': return <ContactList contacts={campaign.contacts} />;
             case 'stats': return <CampaignStatsTab campaign={campaign} callHistory={callHistory} qualifications={qualifications} />;
-            case 'settings': return <CampaignQuotaTab campaign={campaign} callHistory={callHistory} qualifications={qualifications} />;
+            case 'settings': return <CampaignQuotaTab campaign={campaign} callHistory={callHistory} qualifications={qualifications} script={script}/>;
             default: return null;
         }
     };
