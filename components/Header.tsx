@@ -63,6 +63,7 @@ const LanguageSwitcher: React.FC = () => {
     const languages = [
         { code: 'fr', name: 'Français' },
         { code: 'en', name: 'English' },
+        { code: 'ar', name: 'العربية' },
     ];
 
     const toggleDropdown = () => setIsOpen(!isOpen);

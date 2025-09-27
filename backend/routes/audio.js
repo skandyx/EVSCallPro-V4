@@ -14,13 +14,9 @@ const db = require('../services/db');
  *     tags: [Audio]
  *     requestBody:
  *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/AudioFile'
+ *       content: { application/json: { schema: { $ref: '#/components/schemas/AudioFile' } } }
  *     responses:
- *       201:
- *         description: Fichier audio créé
+ *       201: { description: 'Fichier audio créé' }
  */
 router.post('/', async (req, res) => {
     try {
@@ -40,21 +36,12 @@ router.post('/', async (req, res) => {
  *   put:
  *     summary: Met à jour les métadonnées d'un fichier audio.
  *     tags: [Audio]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
  *     requestBody:
  *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/AudioFile'
+ *       content: { application/json: { schema: { $ref: '#/components/schemas/AudioFile' } } }
  *     responses:
- *       200:
- *         description: Fichier audio mis à jour
+ *       200: { description: 'Fichier audio mis à jour' }
  */
 router.put('/:id', async (req, res) => {
     try {
@@ -72,15 +59,9 @@ router.put('/:id', async (req, res) => {
  *   delete:
  *     summary: Supprime un fichier audio.
  *     tags: [Audio]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
  *     responses:
- *       204:
- *         description: Fichier audio supprimé
+ *       204: { description: 'Fichier audio supprimé' }
  */
 router.delete('/:id', async (req, res) => {
     try {

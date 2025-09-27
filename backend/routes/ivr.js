@@ -11,17 +11,9 @@ const db = require('../services/db');
  *     tags: [SVI]
  *     requestBody:
  *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/IvrFlow'
+ *       content: { application/json: { schema: { $ref: '#/components/schemas/IvrFlow' } } }
  *     responses:
- *       201:
- *         description: Flux créé
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/IvrFlow'
+ *       201: { description: 'Flux créé', content: { application/json: { schema: { $ref: '#/components/schemas/IvrFlow' } } } }
  */
 router.post('/', async (req, res) => {
     try {
@@ -36,25 +28,12 @@ router.post('/', async (req, res) => {
  *   put:
  *     summary: Met à jour un flux SVI.
  *     tags: [SVI]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
  *     requestBody:
  *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/IvrFlow'
+ *       content: { application/json: { schema: { $ref: '#/components/schemas/IvrFlow' } } }
  *     responses:
- *       200:
- *         description: Flux mis à jour
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/IvrFlow'
+ *       200: { description: 'Flux mis à jour', content: { application/json: { schema: { $ref: '#/components/schemas/IvrFlow' } } } }
  */
 router.put('/:id', async (req, res) => {
     try {
@@ -69,15 +48,9 @@ router.put('/:id', async (req, res) => {
  *   delete:
  *     summary: Supprime un flux SVI.
  *     tags: [SVI]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
  *     responses:
- *       204:
- *         description: Flux supprimé
+ *       204: { description: 'Flux supprimé' }
  */
 router.delete('/:id', async (req, res) => {
     try {
@@ -92,19 +65,9 @@ router.delete('/:id', async (req, res) => {
  *   post:
  *     summary: Duplique un flux SVI.
  *     tags: [SVI]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
  *     responses:
- *       201:
- *         description: Flux dupliqué
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/IvrFlow'
+ *       201: { description: 'Flux dupliqué', content: { application/json: { schema: { $ref: '#/components/schemas/IvrFlow' } } } }
  */
 router.post('/:id/duplicate', async (req, res) => {
     try {

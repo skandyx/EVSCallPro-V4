@@ -11,17 +11,9 @@ const db = require('../services/db');
  *     tags: [Qualifications]
  *     requestBody:
  *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/Qualification'
+ *       content: { application/json: { schema: { $ref: '#/components/schemas/Qualification' } } }
  *     responses:
- *       201:
- *         description: Qualification créée
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Qualification'
+ *       201: { description: 'Qualification créée', content: { application/json: { schema: { $ref: '#/components/schemas/Qualification' } } } }
  */
 router.post('/', async (req, res) => {
     try {
@@ -36,25 +28,12 @@ router.post('/', async (req, res) => {
  *   put:
  *     summary: Met à jour une qualification.
  *     tags: [Qualifications]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
  *     requestBody:
  *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/Qualification'
+ *       content: { application/json: { schema: { $ref: '#/components/schemas/Qualification' } } }
  *     responses:
- *       200:
- *         description: Qualification mise à jour
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Qualification'
+ *       200: { description: 'Qualification mise à jour', content: { application/json: { schema: { $ref: '#/components/schemas/Qualification' } } } }
  */
 router.put('/:id', async (req, res) => {
     try {
@@ -69,15 +48,9 @@ router.put('/:id', async (req, res) => {
  *   delete:
  *     summary: Supprime une qualification.
  *     tags: [Qualifications]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
  *     responses:
- *       204:
- *         description: Qualification supprimée.
+ *       204: { description: 'Qualification supprimée.' }
  */
 router.delete('/:id', async (req, res) => {
     try {
@@ -101,13 +74,9 @@ router.delete('/:id', async (req, res) => {
  *               - $ref: '#/components/schemas/QualificationGroup'
  *               - type: object
  *                 properties:
- *                   assignedQualIds:
- *                     type: array
- *                     items:
- *                       type: string
+ *                   assignedQualIds: { type: array, items: { type: 'string' } }
  *     responses:
- *       201:
- *         description: Groupe créé.
+ *       201: { description: 'Groupe créé.' }
  */
 router.post('/groups', async (req, res) => {
     try {
@@ -123,12 +92,7 @@ router.post('/groups', async (req, res) => {
  *   put:
  *     summary: Met à jour un groupe de qualifications.
  *     tags: [Qualifications]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
  *     requestBody:
  *       required: true
  *       content:
@@ -138,13 +102,9 @@ router.post('/groups', async (req, res) => {
  *               - $ref: '#/components/schemas/QualificationGroup'
  *               - type: object
  *                 properties:
- *                   assignedQualIds:
- *                     type: array
- *                     items:
- *                       type: string
+ *                   assignedQualIds: { type: array, items: { type: 'string' } }
  *     responses:
- *       200:
- *         description: Groupe mis à jour.
+ *       200: { description: 'Groupe mis à jour.' }
  */
 router.put('/groups/:id', async (req, res) => {
     try {
@@ -160,15 +120,9 @@ router.put('/groups/:id', async (req, res) => {
  *   delete:
  *     summary: Supprime un groupe de qualifications.
  *     tags: [Qualifications]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
  *     responses:
- *       204:
- *         description: Groupe supprimé.
+ *       204: { description: 'Groupe supprimé.' }
  */
 router.delete('/groups/:id', async (req, res) => {
     try {

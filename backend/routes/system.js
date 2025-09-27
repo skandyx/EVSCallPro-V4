@@ -110,10 +110,8 @@ router.get('/db-schema', isSuperAdmin, async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               query:
- *                 type: string
- *               readOnly:
- *                 type: boolean
+ *               query: { type: string }
+ *               readOnly: { type: boolean }
  *     responses:
  *       200:
  *         description: Résultats de la requête.
@@ -153,24 +151,15 @@ router.post('/db-query', isSuperAdmin, async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               server:
- *                 type: string
- *               port:
- *                 type: number
- *               auth:
- *                 type: boolean
- *               secure:
- *                 type: boolean
- *               user:
- *                 type: string
- *               password:
- *                 type: string
- *                 description: "Laisser vide pour ne pas changer"
- *               from:
- *                 type: string
+ *               server: { type: string }
+ *               port: { type: number }
+ *               auth: { type: boolean }
+ *               secure: { type: boolean }
+ *               user: { type: string }
+ *               password: { type: string, description: "Laisser vide pour ne pas changer" }
+ *               from: { type: string }
  *     responses:
- *       200:
- *         description: Paramètres SMTP enregistrés.
+ *       200: { description: 'Paramètres SMTP enregistrés.' }
  */
 router.put('/smtp-settings', isSuperAdmin, async (req, res) => {
     try {
@@ -222,27 +211,17 @@ router.put('/smtp-settings', isSuperAdmin, async (req, res) => {
  *               smtpConfig:
  *                 type: object
  *                 properties:
- *                   server:
- *                     type: string
- *                   port:
- *                     type: number
- *                   auth:
- *                     type: boolean
- *                   secure:
- *                     type: boolean
- *                   user:
- *                     type: string
- *                   password:
- *                     type: string
- *                   from:
- *                     type: string
- *               recipient:
- *                 type: string
+ *                   server: { type: string }
+ *                   port: { type: number }
+ *                   auth: { type: boolean }
+ *                   secure: { type: boolean }
+ *                   user: { type: string }
+ *                   password: { type: string }
+ *                   from: { type: string }
+ *               recipient: { type: string }
  *     responses:
- *       200:
- *         description: Email de test envoyé.
- *       500:
- *         description: Échec de l'envoi.
+ *       200: { description: 'Email de test envoyé.' }
+ *       500: { description: "Échec de l'envoi." }
  */
 router.post('/test-email', isSuperAdmin, async (req, res) => {
     const { smtpConfig, recipient } = req.body;
@@ -309,17 +288,12 @@ router.post('/test-email', isSuperAdmin, async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               companyAddress:
- *                 type: string
- *               appLogoUrl:
- *                 type: string
- *               colorPalette:
- *                 type: string
- *               appName:
- *                 type: string
+ *               companyAddress: { type: string }
+ *               appLogoUrl: { type: string }
+ *               colorPalette: { type: string }
+ *               appName: { type: string }
  *     responses:
- *       200:
- *         description: "Paramètres de l'application enregistrés."
+ *       200: { description: 'Paramètres de l\'application enregistrés.' }
  */
 router.put('/app-settings', isSuperAdmin, async (req, res) => {
     try {

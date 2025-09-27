@@ -9,12 +9,7 @@ const db = require('../services/db');
  *   post:
  *     summary: Qualifie un contact après un appel.
  *     tags: [Contacts]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
  *     requestBody:
  *       required: true
  *       content:
@@ -22,15 +17,11 @@ const db = require('../services/db');
  *           schema:
  *             type: object
  *             properties:
- *               qualificationId:
- *                 type: string
- *               campaignId:
- *                 type: string
- *               agentId:
- *                 type: string
+ *               qualificationId: { type: string }
+ *               campaignId: { type: string }
+ *               agentId: { type: string }
  *     responses:
- *       200:
- *         description: Contact qualifié
+ *       200: { description: 'Contact qualifié' }
  */
 router.post('/:id/qualify', async (req, res) => {
     try {
@@ -48,12 +39,7 @@ router.post('/:id/qualify', async (req, res) => {
  *   post:
  *     summary: Ajoute une note à un contact.
  *     tags: [Contacts]
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
+ *     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
  *     requestBody:
  *       required: true
  *       content:
@@ -61,19 +47,13 @@ router.post('/:id/qualify', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               agentId:
- *                 type: string
- *               campaignId:
- *                 type: string
- *               note:
- *                 type: string
+ *               agentId: { type: string }
+ *               campaignId: { type: string }
+ *               note: { type: string }
  *     responses:
  *       201:
  *         description: Note créée.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ContactNote'
+ *         content: { application/json: { schema: { $ref: '#/components/schemas/ContactNote' } } }
  */
 router.post('/:id/notes', async (req, res) => {
     try {
