@@ -82,7 +82,7 @@ const App: React.FC = () => {
                 
                 setData(appDataRes.data);
                 setCurrentUser(meRes.data.user);
-                 if (!wsClient.ws || wsClient.ws.readyState === WebSocket.CLOSED) {
+                 if (wsClient.isDisconnected()) {
                     wsClient.connect(token);
                 }
             }

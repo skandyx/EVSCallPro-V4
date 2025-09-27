@@ -22,6 +22,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, scripts, qualif
         callerId: '', isActive: true, 
         dialingMode: 'PROGRESSIVE',
         contacts: [],
+        assignedUserIds: [],
         // Add other fields from Campaign type with defaults
         priority: 1, timezone: 'Europe/Paris', callingDays: [1,2,3,4,5], callingStartTime: '09:00', callingEndTime: '18:00', maxAbandonRate: 3, paceFactor: 2.5, minAgentsBeforeStart: 1, retryAttempts: 3, retryIntervals: [300, 900, 3600], retryOnStatus: [], amdEnabled: false, amdConfidence: 80, voicemailAction: 'HANGUP', recordingEnabled: true, recordingBeep: false, maxRingDuration: 30, wrapUpTime: 15, maxCallDuration: 3600, quotaRules: [], filterRules: []
     });
