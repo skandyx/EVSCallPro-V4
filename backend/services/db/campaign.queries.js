@@ -1,6 +1,133 @@
 const pool = require('./connection');
 const { keysToCamel } = require('./utils');
 
+// --- HELPER FUNCTIONS for Quotas & Filters ---
+
+/**
+ * Sanitizes a string to be used as a JSONB key in a SQL query.
+ * Prevents SQL injection on dynamic field names.
+ * @param {string} identifier - The field name from the script.
+ * @returns {string} A sanitized identifier.
+ */
+const sanitizeIdentifier = (identifier) => {
+    if (!/^[a-zA-Z0-9_]+$/.test(identifier)) {
+        throw new Error(`Invalid field identifier for query: ${identifier}`);
+    }
+    return identifier;
+};
+
+/**
+ * Gets the value of a specific field from a contact object.
+ * Handles both standard fields and custom fields from the JSONB column.
+ * @param {object} contact - The contact object.
+ * @param {string} fieldId - The ID of the field to retrieve.
+ * @returns {any} The value of the field.
+ */
+const getContactValue = (contact, fieldId) => {
+    const standardFields = {
+        postalCode: contact.postalCode,
+        phoneNumber: contact.phoneNumber,
+        lastName: contact.lastName,
+    };
+    if (fieldId in standardFields) {
+        return standardFields[fieldId];
+    }
+    return contact.customFields ? contact.customFields[fieldId] : undefined;
+};
+
+/**
+ * Checks if a contact matches a single filter or quota rule.
+ * @param {object} contact - The contact object.
+ * @param {object} rule - The filter or quota rule object.
+ * @returns {boolean} True if the contact matches the rule.
+ */
+const matchRule = (contact, rule) => {
+    const contactValue = getContactValue(contact, rule.contactField);
+    const ruleValue = rule.value;
+
+    if (contactValue === null || contactValue === undefined) {
+        // 'is_not_empty' should fail on null/undefined, others should too
+        return rule.operator === 'is_not_empty' ? false : false;
+    }
+    const contactString = String(contactValue).trim().toLowerCase();
+    const ruleString = String(ruleValue).trim().toLowerCase();
+
+    switch (rule.operator) {
+        case 'equals': return contactString === ruleString;
+        case 'starts_with': return contactString.startsWith(ruleString);
+        case 'contains': return contactString.includes(ruleString);
+        case 'is_not_empty': return contactString !== '';
+        default: return false;
+    }
+};
+
+/**
+ * Determines if a contact is allowed based on the campaign's filter rules.
+ * @param {object} contact - The contact object.
+ * @param {Array} filterRules - The array of filter rules for the campaign.
+ * @returns {boolean} True if the contact should be called.
+ */
+const isContactAllowedByFilters = (contact, filterRules) => {
+    if (!filterRules || filterRules.length === 0) return true;
+
+    const includes = filterRules.filter(r => r.type === 'include');
+    const excludes = filterRules.filter(r => r.type === 'exclude');
+
+    let isIncluded = true;
+    if (includes.length > 0) {
+        isIncluded = includes.some(rule => matchRule(contact, rule));
+    }
+    if (!isIncluded) return false;
+
+    const isExcluded = excludes.some(rule => matchRule(contact, rule));
+    return !isExcluded;
+};
+
+/**
+ * Builds a SQL WHERE clause fragment for a given rule.
+ * @param {object} rule - The quota rule object.
+ * @param {number} paramStartIndex - The starting index for query parameters.
+ * @returns {{clause: string, params: Array}} The SQL clause and its parameters.
+ */
+const buildWhereClauseForRule = (rule, paramStartIndex) => {
+    const fieldMap = {
+        postalCode: 'c.postal_code',
+        phoneNumber: 'c.phone_number',
+        lastName: 'c.last_name',
+    };
+    
+    const dbField = fieldMap[rule.contactField]
+        ? fieldMap[rule.contactField]
+        : `(c.custom_fields ->> '${sanitizeIdentifier(rule.contactField)}')`;
+    
+    const params = [];
+    let clause;
+
+    switch (rule.operator) {
+        case 'equals':
+            clause = `${dbField} = $${paramStartIndex}`;
+            params.push(rule.value);
+            break;
+        case 'starts_with':
+            clause = `${dbField} LIKE $${paramStartIndex}`;
+            params.push(`${rule.value}%`);
+            break;
+        case 'contains':
+            clause = `${dbField} LIKE $${paramStartIndex}`;
+            params.push(`%${rule.value}%`);
+            break;
+        case 'is_not_empty':
+            clause = `${dbField} IS NOT NULL AND ${dbField} != ''`;
+            break;
+        default:
+            clause = 'TRUE'; // Default to a non-filtering clause
+    }
+    return { clause, params };
+};
+
+
+// --- CORE DB FUNCTIONS ---
+
 const getCampaigns = async () => {
     const res = await pool.query('SELECT * FROM campaigns ORDER BY name');
     // Fetch contacts for each campaign separately. In a high-performance scenario,
@@ -17,13 +144,13 @@ const saveCampaign = async (campaign, id) => {
     if (id) {
         const res = await pool.query(
             'UPDATE campaigns SET name=$1, description=$2, script_id=$3, qualification_group_id=$4, caller_id=$5, is_active=$6, dialing_mode=$7, wrap_up_time=$8, quota_rules=$9, filter_rules=$10, updated_at=NOW() WHERE id=$11 RETURNING *',
-            [name, description, scriptId, qualificationGroupId, callerId, isActive, dialingMode, wrapUpTime, JSON.stringify(quotaRules), JSON.stringify(filterRules), id]
+            [name, description, scriptId, qualificationGroupId, callerId, isActive, dialingMode, wrapUpTime, JSON.stringify(quotaRules || []), JSON.stringify(filterRules || []), id]
         );
         return keysToCamel(res.rows[0]);
     }
     const res = await pool.query(
         'INSERT INTO campaigns (id, name, description, script_id, qualification_group_id, caller_id, is_active, dialing_mode, wrap_up_time, quota_rules, filter_rules) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
-        [campaign.id, name, description, scriptId, qualificationGroupId, callerId, isActive, dialingMode, wrapUpTime, JSON.stringify(quotaRules), JSON.stringify(filterRules)]
+        [campaign.id, name, description, scriptId, qualificationGroupId, callerId, isActive, dialingMode, wrapUpTime, JSON.stringify(quotaRules || []), JSON.stringify(filterRules || [])]
     );
     return keysToCamel(res.rows[0]);
 };
@@ -42,13 +169,8 @@ const importContacts = async (campaignId, contactsToValidate, deduplicationConfi
 
         const createCompositeKey = (contact, fields) => {
             return fields.map(fieldId => {
-                let value = '';
-                if (contact.customFields && Object.prototype.hasOwnProperty.call(contact.customFields, fieldId)) {
-                    value = String(contact.customFields[fieldId]);
-                } else if (Object.prototype.hasOwnProperty.call(contact, fieldId)) {
-                    value = String(contact[fieldId]);
-                }
-                return value.trim().toLowerCase();
+                let value = getContactValue(contact, fieldId) ?? '';
+                return String(value).trim().toLowerCase();
             }).join('||');
         };
 
@@ -74,7 +196,7 @@ const importContacts = async (campaignId, contactsToValidate, deduplicationConfi
                 const key = createCompositeKey(contact, deduplicationConfig.fieldIds);
                 if (key && existingValues.has(key)) {
                     isDuplicate = true;
-                    invalids.push({ row: contact.originalRow, reason: "Doublon détecté dans la base existante." });
+                    invalids.push({ row: contact.originalRow, reason: "Doublon détecté." });
                 }
             }
 
@@ -108,9 +230,8 @@ const getNextContactForCampaign = async (agentId) => {
     try {
         await client.query('BEGIN');
 
-        // Find campaigns assigned to the agent that are active
         const assignedCampaignsRes = await client.query(
-            `SELECT c.* FROM campaigns c
+            `SELECT * FROM campaigns c
              JOIN campaign_agents ca ON c.id = ca.campaign_id
              WHERE ca.user_id = $1 AND c.is_active = TRUE
              ORDER BY c.priority DESC, c.name`,
@@ -122,26 +243,65 @@ const getNextContactForCampaign = async (agentId) => {
             return { contact: null, campaign: null };
         }
 
-        for (const campaign of assignedCampaignsRes.rows) {
-            // Find one pending contact, lock it for update, and return it.
-            // FOR UPDATE SKIP LOCKED is crucial for concurrency.
-            const contactRes = await client.query(
-                `SELECT * FROM contacts 
-                 WHERE campaign_id = $1 AND status = 'pending' 
-                 LIMIT 1 
-                 FOR UPDATE SKIP LOCKED`,
-                [campaign.id]
-            );
-            
-            if (contactRes.rows.length > 0) {
-                const contact = contactRes.rows[0];
-                // Mark the contact as 'called' to prevent others from picking it up
-                await client.query(
-                    "UPDATE contacts SET status = 'called', updated_at = NOW() WHERE id = $1",
-                    [contact.id]
-                );
-                await client.query('COMMIT');
-                return { contact: keysToCamel(contact), campaign: keysToCamel(campaign) };
+        for (const campaignRow of assignedCampaignsRes.rows) {
+            const campaign = keysToCamel(campaignRow);
+            const { filterRules, quotaRules, qualificationGroupId } = campaign;
+
+            // 1. Pre-calculate quota counts for this campaign
+            const quotaCounts = {};
+            if (quotaRules && quotaRules.length > 0 && qualificationGroupId) {
+                const { rows: positiveQuals } = await client.query("SELECT id FROM qualifications WHERE group_id = $1 AND type = 'positive'", [qualificationGroupId]);
+                const positiveQualIds = positiveQuals.map(q => q.id);
+
+                if (positiveQualIds.length > 0) {
+                    for (const rule of quotaRules) {
+                        const { clause, params } = buildWhereClauseForRule(rule, 3);
+                        const countQuery = `
+                            SELECT COUNT(DISTINCT ch.contact_id) FROM call_history ch
+                            JOIN contacts c ON ch.contact_id = c.id
+                            WHERE ch.campaign_id = $1 AND ch.qualification_id = ANY($2::text[]) AND ${clause}
+                        `;
+                        const countRes = await client.query(countQuery, [campaign.id, positiveQualIds, ...params]);
+                        quotaCounts[rule.id] = parseInt(countRes.rows[0].count, 10);
+                    }
+                }
+            }
+
+            // 2. Fetch all pending contacts for this campaign
+            const pendingContactsRes = await client.query(`SELECT * FROM contacts WHERE campaign_id = $1 AND status = 'pending'`, [campaign.id]);
+            const pendingContacts = pendingContactsRes.rows.map(keysToCamel);
+
+            // 3. Find the first contact that passes all rules
+            for (const contact of pendingContacts) {
+                // 3a. Check filters
+                if (!isContactAllowedByFilters(contact, filterRules)) {
+                    continue; // Skip this contact
+                }
+
+                // 3b. Check quotas
+                let isQuotaReached = false;
+                if (quotaRules && quotaRules.length > 0) {
+                    for (const rule of quotaRules) {
+                        if (matchRule(contact, rule)) { // If contact matches a rule's segment
+                            if ((quotaCounts[rule.id] || 0) >= rule.limit) {
+                                isQuotaReached = true;
+                                break; // Quota for this segment is full, skip contact
+                            }
+                        }
+                    }
+                }
+                if (isQuotaReached) {
+                    continue; // Skip this contact
+                }
+
+                // 4. Try to lock and claim the contact
+                const lockRes = await client.query(`SELECT id FROM contacts WHERE id = $1 FOR UPDATE SKIP LOCKED`, [contact.id]);
+                if (lockRes.rows.length > 0) {
+                    await client.query(`UPDATE contacts SET status = 'called', updated_at = NOW() WHERE id = $1`, [contact.id]);
+                    await client.query('COMMIT');
+                    return { contact, campaign };
+                }
+                // If lock failed, another process got it. Continue to the next contact.
             }
         }
 
