@@ -96,22 +96,22 @@ const CampaignStatsTab: React.FC<{ campaign: Campaign; callHistory: CallHistoryR
     
     const formatDuration = (seconds: number) => `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
 
-    const statusChartData = {
+    const statusChartData = useMemo(() => ({
         labels: ['En attente', 'Traité (sans qualif)', 'Qualifié'],
         datasets: [{
             data: [stats.statusCounts.pending, stats.statusCounts.called, stats.statusCounts.qualified],
             backgroundColor: ['#64748b', '#f59e0b', '#10b981'],
         }]
-    };
+    }), [stats]);
     
-    const qualifChartData = {
+    const qualifChartData = useMemo(() => ({
         labels: Object.keys(stats.qualifCounts),
         datasets: [{
             label: "Nombre d'appels",
             data: Object.values(stats.qualifCounts),
             backgroundColor: '#4f46e5',
         }]
-    };
+    }), [stats]);
 
     if (campaign.contacts.length === 0) {
         return <div className="p-8 text-center text-slate-500">Aucun contact n'a encore été importé dans cette campagne. Les statistiques apparaîtront ici une fois les contacts ajoutés et les appels effectués.</div>
