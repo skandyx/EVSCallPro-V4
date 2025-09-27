@@ -272,7 +272,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, users, campaigns, userGroup
                     </div>
                     
                     <div className="bg-slate-100 px-4 py-3 sm:flex sm:flex-row-reverse rounded-b-lg border-t">
-                        <button type="submit" className="inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-indigo-700 sm:ml-3 sm:w-auto">Enregistrer</button>
+                        <button type="submit" className="inline-flex w-full justify-center rounded-md border border-transparent bg-primary px-4 py-2 font-medium text-primary-text shadow-sm hover:bg-primary-hover sm:ml-3 sm:w-auto">Enregistrer</button>
                         <button type="button" onClick={onClose} className="mt-3 inline-flex w-full justify-center rounded-md border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50 sm:mt-0 sm:w-auto">Annuler</button>
                     </div>
                 </form>
@@ -311,7 +311,7 @@ const GenerateModal: React.FC<GenerateModalProps> = ({ onConfirm, onClose }) => 
                 </div>
                 <div className="bg-slate-50 px-4 py-3 flex justify-end gap-2">
                     <button onClick={onClose} className="border border-slate-300 bg-white px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-50">Annuler</button>
-                    <button onClick={() => onConfirm(count)} className="bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700">Confirmer</button>
+                    <button onClick={() => onConfirm(count)} className="bg-primary text-primary-text px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-hover">Confirmer</button>
                 </div>
             </div>
         </div>
@@ -515,7 +515,7 @@ const UserManager: React.FC<UserManagerProps> = ({ feature, users, campaigns, us
           <div className="flex flex-wrap gap-2">
             <button onClick={handleImport} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-4 rounded-lg shadow-sm transition-colors">Importer (CSV)</button>
              <button onClick={() => setIsGeneratingModalOpen(true)} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-4 rounded-lg shadow-sm transition-colors">Générer en masse</button>
-            <button onClick={handleAddNew} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors inline-flex items-center">
+            <button onClick={handleAddNew} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md transition-colors inline-flex items-center">
               <PlusIcon className="w-5 h-5 mr-2" />
               Ajouter un utilisateur
             </button>

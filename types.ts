@@ -426,3 +426,9 @@ export interface SystemSmtpSettings {
     user: string;
     from: string;
 }
+
+export interface SystemAppSettings {
+    companyAddress: string;
+    appLogoUrl: string;
+    colorPalette: 'default' | 'forest' | 'ocean' | 'sunset';
+}

@@ -15,6 +15,7 @@ interface SidebarProps {
     moduleVisibility: ModuleVisibility;
     agentStatus: AgentStatus | undefined;
     onOpenProfile: () => void;
+    appLogoUrl?: string;
 }
 
 const categoryIcons: Record<FeatureCategory, React.FC<any>> = {
@@ -44,7 +45,7 @@ const getStatusColor = (status: AgentStatus | undefined): string => {
 };
 
 
-const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFeature, currentUser, onLogout, moduleVisibility, agentStatus, onOpenProfile }) => {
+const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFeature, currentUser, onLogout, moduleVisibility, agentStatus, onOpenProfile, appLogoUrl }) => {
     const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const isSuperAdmin = currentUser?.role === 'SuperAdmin';
@@ -62,9 +63,13 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
 
     return (
         <aside className={`transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white dark:bg-slate-800 flex-shrink-0 border-r border-slate-200 dark:border-slate-700 flex flex-col`}>
-            <div className="h-16 flex items-center justify-center border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
-                <LogoIcon className="w-8 h-8 text-indigo-600" />
-                {!isSidebarCollapsed && <span className="text-lg font-bold text-slate-800 dark:text-slate-100 ml-2">Solution Archi</span>}
+            <div className="h-16 flex items-center justify-center border-b border-slate-200 dark:border-slate-700 flex-shrink-0 px-2">
+                {appLogoUrl ? (
+                    <img src={appLogoUrl} alt="Logo" className={`transition-all duration-300 ${isSidebarCollapsed ? 'h-10 w-auto' : 'h-12 w-auto'}`} />
+                ) : (
+                    <LogoIcon className="w-8 h-8 text-indigo-600" />
+                )}
+                {!isSidebarCollapsed && <span className="text-lg font-bold text-slate-800 dark:text-slate-100 ml-2 truncate">Solution Archi</span>}
             </div>
 
             <nav className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -109,7 +114,7 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                                                 onClick={() => onSelectFeature(feature.id)}
                                                 className={`w-full text-left flex items-center pl-4 pr-3 py-2 text-sm font-medium rounded-md transition-colors ${
                                                     activeFeatureId === feature.id
-                                                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300'
+                                                        ? 'bg-sidebar-active text-sidebar-active-text'
                                                         : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
                                                 }`}
                                             >

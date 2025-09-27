@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
-import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus, ActiveCall, CampaignState, SystemSmtpSettings } from './types.ts';
+import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus, ActiveCall, CampaignState, SystemSmtpSettings, SystemAppSettings } from './types.ts';
 import { features } from './data/features.ts';
 import Sidebar from './components/Sidebar.tsx';
 import LoginScreen from './components/LoginScreen.tsx';
@@ -83,7 +83,7 @@ type Theme = 'light' | 'dark' | 'system';
 const App: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [activeFeatureId, setActiveFeatureId] = useState<FeatureId>('users');
-    const [allData, setAllData] = useState<Record<string, any>>({});
+    const [allData, setAllData] = useState<Record<string, any> & { appSettings?: SystemAppSettings }>({});
     const [isLoading, setIsLoading] = useState(true);
     const [activeView, setActiveView] = useState<'app' | 'monitoring'>('app');
     const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' | 'info'; key: number } | null>(null);
@@ -116,6 +116,70 @@ const App: React.FC = () => {
         mediaQuery.addEventListener('change', handleChange);
         return () => mediaQuery.removeEventListener('change', handleChange);
     }, [theme]);
+    
+    // Effect to inject dynamic color palette styles
+    useEffect(() => {
+        const appSettings = allData.appSettings;
+        if (appSettings) {
+            let styleElement = document.getElementById('app-theme-styles');
+            if (!styleElement) {
+                styleElement = document.createElement('style');
+                styleElement.id = 'app-theme-styles';
+                document.head.appendChild(styleElement);
+            }
+
+            const palette = appSettings.colorPalette || 'default';
+            const palettes = {
+                default: { // Indigo
+                    '--color-primary-600': '79 70 229',
+                    '--color-primary-700': '67 56 202',
+                    '--color-sidebar-active-bg': '#eeefff',
+                    '--color-sidebar-active-text': '#4338ca',
+                    '--color-sidebar-active-dark-bg': 'rgba(79, 70, 229, 0.2)',
+                    '--color-sidebar-active-dark-text': '#a5b4fc',
+                },
+                forest: { // Green
+                    '--color-primary-600': '22 163 74',
+                    '--color-primary-700': '21 128 61',
+                    '--color-sidebar-active-bg': '#f0fdf4',
+                    '--color-sidebar-active-text': '#166534',
+                    '--color-sidebar-active-dark-bg': 'rgba(34, 197, 94, 0.2)',
+                    '--color-sidebar-active-dark-text': '#86efac',
+                },
+                ocean: { // Blue
+                    '--color-primary-600': '37 99 235',
+                    '--color-primary-700': '29 78 216',
+                    '--color-sidebar-active-bg': '#eff6ff',
+                    '--color-sidebar-active-text': '#1e3a8a',
+                    '--color-sidebar-active-dark-bg': 'rgba(59, 130, 246, 0.2)',
+                    '--color-sidebar-active-dark-text': '#93c5fd',
+                },
+                sunset: { // Orange
+                    '--color-primary-600': '234 88 12',
+                    '--color-primary-700': '194 65 12',
+                    '--color-sidebar-active-bg': '#fff7ed',
+                    '--color-sidebar-active-text': '#9a3412',
+                    '--color-sidebar-active-dark-bg': 'rgba(249, 115, 22, 0.2)',
+                    '--color-sidebar-active-dark-text': '#fdba74',
+                }
+            };
+
+            const selectedPalette = palettes[palette] || palettes.default;
+            const css = `
+                :root {
+                    ${Object.entries(selectedPalette).map(([key, value]) => `${key}: ${value};`).join('\n')}
+                }
+                .bg-primary { background-color: rgb(var(--color-primary-600)); }
+                .hover\\:bg-primary-hover:hover { background-color: rgb(var(--color-primary-700)); }
+                .text-primary-text { color: white; }
+                .bg-sidebar-active { background-color: var(--color-sidebar-active-bg); }
+                .text-sidebar-active-text { color: var(--color-sidebar-active-text); }
+                .dark .bg-sidebar-active { background-color: var(--color-sidebar-active-dark-bg); }
+                .dark .text-sidebar-active-text { color: var(--color-sidebar-active-dark-text); }
+            `;
+            styleElement.innerHTML = css;
+        }
+    }, [allData.appSettings]);
 
     const showAlert = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
         setAlert({ message, type, key: Date.now() });
@@ -279,6 +343,18 @@ const App: React.FC = () => {
             throw error;
         }
     };
+    
+    const handleSaveAppSettings = async (settings: SystemAppSettings) => {
+        try {
+            await apiClient.put('/system/app-settings', settings);
+            await fetchApplicationData();
+            showAlert("Paramètres de l'application enregistrés.", 'success');
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.error || `Échec de l'enregistrement.`;
+            showAlert(errorMessage, 'error');
+            throw error;
+        }
+    };
 
     const handleSaveUser = async (user: User, groupIds: string[]) => {
        await handleSaveOrUpdate('users', { ...user, groupIds });
@@ -410,6 +486,7 @@ const App: React.FC = () => {
             onDeletePlanningEvent: (id: string) => handleDelete('planning-events', id),
             onSaveVisibilitySettings: handleSaveVisibilitySettings,
             onSaveSmtpSettings: handleSaveSmtpSettings,
+            onSaveAppSettings: handleSaveAppSettings,
             apiCall: apiClient, // Passe l'instance axios configurée
         };
         
@@ -451,6 +528,7 @@ const App: React.FC = () => {
                         moduleVisibility={allData.moduleVisibility || { categories: {}, features: {} }}
                         agentStatus={currentUserStatus}
                         onOpenProfile={() => setIsProfileModalOpen(true)}
+                        appLogoUrl={allData.appSettings?.appLogoUrl}
                     />
                     <div className="flex-1 flex flex-col min-w-0">
                         <Header 

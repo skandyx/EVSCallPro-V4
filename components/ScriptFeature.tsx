@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { Feature, SavedScript, Page, ScriptBlock } from '../types.ts';
 import ScriptBuilder from './ScriptBuilder.tsx';
 import AgentPreview from './AgentPreview.tsx';
-import { EditIcon, DuplicateIcon, TrashIcon, PlusIcon, ChevronDownIcon } from './Icons.tsx';
+import { EditIcon, DuplicateIcon, TrashIcon, PlusIcon, ChevronDownIcon, EyeIcon } from './Icons.tsx';
 
 interface ScriptFeatureProps {
     feature: Feature;
@@ -148,7 +148,7 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
                     <h2 className="text-2xl font-semibold text-slate-800">Scripts Sauvegardés</h2>
                     <button
                         onClick={handleCreateNew}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors inline-flex items-center"
+                        className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md transition-colors inline-flex items-center"
                     >
                         <PlusIcon className="w-5 h-5 mr-2" />
                         Créer un nouveau script

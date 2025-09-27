@@ -126,7 +126,7 @@ const IvrFeature: React.FC<IvrFeatureProps> = ({
                     <h2 className="text-2xl font-semibold text-slate-800">Flux SVI Sauvegardés</h2>
                     <button
                         onClick={handleCreateNew}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-colors inline-flex items-center"
+                        className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md transition-colors inline-flex items-center"
                     >
                         <PlusIcon className="w-5 h-5 mr-2" />
                         Créer un nouveau flux

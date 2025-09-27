@@ -199,6 +199,12 @@ app.get('/api/application-data', async (req, res) => {
             user: process.env.SMTP_USER || '',
             from: process.env.SMTP_FROM || '',
         };
+        
+        const appSettings = {
+            companyAddress: process.env.COMPANY_ADDRESS || 'Votre Société\n123 Rue Principale\n75001 Paris, France',
+            appLogoUrl: process.env.APP_LOGO_URL || '',
+            colorPalette: process.env.COLOR_PALETTE || 'default',
+        };
 
         res.json({
             users, userGroups, savedScripts, campaigns, qualifications,
@@ -207,6 +213,7 @@ app.get('/api/application-data', async (req, res) => {
             contactNotes,
             systemConnectionSettings,
             smtpSettings,
+            appSettings,
             moduleVisibility: { categories: {}, features: {} },
             backupLogs: [],
             backupSchedule: { frequency: 'daily', time: '02:00' },

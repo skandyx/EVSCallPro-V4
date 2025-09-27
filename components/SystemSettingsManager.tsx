@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import type { Feature, SystemSmtpSettings } from '../types.ts';
-import { Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon } from './Icons.tsx';
+import type { Feature, SystemSmtpSettings, SystemAppSettings } from '../types.ts';
+import { Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon, PaletteIcon, BuildingOfficeIcon } from './Icons.tsx';
 
 const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void; }> = ({ enabled, onChange }) => (
     <button type="button" onClick={() => onChange(!enabled)} className={`${enabled ? 'bg-indigo-600' : 'bg-slate-200'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`} role="switch" aria-checked={enabled}>
@@ -11,143 +11,183 @@ const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) =>
 interface SystemSettingsManagerProps {
     feature: Feature;
     smtpSettings: SystemSmtpSettings;
+    appSettings: SystemAppSettings;
     onSaveSmtpSettings: (settings: SystemSmtpSettings, password?: string) => Promise<void>;
+    onSaveAppSettings: (settings: SystemAppSettings) => Promise<void>;
     apiCall: any; // AxiosInstance
 }
 
-const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, smtpSettings, onSaveSmtpSettings, apiCall }) => {
-    const [activeTab, setActiveTab] = useState('email');
-    const [smtpConfig, setSmtpConfig] = useState<SystemSmtpSettings>(smtpSettings || {
-        server: '',
-        port: 587,
-        auth: true,
-        secure: false,
-        user: '',
-        from: ''
-    });
+const PALETTES: { id: SystemAppSettings['colorPalette']; name: string; colors: string[] }[] = [
+    { id: 'default', name: 'Indigo Intense', colors: ['#4f46e5', '#4338ca', '#e0e7ff'] },
+    { id: 'forest', name: 'Vert Forêt', colors: ['#16a34a', '#15803d', '#dcfce7'] },
+    { id: 'ocean', name: 'Bleu Océan', colors: ['#2563eb', '#1d4ed8', '#dbeafe'] },
+    { id: 'sunset', name: 'Coucher de Soleil', colors: ['#ea580c', '#c2410c', '#fff7ed'] },
+];
+
+const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, smtpSettings, appSettings, onSaveSmtpSettings, onSaveAppSettings, apiCall }) => {
+    const [activeTab, setActiveTab] = useState('apparence');
+
+    // --- SMTP State ---
+    const [smtpConfig, setSmtpConfig] = useState<SystemSmtpSettings>(smtpSettings);
     const [smtpPassword, setSmtpPassword] = useState('');
     const [testEmail, setTestEmail] = useState('');
     const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
-    const [isSaving, setIsSaving] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
+    const [isSavingSmtp, setIsSavingSmtp] = useState(false);
+    const [showSmtpSuccess, setShowSmtpSuccess] = useState(false);
+
+    // --- Apparence State ---
+    const [localAppSettings, setLocalAppSettings] = useState<SystemAppSettings>(appSettings);
+    const [isSavingApp, setIsSavingApp] = useState(false);
+    const [showAppSuccess, setShowAppSuccess] = useState(false);
+
 
     useEffect(() => {
-        if (smtpSettings) {
-            setSmtpConfig(smtpSettings);
-        }
-    }, [smtpSettings]);
-
+        setSmtpConfig(smtpSettings);
+        setLocalAppSettings(appSettings);
+    }, [smtpSettings, appSettings]);
+    
+    // --- Handlers ---
     const handleSmtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value, type, checked } = e.target;
-        setSmtpConfig(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+        setSmtpConfig(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    };
+    
+    const handleAppSettingChange = (field: keyof SystemAppSettings, value: any) => {
+        setLocalAppSettings(prev => ({...prev, [field]: value }));
     };
 
     const handleTestEmail = async () => {
-        if (!testEmail) {
-            alert("Veuillez entrer une adresse e-mail de destination.");
-            return;
-        }
+        if (!testEmail) { alert("Veuillez entrer une adresse e-mail de destination."); return; }
         setTestStatus('testing');
         try {
-            const payload = {
-                smtpConfig: { ...smtpConfig, password: smtpPassword },
-                recipient: testEmail
-            };
-            await apiCall.post('/system/test-email', payload);
+            await apiCall.post('/system/test-email', { smtpConfig: { ...smtpConfig, password: smtpPassword }, recipient: testEmail });
             setTestStatus('success');
-        } catch (err) {
-            setTestStatus('error');
-        } finally {
-            setTimeout(() => setTestStatus('idle'), 4000);
-        }
+        } catch (err) { setTestStatus('error'); } 
+        finally { setTimeout(() => setTestStatus('idle'), 4000); }
     };
 
-    const handleSave = async () => {
-        setIsSaving(true);
-        setShowSuccess(false);
+    const handleSaveSmtp = async () => {
+        setIsSavingSmtp(true);
+        setShowSmtpSuccess(false);
         try {
             await onSaveSmtpSettings(smtpConfig, smtpPassword);
-            setShowSuccess(true);
-            setSmtpPassword(''); // Clear password field after successful save
-            setTimeout(() => setShowSuccess(false), 2500);
-        } catch (error) {
-            // Error is handled and shown by the App component's alert system.
-        } finally {
-            setIsSaving(false);
-        }
+            setShowSmtpSuccess(true);
+            setSmtpPassword('');
+            setTimeout(() => setShowSmtpSuccess(false), 2500);
+        } catch (error) { /* Error shown by App component */ } 
+        finally { setIsSavingSmtp(false); }
     };
 
+    const handleSaveApp = async () => {
+        setIsSavingApp(true);
+        setShowAppSuccess(false);
+        try {
+            await onSaveAppSettings(localAppSettings);
+            setShowAppSuccess(true);
+            setTimeout(() => setShowAppSuccess(false), 2500);
+        } catch(error) { /* Error shown by App component */ }
+        finally { setIsSavingApp(false); }
+    };
+
+    const TabButton: React.FC<{ tab: string; label: string; icon: React.FC<any>}> = ({ tab, label, icon: Icon }) => (
+         <button
+            onClick={() => setActiveTab(tab)}
+            className={`flex items-center gap-2 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors ${
+              activeTab === tab
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            }`}
+        >
+            <Icon className="w-5 h-5" />
+            {label}
+        </button>
+    );
+
+    const renderSmtpContent = () => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2">Paramètres du Serveur</h3></div>
+            <div><label className="text-sm font-medium">Serveur SMTP</label><input type="text" name="server" value={smtpConfig.server} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
+            <div><label className="text-sm font-medium">Port</label><input type="number" name="port" value={smtpConfig.port} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
+            <div className="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-md border"><div><p className="font-medium">Authentification Requise</p><p className="text-xs text-slate-500">Si votre serveur SMTP requiert un login/mot de passe.</p></div><ToggleSwitch enabled={smtpConfig.auth} onChange={e => setSmtpConfig(c => ({...c, auth: e}))} /></div>
+            {smtpConfig.auth && <>
+                <div><label className="text-sm font-medium">Utilisateur</label><input type="text" name="user" value={smtpConfig.user} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
+                <div><label className="text-sm font-medium">Mot de passe</label><input type="password" value={smtpPassword} onChange={e => setSmtpPassword(e.target.value)} placeholder="Laisser vide pour ne pas changer" className="mt-1 w-full p-2 border rounded-md"/></div>
+            </>}
+            <div className="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-md border"><div><p className="font-medium">Type de sécurité</p><p className="text-xs text-slate-500">Utiliser une connexion sécurisée (SSL/TLS).</p></div><ToggleSwitch enabled={smtpConfig.secure} onChange={e => setSmtpConfig(c => ({...c, secure: e}))} /></div>
+            <div><label className="text-sm font-medium">Adresse d'expédition "From"</label><input type="email" name="from" value={smtpConfig.from} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
+            <div className="md:col-span-2 pt-4 border-t flex justify-end items-center gap-4">
+                {showSmtpSuccess && <span className="text-green-600 font-semibold">Enregistré !</span>}
+                <button onClick={handleSaveSmtp} disabled={isSavingSmtp} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50">{isSavingSmtp ? 'Enregistrement...' : 'Enregistrer les paramètres SMTP'}</button>
+            </div>
+            <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2 mt-4">Tester la Connexion</h3></div>
+            <div className="md:col-span-2 flex items-end gap-3">
+                <div className="flex-grow"><label className="text-sm font-medium">Envoyer un email de test à</label><input type="email" value={testEmail} onChange={e => setTestEmail(e.target.value)} className="mt-1 w-full p-2 border rounded-md"/></div>
+                <button onClick={handleTestEmail} disabled={testStatus === 'testing'} className="bg-slate-200 hover:bg-slate-300 font-semibold py-2 px-4 rounded-lg shadow-sm disabled:opacity-50 inline-flex items-center"><PaperAirplaneIcon className="w-5 h-5 mr-2"/>{testStatus === 'testing' ? 'Envoi...' : 'Envoyer'}</button>
+            </div>
+            {testStatus === 'success' && <div className="md:col-span-2 text-green-600 font-semibold">Email de test envoyé avec succès !</div>}
+            {testStatus === 'error' && <div className="md:col-span-2 text-red-600 font-semibold">Échec de l'envoi de l'email. Vérifiez la console pour les détails.</div>}
+        </div>
+    );
+    
+    const renderApparenceContent = () => (
+         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2 flex items-center gap-2"><BuildingOfficeIcon className="w-5 h-5"/>Informations Société</h3></div>
+            <div>
+                <label className="text-sm font-medium">Adresse de la société</label>
+                <textarea value={localAppSettings.companyAddress} onChange={e => handleAppSettingChange('companyAddress', e.target.value)} rows={4} className="mt-1 w-full p-2 border rounded-md"/>
+            </div>
+             <div>
+                <label className="text-sm font-medium">URL du Logo de l'application</label>
+                <input type="url" value={localAppSettings.appLogoUrl} onChange={e => handleAppSettingChange('appLogoUrl', e.target.value)} className="mt-1 w-full p-2 border rounded-md" placeholder="https://.../logo.png"/>
+                {localAppSettings.appLogoUrl && <img src={localAppSettings.appLogoUrl} alt="Aperçu du logo" className="mt-2 h-12 w-auto bg-slate-100 p-1 rounded-md"/>}
+            </div>
+            <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2 mt-4 flex items-center gap-2"><PaletteIcon className="w-5 h-5"/>Thème de l'Application</h3></div>
+            <div className="md:col-span-2">
+                <p className="text-sm text-slate-600 mb-3">Choisissez une palette de couleurs pour personnaliser l'apparence des boutons et des menus.</p>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {PALETTES.map(palette => (
+                        <button key={palette.id} onClick={() => handleAppSettingChange('colorPalette', palette.id)} className={`p-3 rounded-lg border-2 transition-all ${localAppSettings.colorPalette === palette.id ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-300 hover:border-indigo-400'}`}>
+                            <p className="font-semibold text-slate-800">{palette.name}</p>
+                            <div className="flex items-center gap-2 mt-2">
+                                {palette.colors.map(color => <div key={color} style={{ backgroundColor: color }} className="w-6 h-6 rounded-full border border-slate-200"/>)}
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            </div>
+             <div className="md:col-span-2 pt-4 border-t flex justify-end items-center gap-4">
+                {showAppSuccess && <span className="text-green-600 font-semibold">Enregistré !</span>}
+                <button onClick={handleSaveApp} disabled={isSavingApp} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50">{isSavingApp ? 'Enregistrement...' : "Enregistrer l'apparence"}</button>
+            </div>
+         </div>
+    );
+    
+    const renderLicencesContent = () => (
+        <div className="text-center p-8 text-slate-500">
+            <h3 className="text-xl font-semibold">Gestion des Licences</h3>
+            <p className="mt-2">Ce module est en cours de développement.</p>
+        </div>
+    );
+
     return (
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="max-w-4xl mx-auto space-y-6">
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight flex items-center">
-                    <Cog6ToothIcon className="w-9 h-9 mr-3 text-indigo-600"/>
-                    {feature.title}
-                </h1>
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight flex items-center"><Cog6ToothIcon className="w-9 h-9 mr-3 text-indigo-600"/>{feature.title}</h1>
                 <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
             </header>
+
             <div className="bg-white rounded-lg shadow-sm border border-slate-200">
-                <div className="border-b">
+                <div className="border-b border-slate-200">
                     <nav className="-mb-px flex space-x-6 px-6">
-                        <button className={`flex items-center gap-2 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-indigo-500 text-indigo-600`}>
-                            <EnvelopeIcon className="w-5 h-5" />
-                            Email (SMTP)
-                        </button>
+                        <TabButton tab="apparence" label="Apparence" icon={PaletteIcon} />
+                        <TabButton tab="email" label="Email (SMTP)" icon={EnvelopeIcon} />
+                        <TabButton tab="licences" label="Licences" icon={Cog6ToothIcon} />
                     </nav>
                 </div>
-                <div className="p-6 space-y-6">
-                    <div>
-                        <h3 className="text-xl font-semibold text-slate-800">Configuration du serveur d'envoi d'e-mails</h3>
-                        <p className="text-sm text-slate-500 mt-1">Configurez les paramètres SMTP pour l'envoi d'e-mails système (rapports, alertes, etc.).</p>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div><label className="block text-sm font-medium text-slate-700">Serveur SMTP</label><input type="text" name="server" value={smtpConfig.server} onChange={handleSmtpChange} className="mt-1 block w-full p-2 border border-slate-300 rounded-md" placeholder="smtp.example.com"/></div>
-                        <div><label className="block text-sm font-medium text-slate-700">Port</label><input type="number" name="port" value={smtpConfig.port} onChange={e => setSmtpConfig(p => ({...p, port: parseInt(e.target.value)}))} className="mt-1 block w-full p-2 border border-slate-300 rounded-md"/></div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-md border">
-                            <p className="font-medium text-slate-800">Utiliser l'authentification</p>
-                            <ToggleSwitch enabled={smtpConfig.auth} onChange={val => setSmtpConfig(p => ({...p, auth: val}))}/>
-                        </div>
-                        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-md border">
-                            <p className="font-medium text-slate-800">Utiliser une connexion sécurisée (SSL/TLS)</p>
-                            <ToggleSwitch enabled={smtpConfig.secure} onChange={val => setSmtpConfig(p => ({...p, secure: val}))}/>
-                        </div>
-                    </div>
-                    {smtpConfig.auth && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div><label className="block text-sm font-medium text-slate-700">Nom d'utilisateur</label><input type="text" name="user" value={smtpConfig.user} onChange={handleSmtpChange} className="mt-1 block w-full p-2 border border-slate-300 rounded-md"/></div>
-                            <div><label className="block text-sm font-medium text-slate-700">Mot de passe</label><input type="password" name="password" value={smtpPassword} onChange={e => setSmtpPassword(e.target.value)} className="mt-1 block w-full p-2 border border-slate-300 rounded-md" placeholder="Laisser vide pour ne pas changer"/></div>
-                        </div>
-                    )}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700">Adresse d'expéditeur par défaut (From)</label>
-                        <input type="email" name="from" value={smtpConfig.from} onChange={handleSmtpChange} className="mt-1 block w-full p-2 border border-slate-300 rounded-md" placeholder="no-reply@example.com"/>
-                    </div>
-                    <div className="pt-6 border-t">
-                        <h4 className="font-semibold text-slate-700">Tester la configuration</h4>
-                        <div className="flex items-end gap-4 mt-2">
-                            <div className="flex-1">
-                                <label className="block text-sm font-medium text-slate-700">Envoyer un e-mail de test à :</label>
-                                <input type="email" value={testEmail} onChange={e => setTestEmail(e.target.value)} className="mt-1 block w-full p-2 border border-slate-300 rounded-md" placeholder="votre.email@test.com"/>
-                            </div>
-                            <button onClick={handleTestEmail} disabled={testStatus === 'testing'} className="bg-slate-700 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded-lg shadow-md inline-flex items-center disabled:opacity-50">
-                                <PaperAirplaneIcon className="w-5 h-5 mr-2"/>
-                                {testStatus === 'testing' ? 'Envoi...' : 'Tester l\'envoi'}
-                            </button>
-                        </div>
-                        {testStatus === 'success' && <p className="text-sm text-green-600 mt-2">E-mail de test envoyé avec succès !</p>}
-                        {testStatus === 'error' && <p className="text-sm text-red-600 mt-2">Échec de l'envoi de l'e-mail. Vérifiez la configuration et les logs.</p>}
-                    </div>
-                </div>
-                 <div className="bg-slate-50 px-6 py-4 flex justify-end items-center rounded-b-lg border-t">
-                    {showSuccess && <span className="text-green-600 font-semibold mr-4">Enregistré !</span>}
-                    <button onClick={handleSave} disabled={isSaving} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md disabled:bg-indigo-400">
-                        {isSaving ? 'Enregistrement...' : 'Enregistrer les modifications'}
-                    </button>
+                <div className="p-6">
+                    {activeTab === 'apparence' && renderApparenceContent()}
+                    {activeTab === 'email' && renderSmtpContent()}
+                    {activeTab === 'licences' && renderLicencesContent()}
                 </div>
             </div>
         </div>

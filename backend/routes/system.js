@@ -259,4 +259,56 @@ router.post('/test-email', isSuperAdmin, async (req, res) => {
     }
 });
 
+/**
+ * @openapi
+ * /system/app-settings:
+ *   put:
+ *     summary: Met à jour les paramètres de l'application.
+ *     tags: [Système]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               companyAddress: { type: string }
+ *               appLogoUrl: { type: string }
+ *               colorPalette: { type: string }
+ *     responses:
+ *       200: { description: 'Paramètres de l\'application enregistrés.' }
+ */
+router.put('/app-settings', isSuperAdmin, async (req, res) => {
+    try {
+        const settings = req.body;
+        let envContent = await fs.readFile('.env', 'utf-8');
+        const updates = {
+            COMPANY_ADDRESS: settings.companyAddress,
+            APP_LOGO_URL: settings.appLogoUrl,
+            COLOR_PALETTE: settings.colorPalette,
+        };
+
+        for (const [key, value] of Object.entries(updates)) {
+            // Escape special characters for the regex
+            const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`^${escapedKey}=.*`, 'm');
+            const replacement = `${key}=${value}`;
+            
+            if (envContent.match(regex)) {
+                envContent = envContent.replace(regex, replacement);
+            } else {
+                envContent += `\n${replacement}`;
+            }
+        }
+        await fs.writeFile('.env', envContent);
+        res.json({ message: 'Paramètres enregistrés. Un rafraîchissement de la page est nécessaire pour appliquer les changements.' });
+    } catch (err) {
+        console.error("Failed to save App settings:", err);
+        res.status(500).json({ error: "Échec de l'enregistrement des paramètres de l'application." });
+    }
+});
+
+
 module.exports = router;
