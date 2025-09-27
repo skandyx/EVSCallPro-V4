@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Feature, User, UserRole, Campaign, UserGroup, Site } from '../types.ts';
 import { UsersIcon, PlusIcon, EditIcon, TrashIcon, ChevronDownIcon } from './Icons.tsx';
@@ -20,7 +18,7 @@ const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) =>
     <button
         type="button"
         onClick={() => onChange(!enabled)}
-        className={`${enabled ? 'bg-indigo-600' : 'bg-slate-200'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`}
+        className={`${enabled ? 'bg-primary' : 'bg-slate-200'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`}
         role="switch"
         aria-checked={enabled}
     >
@@ -183,7 +181,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, users, campaigns, userGroup
                                 <div>
                                     <div className="flex justify-between items-center">
                                         <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
-                                        <button type="button" onClick={handleToggleEmail} className={`${isEmailEnabled ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-600'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`} aria-pressed={isEmailEnabled} >
+                                        <button type="button" onClick={handleToggleEmail} className={`${isEmailEnabled ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`} aria-pressed={isEmailEnabled} >
                                             <span aria-hidden="true" className={`${isEmailEnabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}/>
                                         </button>
                                     </div>

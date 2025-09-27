@@ -5,6 +5,7 @@ const os = require('os');
 const pool = require('../services/db/connection');
 const nodemailer = require('nodemailer');
 const fs = require('fs/promises');
+const path = require('path'); // Ajout de l'import path
 
 // Middleware to check for SuperAdmin role
 const isSuperAdmin = (req, res, next) => {
@@ -162,7 +163,8 @@ router.post('/db-query', isSuperAdmin, async (req, res) => {
 router.put('/smtp-settings', isSuperAdmin, async (req, res) => {
     try {
         const { password, ...settings } = req.body;
-        let envContent = await fs.readFile('.env', 'utf-8');
+        const envPath = path.join(__dirname, '..', '.env');
+        let envContent = await fs.readFile(envPath, 'utf-8');
         const updates = {
             SMTP_SERVER: settings.server,
             SMTP_PORT: settings.port,
@@ -181,7 +183,7 @@ router.put('/smtp-settings', isSuperAdmin, async (req, res) => {
                 envContent += `\n${key}=${value}`;
             }
         }
-        await fs.writeFile('.env', envContent);
+        await fs.writeFile(envPath, envContent);
         res.json({ message: 'Paramètres enregistrés. Un redémarrage du serveur peut être nécessaire pour appliquer les changements.' });
     } catch (err) {
         console.error("Failed to save SMTP settings:", err);
@@ -284,7 +286,8 @@ router.post('/test-email', isSuperAdmin, async (req, res) => {
 router.put('/app-settings', isSuperAdmin, async (req, res) => {
     try {
         const settings = req.body;
-        let envContent = await fs.readFile('.env', 'utf-8');
+        const envPath = path.join(__dirname, '..', '.env');
+        let envContent = await fs.readFile(envPath, 'utf-8');
         const updates = {
             COMPANY_ADDRESS: settings.companyAddress,
             APP_LOGO_URL: settings.appLogoUrl,
@@ -304,7 +307,7 @@ router.put('/app-settings', isSuperAdmin, async (req, res) => {
                 envContent += `\n${replacement}`;
             }
         }
-        await fs.writeFile('.env', envContent);
+        await fs.writeFile(envPath, envContent);
         res.json({ message: 'Paramètres enregistrés. Un rafraîchissement de la page est nécessaire pour appliquer les changements.' });
     } catch (err) {
         console.error("Failed to save App settings:", err);
