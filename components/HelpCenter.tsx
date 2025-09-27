@@ -4,6 +4,7 @@ import {
     ChevronDownIcon, UsersIcon, PhoneArrowUpRightIcon, InboxArrowDownIcon, WrenchScrewdriverIcon, ChartBarIcon,
     PlayIcon, MenuIcon, SpeakerWaveIcon, PhoneIcon
 } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface HelpCenterProps {
     feature: Feature;
@@ -37,11 +38,14 @@ const AccordionItem: React.FC<{ title: string; icon: React.FC<any>; children: Re
 };
 
 const HelpCenter: React.FC<HelpCenterProps> = ({ feature }) => {
+    const { t } = useI18n();
     return (
         <div className="max-w-5xl mx-auto space-y-8">
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
 
             <div className="space-y-4">

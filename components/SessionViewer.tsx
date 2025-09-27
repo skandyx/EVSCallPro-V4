@@ -1,7 +1,9 @@
 
+
 import React, { useState, useMemo } from 'react';
 import type { Feature, AgentSession, User } from '../types.ts';
 import { InformationCircleIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface SessionViewerProps {
     feature: Feature;
@@ -22,6 +24,7 @@ const SessionViewer: React.FC<SessionViewerProps> = ({ feature, agentSessions, u
         startDate: '',
         endDate: '',
     });
+    const { t } = useI18n();
 
     const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -69,8 +72,10 @@ const SessionViewer: React.FC<SessionViewerProps> = ({ feature, agentSessions, u
     return (
         <div className="max-w-7xl mx-auto space-y-8">
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

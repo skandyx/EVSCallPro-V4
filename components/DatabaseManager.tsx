@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Feature } from '../types.ts';
 import { DatabaseIcon, PlayIcon, InformationCircleIcon, CheckIcon, XMarkIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface DatabaseManagerProps {
     feature: Feature;
@@ -29,6 +30,7 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({ feature, apiCall }) =
     const [isReadOnly, setIsReadOnly] = useState(true);
     const [schema, setSchema] = useState<Record<string, string[]> | null>(null);
     const [isSchemaLoading, setIsSchemaLoading] = useState(true);
+    const { t } = useI18n();
 
     useEffect(() => {
         const fetchSchema = async () => {
@@ -117,8 +119,10 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({ feature, apiCall }) =
     return (
         <div className="h-full flex flex-col space-y-6">
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
 
             <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">

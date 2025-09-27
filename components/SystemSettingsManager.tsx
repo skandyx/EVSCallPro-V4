@@ -1,7 +1,9 @@
 
+
 import React, { useState, useEffect } from 'react';
 import type { Feature, SystemSmtpSettings, SystemAppSettings } from '../types.ts';
 import { Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon, PaletteIcon, BuildingOfficeIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void; }> = ({ enabled, onChange }) => (
     <button type="button" onClick={() => onChange(!enabled)} className={`${enabled ? 'bg-indigo-600' : 'bg-slate-200'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`} role="switch" aria-checked={enabled}>
@@ -31,6 +33,7 @@ const PALETTES: { id: SystemAppSettings['colorPalette']; name: string; colors: s
 
 const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, smtpSettings, appSettings, onSaveSmtpSettings, onSaveAppSettings, apiCall }) => {
     const [activeTab, setActiveTab] = useState('apparence');
+    const { t } = useI18n();
 
     // --- SMTP State ---
     const [smtpConfig, setSmtpConfig] = useState<SystemSmtpSettings>(smtpSettings);
@@ -187,8 +190,10 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight flex items-center"><Cog6ToothIcon className="w-9 h-9 mr-3 text-indigo-600"/>{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight flex items-center"><Cog6ToothIcon className="w-9 h-9 mr-3 text-indigo-600"/>{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
 
             <div className="bg-white rounded-lg shadow-sm border border-slate-200">

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import type { Feature, PlanningEvent, ActivityType, User, UserGroup } from '../types.ts';
 import { PlusIcon, ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface PlanningManagerProps {
     feature: Feature;
@@ -103,6 +104,7 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedTargetId, setSelectedTargetId] = useState('all');
     const [modalState, setModalState] = useState<{ isOpen: boolean; event: Partial<PlanningEvent> | null }>({ isOpen: false, event: null });
+    const { t } = useI18n();
     
     const [ghostEvent, setGhostEvent] = useState<PlanningEvent | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -343,8 +345,10 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                 />
             )}
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight flex items-center"><CalendarDaysIcon className="w-9 h-9 mr-3"/>{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight flex items-center"><CalendarDaysIcon className="w-9 h-9 mr-3"/>{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
             <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex justify-between items-center">
                 <div className="flex items-center gap-4">

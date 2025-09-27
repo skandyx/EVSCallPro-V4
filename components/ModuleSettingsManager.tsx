@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Feature, FeatureCategory, ModuleVisibility, FeatureId } from '../types.ts';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface ModuleSettingsManagerProps {
     feature: Feature;
@@ -46,6 +47,7 @@ const ModuleSettingsManager: React.FC<ModuleSettingsManagerProps> = ({ feature, 
     const [localVisibility, setLocalVisibility] = useState<ModuleVisibility>(moduleVisibility);
     const [isDirty, setIsDirty] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const { t } = useI18n();
 
     useEffect(() => {
         setLocalVisibility(moduleVisibility);
@@ -90,8 +92,10 @@ const ModuleSettingsManager: React.FC<ModuleSettingsManagerProps> = ({ feature, 
     return (
         <div className="max-w-7xl mx-auto space-y-8">
             <header>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
-                <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
+                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
 
             <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
@@ -119,9 +123,11 @@ const ModuleSettingsManager: React.FC<ModuleSettingsManagerProps> = ({ feature, 
                                 <div className="pl-8 pt-4 mt-2 border-t border-slate-200/60 space-y-3">
                                     {featuresByCategory[name]?.map(subFeature => (
                                         <div key={subFeature.id} className="flex items-center justify-between">
-                                            <p className={`font-medium text-sm ${isCategoryEnabled ? 'text-slate-700' : 'text-slate-400'}`}>{subFeature.title}</p>
+                                            {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                                            <p className={`font-medium text-sm ${isCategoryEnabled ? 'text-slate-700' : 'text-slate-400'}`}>{t(subFeature.titleKey)}</p>
                                             <ToggleSwitch
-                                                label={`Activer/Désactiver le sous-menu ${subFeature.title}`}
+                                                // FIX: Replaced direct property access with translation function 't' to use i18n keys.
+                                                label={`Activer/Désactiver le sous-menu ${t(subFeature.titleKey)}`}
                                                 enabled={localVisibility.features[subFeature.id] ?? true}
                                                 onChange={(isEnabled) => handleLocalChange('feature', subFeature.id, isEnabled)}
                                                 disabled={!isCategoryEnabled}
@@ -151,9 +157,11 @@ const ModuleSettingsManager: React.FC<ModuleSettingsManagerProps> = ({ feature, 
                                 const isSubFeatureDisabled = !isParametresEnabled || subFeature.id === 'module-settings';
                                 return (
                                  <div key={subFeature.id} className="flex items-center justify-between">
-                                    <p className={`font-medium text-sm ${!isSubFeatureDisabled ? 'text-slate-700' : 'text-slate-400'}`}>{subFeature.title}</p>
+                                    {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
+                                    <p className={`font-medium text-sm ${!isSubFeatureDisabled ? 'text-slate-700' : 'text-slate-400'}`}>{t(subFeature.titleKey)}</p>
                                     <ToggleSwitch
-                                        label={`Activer/Désactiver le sous-menu ${subFeature.title}`}
+                                        // FIX: Replaced direct property access with translation function 't' to use i18n keys.
+                                        label={`Activer/Désactiver le sous-menu ${t(subFeature.titleKey)}`}
                                         enabled={localVisibility.features[subFeature.id] ?? true}
                                         onChange={(isEnabled) => handleLocalChange('feature', subFeature.id, isEnabled)}
                                         disabled={isSubFeatureDisabled}
