@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import type { Feature, AudioFile } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, PlayIcon, PauseIcon, XMarkIcon, ChevronDownIcon } from './Icons.tsx';
@@ -352,4 +350,45 @@ const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSave
                             {filteredAndSortedFiles.map(file => (
                                 <tr key={file.id}>
                                     <td className="px-6 py-4">
-                                        <button onClick={() => handlePlayPauseClick(file.id)} className="text-slate-
+                                        <button onClick={() => handlePlayPauseClick(file.id)} className="p-2 rounded-full hover:bg-slate-100">
+                                            {playingFileId === file.id && isPlaying
+                                                ? <PauseIcon className="w-5 h-5 text-indigo-600" />
+                                                : <PlayIcon className="w-5 h-5 text-slate-500" />}
+                                        </button>
+                                    </td>
+                                    <td className="px-6 py-4 font-medium text-slate-800">{file.name}</td>
+                                    <td className="px-6 py-4 text-slate-600 font-mono text-sm">{file.fileName}</td>
+                                    <td className="px-6 py-4 text-slate-600 font-mono text-sm">{formatDuration(file.duration)}</td>
+                                    <td className="px-6 py-4 text-slate-600 text-sm">{formatBytes(file.size)}</td>
+                                    <td className="px-6 py-4 text-slate-600 text-sm">{new Date(file.uploadDate).toLocaleDateString('fr-FR')}</td>
+                                    <td className="px-6 py-4 text-right text-sm font-medium space-x-4">
+                                        <button onClick={() => handleEdit(file)} className="text-link hover:underline inline-flex items-center">
+                                            <EditIcon className="w-4 h-4 mr-1" /> Modifier
+                                        </button>
+                                        <button onClick={() => handleDelete(file.id, file.name)} className="text-red-600 hover:text-red-900 inline-flex items-center">
+                                            <TrashIcon className="w-4 h-4 mr-1" /> Supprimer
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {playingFile && (
+                <Player
+                    file={playingFile}
+                    isPlaying={isPlaying}
+                    progress={progress}
+                    currentTime={currentTime}
+                    duration={duration}
+                    onPlayPause={() => setIsPlaying(!isPlaying)}
+                    onSeek={handleSeek}
+                    onClose={() => setPlayingFileId(null)}
+                />
+            )}
+        </div>
+    );
+};
+
+export default AudioManager;
