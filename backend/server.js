@@ -32,12 +32,14 @@ const os = require('os');
 const fs = require('fs/promises');
 const authMiddleware = require('./middleware/auth.middleware.js');
 const dotenv = require('dotenv');
+const licenseManager = require('./services/licenseManager.js');
 
 
 // --- INITIALIZATION ---
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3001;
+licenseManager.initialize(); // Initialize license manager on startup
 
 // --- MIDDLEWARE ---
 app.use(cors());

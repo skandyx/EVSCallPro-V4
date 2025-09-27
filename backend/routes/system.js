@@ -7,6 +7,7 @@ const nodemailer = require('nodemailer');
 const fs = require('fs/promises');
 const path = require('path');
 const dotenv = require('dotenv'); // Import dotenv
+const licenseManager = require('../services/licenseManager.js');
 
 // Middleware to check for SuperAdmin role
 const isSuperAdmin = (req, res, next) => {
@@ -327,5 +328,59 @@ router.put('/app-settings', isSuperAdmin, async (req, res) => {
     }
 });
 
+/**
+ * @openapi
+ * /system/license-status:
+ *   get:
+ *     summary: Récupère l'état actuel de la licence du serveur.
+ *     tags: [Système]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Informations sur la licence.
+ */
+router.get('/license-status', isSuperAdmin, async (req, res) => {
+    try {
+        const status = await licenseManager.getLicenseStatus();
+        res.json(status);
+    } catch (error) {
+        console.error("Error fetching license status:", error);
+        res.status(500).json({ error: "Impossible de récupérer l'état de la licence." });
+    }
+});
+
+/**
+ * @openapi
+ * /system/activate-license:
+ *   post:
+ *     summary: Tente d'activer une nouvelle clé de licence.
+ *     tags: [Système]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               licenseKey: { type: string, description: "La clé de licence encodée." }
+ *     responses:
+ *       200: { description: 'Licence activée avec succès.' }
+ *       400: { description: 'Clé de licence invalide ou corrompue.' }
+ */
+router.post('/activate-license', isSuperAdmin, async (req, res) => {
+    try {
+        const { licenseKey } = req.body;
+        if (!licenseKey) {
+            return res.status(400).json({ error: 'Clé de licence manquante.' });
+        }
+        const result = await licenseManager.activateLicense(licenseKey);
+        res.json({ message: 'Licence activée avec succès !', ...result });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
 
 module.exports = router;
