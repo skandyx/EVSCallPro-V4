@@ -31,6 +31,7 @@ const { initializeAmiListener } = require('./services/amiListener.js');
 const os = require('os');
 const fs = require('fs/promises');
 const authMiddleware = require('./middleware/auth.middleware.js');
+const dotenv = require('dotenv');
 
 
 // --- INITIALIZATION ---
@@ -163,6 +164,11 @@ app.use('/api/audio-files', audioRoutes);
  */
 app.get('/api/application-data', async (req, res) => {
     try {
+        // FIX: Dynamically read .env file on each request to ensure settings are always fresh.
+        // This is crucial for settings changed via the UI to be reflected without a server restart.
+        const envFileContent = await fs.readFile(path.join(__dirname, '.env'), 'utf-8');
+        const envConfig = dotenv.parse(envFileContent);
+
         const [
             users, userGroups, savedScripts, campaigns, qualifications,
             qualificationGroups, ivrFlows, audioFiles, trunks, dids, sites,
@@ -178,33 +184,33 @@ app.get('/api/application-data', async (req, res) => {
         
         const systemConnectionSettings = {
             database: {
-                host: process.env.DB_HOST || '',
-                port: parseInt(process.env.DB_PORT || '5432'),
-                user: process.env.DB_USER || '',
-                database: process.env.DB_NAME || '',
+                host: envConfig.DB_HOST || '',
+                port: parseInt(envConfig.DB_PORT || '5432'),
+                user: envConfig.DB_USER || '',
+                database: envConfig.DB_NAME || '',
             },
             asterisk: {
-                amiHost: process.env.AMI_HOST || '',
-                amiPort: parseInt(process.env.AMI_PORT || '5038'),
-                amiUser: process.env.AMI_USER || '',
-                agiPort: parseInt(process.env.AGI_PORT || '4573'),
+                amiHost: envConfig.AMI_HOST || '',
+                amiPort: parseInt(envConfig.AMI_PORT || '5038'),
+                amiUser: envConfig.AMI_USER || '',
+                agiPort: parseInt(envConfig.AGI_PORT || '4573'),
             }
         };
 
         const smtpSettings = {
-            server: process.env.SMTP_SERVER || '',
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            auth: process.env.SMTP_AUTH === 'true',
-            secure: process.env.SMTP_SECURE === 'true',
-            user: process.env.SMTP_USER || '',
-            from: process.env.SMTP_FROM || '',
+            server: envConfig.SMTP_SERVER || '',
+            port: parseInt(envConfig.SMTP_PORT || '587'),
+            auth: envConfig.SMTP_AUTH === 'true',
+            secure: envConfig.SMTP_SECURE === 'true',
+            user: envConfig.SMTP_USER || '',
+            from: envConfig.SMTP_FROM || '',
         };
         
         const appSettings = {
-            companyAddress: process.env.COMPANY_ADDRESS || 'Votre Société\n123 Rue Principale\n75001 Paris, France',
-            appLogoUrl: process.env.APP_LOGO_URL || '',
-            colorPalette: process.env.COLOR_PALETTE || 'default',
-            appName: process.env.APP_NAME || 'Architecte de Solutions',
+            companyAddress: envConfig.COMPANY_ADDRESS || 'Votre Société\n123 Rue Principale\n75001 Paris, France',
+            appLogoUrl: envConfig.APP_LOGO_URL || '',
+            colorPalette: envConfig.COLOR_PALETTE || 'default',
+            appName: envConfig.APP_NAME || 'Architecte de Solutions',
         };
 
         res.json({
@@ -221,8 +227,8 @@ app.get('/api/application-data', async (req, res) => {
             systemLogs: [],
             versionInfo: { application: '1.0.0', asterisk: '18.x', database: '14.x', 'asteriskagi': '1.2.2' },
             connectivityServices: [
-                { id: 'db', name: 'Base de Données', target: `${process.env.DB_HOST}:${process.env.DB_PORT}` },
-                { id: 'ami', name: 'Asterisk AMI', target: `${process.env.AMI_HOST}:${process.env.AMI_PORT}` },
+                { id: 'db', name: 'Base de Données', target: `${envConfig.DB_HOST}:${envConfig.DB_PORT}` },
+                { id: 'ami', name: 'Asterisk AMI', target: `${envConfig.AMI_HOST}:${envConfig.AMI_PORT}` },
             ],
         });
     } catch (error) {
