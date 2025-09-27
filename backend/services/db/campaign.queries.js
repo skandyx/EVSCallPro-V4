@@ -36,15 +36,52 @@ const importContacts = async (campaignId, contacts, deduplicationConfig) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        
-        // Complex deduplication logic would go here. For now, we just insert.
-        // A real implementation should check against existing contacts based on deduplicationConfig.
 
+        const createCompositeKey = (contact, fields) => {
+            return fields
+                .map(fieldId => {
+                    if (contact.customFields && Object.prototype.hasOwnProperty.call(contact.customFields, fieldId)) {
+                         return String(contact.customFields[fieldId]);
+                    }
+                    if (Object.prototype.hasOwnProperty.call(contact, fieldId)) {
+                        return String(contact[fieldId]);
+                    }
+                    return '';
+                })
+                .map(v => String(v).trim().toLowerCase())
+                .join('||');
+        };
+
+        const existingValues = new Set();
+        if (deduplicationConfig && deduplicationConfig.enabled && deduplicationConfig.fieldIds && deduplicationConfig.fieldIds.length > 0) {
+            const { rows: existingContacts } = await client.query('SELECT * FROM contacts WHERE campaign_id = $1', [campaignId]);
+            const camelCasedExisting = existingContacts.map(keysToCamel);
+            
+            camelCasedExisting.forEach(c => {
+                const key = createCompositeKey(c, deduplicationConfig.fieldIds);
+                if (key) existingValues.add(key);
+            });
+        }
+        
         for (const contact of contacts) {
-            await client.query(
-                'INSERT INTO contacts (id, campaign_id, first_name, last_name, phone_number, postal_code, status, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-                [contact.id, campaignId, contact.firstName, contact.lastName, contact.phoneNumber, contact.postalCode, 'pending', JSON.stringify(contact.customFields || {})]
-            );
+            let isDuplicate = false;
+            if (deduplicationConfig && deduplicationConfig.enabled && deduplicationConfig.fieldIds && deduplicationConfig.fieldIds.length > 0) {
+                const key = createCompositeKey(contact, deduplicationConfig.fieldIds);
+                if (key && existingValues.has(key)) {
+                    isDuplicate = true;
+                }
+            }
+            
+            if (!isDuplicate) {
+                await client.query(
+                    'INSERT INTO contacts (id, campaign_id, first_name, last_name, phone_number, postal_code, status, custom_fields) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+                    [contact.id, campaignId, contact.firstName, contact.lastName, contact.phoneNumber, contact.postalCode, 'pending', JSON.stringify(contact.customFields || {})]
+                );
+                if (deduplicationConfig && deduplicationConfig.enabled && deduplicationConfig.fieldIds && deduplicationConfig.fieldIds.length > 0) {
+                    const key = createCompositeKey(contact, deduplicationConfig.fieldIds);
+                    if(key) existingValues.add(key);
+                }
+            }
         }
         await client.query('COMMIT');
     } catch (e) {

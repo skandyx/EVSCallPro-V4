@@ -27,8 +27,8 @@ class WebSocketClient {
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // The backend server.js upgrade handler expects the token in the query parameter.
-    this.url = `${protocol}//${window.location.host}?token=${this.token}`;
+    // FIX: The WebSocket endpoint is behind the /api proxy path.
+    this.url = `${protocol}//${window.location.host}/api?token=${this.token}`;
 
     this.ws = new WebSocket(this.url);
 
