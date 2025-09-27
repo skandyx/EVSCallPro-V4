@@ -1,548 +1,189 @@
-import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
-import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus, ActiveCall, CampaignState, SystemSmtpSettings, SystemAppSettings } from './types.ts';
-import { features } from './data/features.ts';
+import React, { useState, useEffect, useCallback } from 'react';
+import type { Feature, User, Campaign, Contact, Qualification, SavedScript, QualificationGroup, ContactNote, PersonalCallback, UserGroup, Trunk, Did, Site, PlanningEvent, ActivityType, AudioFile, SystemConnectionSettings, SystemSmtpSettings, SystemAppSettings, ModuleVisibility, BackupLog, BackupSchedule, SystemLog, VersionInfo, ConnectivityService, IvrFlow, CallHistoryRecord, AgentSession } from './types.ts';
+import { features as allFeatures } from './data/features.ts';
 import Sidebar from './components/Sidebar.tsx';
+import FeatureDetail from './components/FeatureDetail.tsx';
 import LoginScreen from './components/LoginScreen.tsx';
 import AgentView from './components/AgentView.tsx';
-import Header from './components/Header.tsx';
-import MonitoringDashboard from './components/MonitoringDashboard.tsx';
-import UserProfileModal from './components/UserProfileModal.tsx'; // Import the new modal
-import apiClient from './src/lib/axios.ts'; // Utilisation de l'instance Axios configurée
+import apiClient from './src/lib/axios.ts';
 import wsClient from './src/services/wsClient.ts';
 
-// Création d'un contexte pour les alertes (toast)
-export const AlertContext = React.createContext<{
-    showAlert: (message: string, type: 'success' | 'error' | 'info') => void;
-}>({ showAlert: () => {} });
-
-// State and Reducer for live data (moved from SupervisionDashboard)
-interface LiveState {
-    agentStates: AgentState[];
-    activeCalls: ActiveCall[];
-    campaignStates: CampaignState[];
+// This mirrors the structure of the /api/application-data response
+export interface ApplicationData {
+    users: User[];
+    userGroups: UserGroup[];
+    savedScripts: SavedScript[];
+    campaigns: Campaign[];
+    qualifications: Qualification[];
+    qualificationGroups: QualificationGroup[];
+    ivrFlows: IvrFlow[];
+    audioFiles: AudioFile[];
+    trunks: Trunk[];
+    dids: Did[];
+    sites: Site[];
+    planningEvents: PlanningEvent[];
+    activityTypes: ActivityType[];
+    personalCallbacks: PersonalCallback[];
+    callHistory: CallHistoryRecord[];
+    agentSessions: AgentSession[];
+    contactNotes: ContactNote[];
+    systemConnectionSettings: SystemConnectionSettings;
+    smtpSettings: SystemSmtpSettings;
+    appSettings: SystemAppSettings;
+    moduleVisibility: ModuleVisibility;
+    backupLogs: BackupLog[];
+    backupSchedule: BackupSchedule;
+    systemLogs: SystemLog[];
+    versionInfo: VersionInfo;
+    connectivityServices: ConnectivityService[];
 }
-
-type LiveAction =
-    | { type: 'INIT_STATE'; payload: { agents: User[], campaigns: Campaign[] } }
-    | { type: 'AGENT_STATUS_UPDATE'; payload: Partial<AgentState> & { agentId: string } }
-    | { type: 'NEW_CALL'; payload: ActiveCall }
-    | { type: 'CALL_HANGUP'; payload: { callId: string } }
-    | { type: 'TICK' };
-
-const initialState: LiveState = {
-    agentStates: [],
-    activeCalls: [],
-    campaignStates: [],
-};
-
-function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
-    switch (action.type) {
-        case 'INIT_STATE': {
-            const initialAgentStates: AgentState[] = action.payload.agents
-                .filter(u => u.role === 'Agent')
-                .map(agent => ({
-                    ...agent,
-                    status: 'En Attente',
-                    statusDuration: 0,
-                    callsHandledToday: 0,
-                    averageHandlingTime: 0,
-                }));
-            const initialCampaignStates: CampaignState[] = action.payload.campaigns.map(c => ({
-                id: c.id, name: c.name, status: c.isActive ? 'running' : 'stopped',
-                offered: 0, answered: 0, hitRate: 0, agentsOnCampaign: 0,
-            }));
-            return { agentStates: initialAgentStates, activeCalls: [], campaignStates: initialCampaignStates };
-        }
-        case 'AGENT_STATUS_UPDATE':
-            return {
-                ...state,
-                agentStates: state.agentStates.map(agent =>
-                    agent.id === action.payload.agentId
-                        ? { ...agent, ...action.payload, statusDuration: 0 } // Reset timer on status change
-                        : agent
-                ),
-            };
-        case 'NEW_CALL':
-            if (state.activeCalls.some(call => call.id === action.payload.id)) return state;
-            return { ...state, activeCalls: [...state.activeCalls, { ...action.payload, duration: 0 }] };
-        case 'CALL_HANGUP':
-            return { ...state, activeCalls: state.activeCalls.filter(call => call.id !== action.payload.callId) };
-        case 'TICK':
-             return {
-                ...state,
-                agentStates: state.agentStates.map(a => ({ ...a, statusDuration: a.statusDuration + 1 })),
-                activeCalls: state.activeCalls.map(c => ({ ...c, duration: c.duration + 1 })),
-            };
-        default:
-            return state;
-    }
-}
-
-type Theme = 'light' | 'dark' | 'system';
 
 const App: React.FC = () => {
-    const [currentUser, setCurrentUser] = useState<User | null>(null);
-    const [activeFeatureId, setActiveFeatureId] = useState<FeatureId>('users');
-    const [allData, setAllData] = useState<Record<string, any> & { appSettings?: SystemAppSettings }>({});
     const [isLoading, setIsLoading] = useState(true);
-    const [activeView, setActiveView] = useState<'app' | 'monitoring'>('app');
-    const [alert, setAlert] = useState<{ message: string; type: 'success' | 'error' | 'info'; key: number } | null>(null);
-    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false); // State for the new modal
-    const [liveState, dispatch] = useReducer(liveDataReducer, initialState);
-    const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
+    const [data, setData] = useState<ApplicationData | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [activeFeatureId, setActiveFeatureId] = useState<string>('users');
 
-     // Effect to apply theme class to <html> element
-    useEffect(() => {
-        const root = window.document.documentElement;
-        const isDark =
-            theme === 'dark' ||
-            (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        
-        root.classList.toggle('dark', isDark);
-        localStorage.setItem('theme', theme);
-    }, [theme]);
-    
-    // Effect to listen to system theme changes when in 'system' mode
-    useEffect(() => {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        
-        const handleChange = () => {
-            if (theme === 'system') {
-                const root = window.document.documentElement;
-                root.classList.toggle('dark', mediaQuery.matches);
-            }
-        };
-
-        mediaQuery.addEventListener('change', handleChange);
-        return () => mediaQuery.removeEventListener('change', handleChange);
-    }, [theme]);
-    
-    // Effect to apply the selected color theme as a data-attribute on the <html> element
-    useEffect(() => {
-        const root = window.document.documentElement;
-        const colorPalette = allData.appSettings?.colorPalette || 'default';
-        root.setAttribute('data-theme', colorPalette);
-    }, [allData.appSettings?.colorPalette]);
-
-    const showAlert = useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
-        setAlert({ message, type, key: Date.now() });
-    }, []);
-
-    // Effect to automatically hide the alert after a delay
-    useEffect(() => {
-        if (alert) {
-            const timer = setTimeout(() => {
-                setAlert(null);
-            }, 3000); // Hide after 3 seconds
-
-            return () => clearTimeout(timer);
-        }
-    }, [alert]);
-
-    const fetchApplicationData = useCallback(async () => {
-        try {
-            const response = await apiClient.get('/application-data');
-            setAllData(response.data);
-        } catch (error) {
-            console.error("Failed to fetch application data:", error);
-            showAlert("Impossible de charger les données de l'application.", 'error');
-        }
-    }, [showAlert]);
-    
     const handleLogout = useCallback(() => {
         localStorage.removeItem('authToken');
         setCurrentUser(null);
-        // We keep appSettings in allData so the login screen displays correctly
-        setAllData(prev => ({ appSettings: prev.appSettings }));
+        wsClient.disconnect();
     }, []);
 
-    // Check for existing token on mount and restore session
-    useEffect(() => {
-        const loadApp = async () => {
-            setIsLoading(true);
-
-            // 1. Always fetch public settings first for the login screen.
-            try {
-                const configResponse = await apiClient.get('/public-config');
-                setAllData(prev => ({ ...prev, appSettings: configResponse.data.appSettings }));
-            } catch (e) {
-                console.error("Failed to load public config:", e);
-                // Set defaults on failure to prevent a broken UI
-                setAllData(prev => ({
-                    ...prev,
-                    appSettings: {
-                        companyAddress: '',
-                        appLogoUrl: '',
-                        colorPalette: 'default',
-                        appName: 'Architecte de Solutions',
-                    }
-                }));
-            }
-            
-            // 2. Then, check for an active session token.
-            const token = localStorage.getItem('authToken');
-            if (token) {
-                try {
-                    const meResponse = await apiClient.get('/auth/me');
-                    setCurrentUser(meResponse.data.user);
-                    await fetchApplicationData(); // Fetches all protected data
-                } catch (error) {
-                    console.error("Session check failed:", error);
-                    // The refresh token logic in axios interceptor will handle this.
-                    // If refresh fails, it will dispatch the logout event.
-                }
-            }
-            
-            // 3. Finish loading sequence.
-            setIsLoading(false);
-        };
-
-        loadApp();
-    }, [fetchApplicationData]);
-
-    // Effect to handle logout event from axios interceptor
-    useEffect(() => {
-        const handleForcedLogout = () => {
-            console.log("Logout event received from API client. Logging out.");
-            handleLogout();
-        };
-
-        window.addEventListener('logoutEvent', handleForcedLogout);
-
-        return () => {
-            window.removeEventListener('logoutEvent', handleForcedLogout);
-        };
-    }, [handleLogout]);
-
-     // Effect to manage WebSocket connection and live data updates
-    useEffect(() => {
-        if (currentUser) {
-            const token = localStorage.getItem('authToken');
-            if (token) {
-                wsClient.connect(token);
-            }
-
-            const handleWebSocketMessage = (event: any) => {
-                if (event.type && event.payload) {
-                    const actionType = event.type.replace(/([A-Z])/g, '_$1').toUpperCase();
-                    dispatch({ type: actionType as any, payload: event.payload });
-                }
-            };
-
-            const unsubscribe = wsClient.onMessage(handleWebSocketMessage);
-            const timer = setInterval(() => dispatch({ type: 'TICK' }), 1000);
-
-            return () => {
-                unsubscribe();
-                clearInterval(timer);
-                wsClient.disconnect();
-            };
+    const refreshData = useCallback(async () => {
+        try {
+            const response = await apiClient.get('/application-data');
+            setData(response.data);
+        } catch (err) {
+            console.error("Failed to refresh data", err);
+            setError('Could not refresh application data.');
         }
-    }, [currentUser]);
+    }, []);
 
-    // Effect to initialize live data state once static data is loaded
-    useEffect(() => {
-        if (allData.users && allData.campaigns) {
-            dispatch({ type: 'INIT_STATE', payload: { agents: allData.users, campaigns: allData.campaigns } });
-        }
-    }, [allData.users, allData.campaigns]);
-
-
-    const handleLoginSuccess = ({ user, token }: { user: User, token: string }) => {
+    const handleLogin = (user: User, token: string) => {
         localStorage.setItem('authToken', token);
         setCurrentUser(user);
+        wsClient.connect(token);
+        fetchData();
+    };
+
+    const fetchData = useCallback(async () => {
         setIsLoading(true);
-        fetchApplicationData().finally(() => setIsLoading(false));
-    };
-
-    const handleSaveOrUpdate = async (dataType: string, data: any, endpoint?: string) => {
+        setError(null);
         try {
-            // A special map because some `dataType` values (for endpoints) don't match `allData` keys (for state).
-            const dataTypeToStateKey: { [key: string]: keyof typeof allData } = {
-                'users': 'users', 'user-groups': 'userGroups', 'scripts': 'savedScripts',
-                'campaigns': 'campaigns', 'qualifications': 'qualifications', 'qualification-groups': 'qualificationGroups',
-                'ivr-flows': 'ivrFlows', 'audio-files': 'audioFiles', 'trunks': 'trunks',
-                'dids': 'dids', 'sites': 'sites', 'planning-events': 'planningEvents'
-            };
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                // apiClient interceptor will add the token
+                const appDataPromise = apiClient.get<ApplicationData>('/application-data');
+                const mePromise = apiClient.get<{ user: User }>('/auth/me');
 
-            const collectionKey = dataTypeToStateKey[dataType];
-            const collection = collectionKey ? allData[collectionKey] : [];
-            const itemExistsInState = Array.isArray(collection) ? collection.some((item: any) => item.id === data.id) : false;
-            
-            // CORRECTED LOGIC: The sole source of truth to determine if an item is new
-            // is its absence from the current application state. The format of the ID is irrelevant.
-            const isNew = !itemExistsInState;
-
-            const url = endpoint || `/${dataType.toLowerCase()}`;
-            
-            const response = isNew
-                ? await apiClient.post(url, data)
-                : await apiClient.put(`${url}/${data.id}`, data);
-            
-            await fetchApplicationData(); // Re-fetch all data to ensure consistency
-            showAlert('Enregistrement réussi !', 'success');
-            return response.data;
-        } catch (error: any) {
-            const errorMessage = error.response?.data?.error || `Échec de l'enregistrement.`;
-            console.error(`Failed to save ${dataType}:`, error);
-            showAlert(errorMessage, 'error');
-            throw error;
-        }
-    };
-    
-    // FIX: Corrected the signature and implementation of the `handleDelete` function to accept an optional `endpoint` parameter. This resolves errors where it was called with three arguments instead of the expected two, ensuring that API calls for deletion are made to the correct custom endpoints when provided.
-    const handleDelete = async (dataType: string, id: string, endpoint?: string) => {
-        if (window.confirm("Êtes-vous sûr de vouloir supprimer cet élément ?")) {
-            try {
-                const url = endpoint || `/${dataType.toLowerCase()}`;
-                await apiClient.delete(`${url}/${id}`);
-                await fetchApplicationData();
-                showAlert('Suppression réussie !', 'success');
-            } catch (error: any) {
-                const errorMessage = error.response?.data?.error || `Échec de la suppression.`;
-                console.error(`Failed to delete ${dataType}:`, error);
-                showAlert(errorMessage, 'error');
+                const [appDataRes, meRes] = await Promise.all([appDataPromise, mePromise]);
+                
+                setData(appDataRes.data);
+                setCurrentUser(meRes.data.user);
+                 if (!wsClient.ws || wsClient.ws.readyState === WebSocket.CLOSED) {
+                    wsClient.connect(token);
+                }
             }
+        } catch (err) {
+            console.error("Initialization error:", err);
+            handleLogout(); // If token is invalid or fetching fails, log out
+        } finally {
+            setIsLoading(false);
         }
-    };
+    }, [handleLogout]);
 
-    const handleSaveVisibilitySettings = (visibility: ModuleVisibility) => {
-        // As there's no backend endpoint, this is a client-side state update for the current session.
-        setAllData(prevData => ({
-            ...prevData,
-            moduleVisibility: visibility,
-        }));
-        showAlert('Paramètres de visibilité mis à jour.', 'success');
-    };
+    useEffect(() => {
+        fetchData();
+        
+        const handleLogoutEvent = () => handleLogout();
+        window.addEventListener('logoutEvent', handleLogoutEvent);
+        return () => window.removeEventListener('logoutEvent', handleLogoutEvent);
 
-    const handleSaveSmtpSettings = async (settings: SystemSmtpSettings, password?: string) => {
-        try {
-            const payload: any = { ...settings };
-            if (password) {
-                payload.password = password;
-            }
-            await apiClient.put('/system/smtp-settings', payload);
-            await fetchApplicationData(); 
-            showAlert('Paramètres SMTP enregistrés. Un redémarrage du serveur peut être nécessaire.', 'success');
-        } catch (error: any) {
-            const errorMessage = error.response?.data?.error || `Échec de l'enregistrement.`;
-            showAlert(errorMessage, 'error');
-            throw error;
-        }
-    };
-    
-    const handleSaveAppSettings = async (settings: SystemAppSettings) => {
-        try {
-            await apiClient.put('/system/app-settings', settings);
-            // FIX: Update state locally instead of refetching.
-            // The backend saves to .env but the running Node process doesn't see the change.
-            // This local update ensures the theme is applied instantly.
-            setAllData(prevData => ({
-                ...prevData,
-                appSettings: settings,
-            }));
-            showAlert("Paramètres de l'application enregistrés.", 'success');
-        } catch (error: any) {
-            const errorMessage = error.response?.data?.error || `Échec de l'enregistrement.`;
-            showAlert(errorMessage, 'error');
-            throw error;
-        }
-    };
-
-    const handleSaveUser = async (user: User, groupIds: string[]) => {
-       await handleSaveOrUpdate('users', { ...user, groupIds });
-    };
-
-    const handleBulkUsers = async (users: User[], successMessage: string) => {
-        try {
-            await apiClient.post('/users/bulk', { users });
-            await fetchApplicationData();
-            showAlert(successMessage, 'success');
-        } catch (error: any) {
-            const errorMessage = error.response?.data?.error || `Échec de la création en masse.`;
-            console.error(`Failed to bulk create users:`, error);
-            showAlert(errorMessage, 'error');
-            throw error;
-        }
-    };
-    
-    const handleGenerateUsers = async (users: User[]) => {
-        await handleBulkUsers(users, `${users.length} utilisateurs générés avec succès.`);
-    };
-
-    const handleImportUsers = async (users: User[]) => {
-        await handleBulkUsers(users, `${users.length} utilisateurs importés avec succès.`);
-    };
-
-    const handleImportContacts = async (campaignId: string, contacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => {
-        try {
-            await apiClient.post(`/campaigns/${campaignId}/contacts`, { contacts, deduplicationConfig });
-            await fetchApplicationData();
-            showAlert(`${contacts.length} contacts importés avec succès.`, 'success');
-        } catch (error) {
-            showAlert("Erreur lors de l'importation des contacts.", 'error');
-        }
-    };
+    }, [fetchData, handleLogout]);
 
     const handleUpdatePassword = async (passwordData: any) => {
-        try {
-            await apiClient.put('/users/me/password', passwordData);
-            showAlert('Mot de passe mis à jour avec succès.', 'success');
-            setIsProfileModalOpen(false);
-        } catch (error: any) {
-             const errorMessage = error.response?.data?.error || `Échec de la mise à jour.`;
-            console.error(`Failed to update password:`, error);
-            showAlert(errorMessage, 'error');
-            throw error; // Rethrow to keep modal open and show error
-        }
+        await apiClient.put('/users/me/password', passwordData);
     };
 
     const handleUpdateProfilePicture = async (base64DataUrl: string) => {
-        try {
-            await apiClient.put('/users/me/picture', { pictureUrl: base64DataUrl });
-            showAlert('Photo de profil mise à jour.', 'success');
-            // Refresh all data to get the updated user object everywhere
-            await fetchApplicationData(); 
-        } catch (error: any) {
-            const errorMessage = error.response?.data?.error || `Échec de la mise à jour.`;
-            showAlert(errorMessage, 'error');
-            throw error; // Rethrow to allow modal to handle UI state
-        }
+        const res = await apiClient.put('/users/me/picture', { pictureUrl: base64DataUrl });
+        setCurrentUser(prev => prev ? { ...prev, profilePictureUrl: res.data.profilePictureUrl } : null);
     };
 
-    const currentUserStatus: AgentStatus | undefined = useMemo(() => {
-        if (!currentUser) return undefined;
-        const agentState = liveState.agentStates.find(a => a.id === currentUser.id);
-        return agentState?.status;
-    }, [currentUser, liveState.agentStates]);
-
-
     if (isLoading) {
-        return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">Chargement...</div>;
+        return <div className="flex h-screen w-screen items-center justify-center">Loading...</div>;
     }
 
-    if (!currentUser) {
-        return <LoginScreen
-            onLoginSuccess={handleLoginSuccess}
-            appLogoUrl={allData.appSettings?.appLogoUrl}
-            appName={allData.appSettings?.appName}
-        />;
+    if (!currentUser || !data) {
+        return <LoginScreen onLogin={handleLogin} loginError={error} />;
     }
 
     if (currentUser.role === 'Agent') {
         return <AgentView 
             currentUser={currentUser} 
             onLogout={handleLogout} 
-            data={allData as any} 
-            refreshData={fetchApplicationData}
+            data={{
+                campaigns: data.campaigns,
+                qualifications: data.qualifications,
+                qualificationGroups: data.qualificationGroups,
+                savedScripts: data.savedScripts,
+                contactNotes: data.contactNotes,
+                users: data.users,
+                personalCallbacks: data.personalCallbacks,
+            }}
+            refreshData={refreshData}
             onUpdatePassword={handleUpdatePassword}
             onUpdateProfilePicture={handleUpdateProfilePicture}
         />;
     }
-
-    const activeFeature = features.find(f => f.id === activeFeatureId) || null;
-    const FeatureComponent = activeFeature?.component;
-
-    const renderFeatureComponent = () => {
-        if (!FeatureComponent) return null;
-
-        const componentProps = {
-            ...allData,
-            ...liveState,
-            features: features, // Pass the main features array to all components
-            feature: activeFeature,
-            currentUser,
-            onSaveUser: handleSaveUser,
-            onDeleteUser: (id: string) => handleDelete('users', id),
-            onGenerateUsers: handleGenerateUsers,
-            onImportUsers: handleImportUsers,
-            onSaveUserGroup: (group: UserGroup) => handleSaveOrUpdate('user-groups', group),
-            onDeleteUserGroup: (id: string) => handleDelete('user-groups', id),
-            onSaveOrUpdateScript: (script: SavedScript) => handleSaveOrUpdate('scripts', script),
-            onDeleteScript: (id: string) => handleDelete('scripts', id),
-            onDuplicateScript: async (id: string) => { await apiClient.post(`/scripts/${id}/duplicate`); await fetchApplicationData(); },
-            onSaveCampaign: (campaign: Campaign) => handleSaveOrUpdate('campaigns', campaign),
-            onDeleteCampaign: (id: string) => handleDelete('campaigns', id),
-            onImportContacts: handleImportContacts,
-            onSaveQualification: (q: Qualification) => handleSaveOrUpdate('qualifications', q),
-            onDeleteQualification: (id: string) => handleDelete('qualifications', id),
-            onSaveQualificationGroup: (group: QualificationGroup, assignedQualIds: string[]) => handleSaveOrUpdate('qualification-groups', { ...group, assignedQualIds }, '/qualification-groups/groups'),
-            onDeleteQualificationGroup: (id: string) => handleDelete('qualification-groups', id, '/qualification-groups/groups'),
-            onSaveOrUpdateIvrFlow: (flow: IvrFlow) => handleSaveOrUpdate('ivr-flows', flow),
-            onDeleteIvrFlow: (id: string) => handleDelete('ivr-flows', id),
-            onDuplicateIvrFlow: async (id: string) => { await apiClient.post(`/ivr-flows/${id}/duplicate`); await fetchApplicationData(); },
-            onSaveAudioFile: (file: AudioFile) => handleSaveOrUpdate('audio-files', file),
-            onDeleteAudioFile: (id: string) => handleDelete('audio-files', id),
-            onSaveTrunk: (trunk: Trunk) => handleSaveOrUpdate('trunks', trunk, '/telephony/trunks'),
-            onDeleteTrunk: (id: string) => handleDelete('trunks', id, '/telephony/trunks'),
-            onSaveDid: (did: Did) => handleSaveOrUpdate('dids', did, '/telephony/dids'),
-            onDeleteDid: (id: string) => handleDelete('dids', id, '/telephony/dids'),
-            onSaveSite: (site: Site) => handleSaveOrUpdate('sites', site),
-            onDeleteSite: (id: string) => handleDelete('sites', id),
-            onSavePlanningEvent: (event: PlanningEvent) => handleSaveOrUpdate('planning-events', event),
-            onDeletePlanningEvent: (id: string) => handleDelete('planning-events', id),
-            onSaveVisibilitySettings: handleSaveVisibilitySettings,
-            onSaveSmtpSettings: handleSaveSmtpSettings,
-            onSaveAppSettings: handleSaveAppSettings,
-            apiCall: apiClient, // Passe l'instance axios configurée
-        };
-        
-        return <FeatureComponent {...componentProps} />;
-    };
     
-     const AlertComponent = () => {
-        if (!alert) return null;
-        const colors = {
-            success: 'bg-green-100 border-green-500 text-green-700 dark:bg-green-900/50 dark:border-green-700 dark:text-green-200',
-            error: 'bg-red-100 border-red-500 text-red-700 dark:bg-red-900/50 dark:border-red-700 dark:text-red-200',
-            info: 'bg-blue-100 border-blue-500 text-blue-700 dark:bg-blue-900/50 dark:border-blue-700 dark:text-blue-200',
-        };
-        return (
-            <div key={alert.key} className={`fixed bottom-5 right-5 p-4 border-l-4 rounded-md shadow-lg animate-fade-in-up ${colors[alert.type]}`}>
-                {alert.message}
-            </div>
-        );
-    };
+    const activeFeature = allFeatures.find(f => f.id === activeFeatureId) || allFeatures[0];
+    const FeatureComponent = activeFeature.component;
 
     return (
-        <AlertContext.Provider value={{ showAlert }}>
-            <div className="h-screen w-screen flex flex-col font-sans bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200">
-                {isProfileModalOpen && (
-                    <UserProfileModal
-                        user={currentUser}
-                        onClose={() => setIsProfileModalOpen(false)}
-                        onSavePassword={handleUpdatePassword}
-                        onSaveProfilePicture={handleUpdateProfilePicture}
-                    />
-                )}
-                <div className="flex flex-1 min-h-0">
-                    <Sidebar
-                        features={features}
-                        activeFeatureId={activeFeatureId}
-                        onSelectFeature={(id) => { setActiveFeatureId(id); setActiveView('app'); }}
-                        currentUser={currentUser}
-                        onLogout={handleLogout}
-                        moduleVisibility={allData.moduleVisibility || { categories: {}, features: {} }}
-                        agentStatus={currentUserStatus}
-                        onOpenProfile={() => setIsProfileModalOpen(true)}
-                        appLogoUrl={allData.appSettings?.appLogoUrl}
-                        appName={allData.appSettings?.appName}
-                    />
-                    <div className="flex-1 flex flex-col min-w-0">
-                        <Header 
-                            activeView={activeView} 
-                            onViewChange={setActiveView} 
-                            theme={theme}
-                            setTheme={setTheme}
-                        />
-                        <main className="flex-1 overflow-y-auto p-8">
-                             {activeView === 'app' ? renderFeatureComponent() : <MonitoringDashboard {...({ ...allData, ...liveState, apiCall: apiClient } as any)} />}
-                        </main>
-                    </div>
-                </div>
-                 {alert && <AlertComponent />}
-            </div>
-        </AlertContext.Provider>
+        <div className="flex h-screen bg-slate-100">
+            <Sidebar
+                features={allFeatures}
+                user={currentUser}
+                onSelectFeature={setActiveFeatureId}
+                activeFeatureId={activeFeatureId}
+                onLogout={handleLogout}
+            />
+            <main className="flex-1 p-8 overflow-y-auto">
+                <FeatureComponent 
+                    feature={activeFeature}
+                    {...data}
+                    apiClient={apiClient}
+                    refreshData={refreshData}
+                    onSaveOrUpdateScript={async (script: SavedScript) => { 
+                        await apiClient.put(`/scripts/${script.id}`, script);
+                        refreshData();
+                    }}
+                    onDeleteScript={async (scriptId: string) => {
+                        await apiClient.delete(`/scripts/${scriptId}`);
+                        refreshData();
+                    }}
+                    onDuplicateScript={async (scriptId: string) => {
+                        await apiClient.post(`/scripts/${scriptId}/duplicate`);
+                        refreshData();
+                    }}
+                    onSaveOrUpdateIvrFlow={async (flow: IvrFlow) => {
+                        await apiClient.put(`/ivr-flows/${flow.id}`, flow);
+                        refreshData();
+                    }}
+                    onDeleteIvrFlow={async (flowId: string) => {
+                        await apiClient.delete(`/ivr-flows/${flowId}`);
+                        refreshData();
+                    }}
+                    onDuplicateIvrFlow={async (flowId: string) => {
+                        await apiClient.post(`/ivr-flows/${flowId}/duplicate`);
+                        refreshData();
+                    }}
+                />
+            </main>
+        </div>
     );
 };
 

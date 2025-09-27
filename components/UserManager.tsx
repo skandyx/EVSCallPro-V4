@@ -1,589 +1,157 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
-import type { Feature, User, UserRole, Campaign, UserGroup, Site } from '../types.ts';
-import { UsersIcon, PlusIcon, EditIcon, TrashIcon, ChevronDownIcon } from './Icons.tsx';
+import React, { useState, useMemo } from 'react';
+import type { Feature, User, UserRole, UserGroup, Site } from '../types.ts';
+import { PlusIcon, EditIcon, TrashIcon, ArrowUpTrayIcon } from './Icons.tsx';
 import ImportUsersModal from './ImportUsersModal.tsx';
 
-const generatePassword = (): string => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const length = 8;
-    let password = '';
-    for (let i = 0; i < length; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return password;
-};
-
-const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void; }> = ({ enabled, onChange }) => (
-    <button
-        type="button"
-        onClick={() => onChange(!enabled)}
-        className={`${enabled ? 'bg-indigo-600' : 'bg-slate-200'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`}
-        role="switch"
-        aria-checked={enabled}
-    >
-        <span
-            aria-hidden="true"
-            className={`${enabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-        />
-    </button>
-);
-
+// --- UserModal ---
 interface UserModalProps {
-    user: User;
-    users: User[];
-    campaigns: Campaign[];
+    user: User | null;
     userGroups: UserGroup[];
     sites: Site[];
-    currentUser: User;
     onSave: (user: User, groupIds: string[]) => void;
     onClose: () => void;
+    existingUsers: User[];
 }
 
-const UserModal: React.FC<UserModalProps> = ({ user, users, campaigns, userGroups, sites, currentUser, onSave, onClose }) => {
-    const [formData, setFormData] = useState<User>(user);
-    const [isEmailEnabled, setIsEmailEnabled] = useState(!!user.email);
-    const [error, setError] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'general' | 'groups' | 'campaigns'>('general');
-    const canManageStationMode = ['Superviseur', 'Administrateur', 'SuperAdmin'].includes(currentUser.role);
-
-    const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>(() => 
-        user ? userGroups.filter(g => g.memberIds.includes(user.id)).map(g => g.id) : []
-    );
+const UserModal: React.FC<UserModalProps> = ({ user, userGroups, sites, onSave, onClose, existingUsers }) => {
+    const isEditing = !!user;
+    const [formData, setFormData] = useState<User>(user || { id: `user-${Date.now()}`, loginId: '', firstName: '', lastName: '', email: '', role: 'Agent', isActive: true, campaignIds: [] });
+    const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
     
-    useEffect(() => {
-        setFormData(user);
-        // Generate a password only for a completely new user being created via the modal.
-        // A user is considered "new from modal" if their ID starts with 'new-' and they don't have a first name yet.
-        // This prevents re-generating passwords for bulk-created users who are being edited.
-        if (user.id.startsWith('new-') && !user.firstName && !user.password) {
-            setFormData(prev => ({ ...prev, password: generatePassword() }));
-        }
-    }, [user]);
+    // Logic to handle user group memberships would go here
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value, type } = e.target;
-        if (name === 'loginId' || name === 'email') setError(null);
-        if (type === 'checkbox') {
-            setFormData(prev => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
-        } else {
-            setFormData(prev => ({ ...prev, [name]: value === '' ? null : value }));
-        }
-    };
-
-    const handleCampaignChange = (campaignId: string, isChecked: boolean) => {
-        setFormData(prev => {
-            const currentCampaignIds = prev.campaignIds || [];
-            if (isChecked) {
-                return { ...prev, campaignIds: [...new Set([...currentCampaignIds, campaignId])] };
-            } else {
-                return { ...prev, campaignIds: currentCampaignIds.filter(id => id !== campaignId) };
-            }
-        });
-    };
-    
-    const handleGroupChange = (groupId: string, isChecked: boolean) => {
-        setSelectedGroupIds(prev => {
-            if (isChecked) {
-                return [...new Set([...prev, groupId])];
-            } else {
-                return prev.filter(id => id !== groupId);
-            }
-        });
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-        
-        const loginIdExists = users.some(u => u.loginId === formData.loginId && u.id !== formData.id);
-        if (loginIdExists) {
-            setError("L'identifiant / extension existe déjà pour un autre utilisateur.");
-            setActiveTab('general');
+    const handleSave = () => {
+        // Validation
+        if (!formData.firstName || !formData.lastName || !formData.loginId) {
+            alert("Prénom, Nom et Identifiant sont requis.");
             return;
         }
-
-        if (isEmailEnabled && formData.email) {
-            const emailExists = users.some(u => u.email && u.email.toLowerCase() === formData.email!.toLowerCase() && u.id !== formData.id);
-            if (emailExists) {
-                setError("L'adresse email est déjà utilisée par un autre utilisateur.");
-                setActiveTab('general');
-                return;
-            }
+        if (!isEditing && !formData.password) {
+            alert("Un mot de passe est requis pour un nouvel utilisateur.");
+            return;
         }
-
-        // Prevent last SuperAdmin from changing their role
-        if (user.role === 'SuperAdmin' && formData.role !== 'SuperAdmin') {
-            const superAdminCount = users.filter(u => u.role === 'SuperAdmin').length;
-            if (superAdminCount <= 1) {
-                setError("Impossible de modifier le rôle du dernier SuperAdmin.");
-                setActiveTab('general');
-                return;
-            }
-        }
-        
-        const dataToSave = { ...formData };
-        if (!isEmailEnabled) dataToSave.email = '';
-
-        onSave(dataToSave, selectedGroupIds);
+        onSave(formData, selectedGroupIds);
+        onClose();
     };
-    
-    const handleGeneratePassword = () => {
-        setFormData(prev => ({ ...prev, password: generatePassword() }));
-    };
-    
-    const handleToggleEmail = () => {
-        setIsEmailEnabled(prev => !prev);
-        if (isEmailEnabled) setFormData(f => ({ ...f, email: '' }));
-    };
-
-    const isNewUser = user.id.startsWith('new-');
-    
-    const TabButton: React.FC<{tabName: 'general' | 'groups' | 'campaigns', label: string}> = ({tabName, label}) => (
-        <button type="button" onClick={() => setActiveTab(tabName)} className={`py-2 px-4 text-sm font-medium rounded-t-lg ${activeTab === tabName ? 'bg-white text-indigo-600 border-b-0' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
-            {label}
-        </button>
-    );
 
     return (
         <div className="fixed inset-0 bg-slate-800 bg-opacity-75 flex items-center justify-center p-4 z-50">
-            <div className="bg-slate-50 dark:bg-slate-900 rounded-lg shadow-xl w-full max-w-lg flex flex-col h-[90vh]">
-                <form onSubmit={handleSubmit} className="flex flex-col h-full">
-                    <div className="p-6 border-b bg-white dark:bg-slate-800 rounded-t-lg">
-                        <h3 className="text-lg font-medium leading-6 text-slate-900 dark:text-slate-100">{isNewUser ? 'Ajouter un nouvel utilisateur' : 'Modifier l\'utilisateur'}</h3>
-                    </div>
-                    <div className="border-b border-slate-200 dark:border-slate-700 px-4 pt-2">
-                        <nav className="-mb-px flex space-x-2">
-                           <TabButton tabName="general" label="Général" />
-                           <TabButton tabName="groups" label="Groupes Assignés" />
-                           <TabButton tabName="campaigns" label="Campagnes Assignées" />
-                        </nav>
-                    </div>
-
-                    <div className="p-6 bg-white dark:bg-slate-800 flex-1 overflow-y-auto">
-                        {activeTab === 'general' && (
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label htmlFor="firstName" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Prénom</label>
-                                        <input type="text" name="firstName" id="firstName" value={formData.firstName} onChange={handleChange} required className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"/>
-                                    </div>
-                                    <div>
-                                        <label htmlFor="lastName" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Nom</label>
-                                        <input type="text" name="lastName" id="lastName" value={formData.lastName} onChange={handleChange} required className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"/>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label htmlFor="loginId" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Identifiant / Extension</label>
-                                    <input type="text" name="loginId" id="loginId" value={formData.loginId} onChange={handleChange} required pattern="\d{4,6}" title="Doit contenir 4 à 6 chiffres." placeholder="Ex: 1001" className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200 dark:placeholder-slate-400"/>
-                                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Doit être un numéro unique de 4 à 6 chiffres.</p>
-                                </div>
-                                <div>
-                                    <div className="flex justify-between items-center">
-                                        <label htmlFor="email" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
-                                        <button type="button" onClick={handleToggleEmail} className={`${isEmailEnabled ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-600'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`} aria-pressed={isEmailEnabled} >
-                                            <span aria-hidden="true" className={`${isEmailEnabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}/>
-                                        </button>
-                                    </div>
-                                    <input type="email" name="email" id="email" value={formData.email || ''} onChange={handleChange} required={isEmailEnabled} disabled={!isEmailEnabled} className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border disabled:bg-slate-50 disabled:text-slate-400 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200 dark:disabled:bg-slate-700 dark:disabled:text-slate-400"/>
-                                </div>
-                                 {error && <p className="mt-1 text-sm text-red-600 font-semibold">{error}</p>}
-                                <div>
-                                    <label htmlFor="mobileNumber" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Numéro de mobile (pour "Connect to Phone")</label>
-                                    <input type="tel" name="mobileNumber" id="mobileNumber" value={formData.mobileNumber || ''} onChange={handleChange} placeholder="Ex: 0612345678" className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200 dark:placeholder-slate-400"/>
-                                </div>
-                                {canManageStationMode && (
-                                    <div className="flex items-center justify-between pt-4 border-t dark:border-slate-700">
-                                        <div>
-                                            <label className="font-medium text-slate-700 dark:text-slate-300">Utiliser le mobile comme poste de travail</label>
-                                            <p className="text-xs text-slate-500 dark:text-slate-400">Si activé, les appels seront envoyés vers ce numéro mobile.</p>
-                                        </div>
-                                        <ToggleSwitch
-                                            enabled={!!formData.useMobileAsStation}
-                                            onChange={isEnabled => setFormData(f => ({ ...f, useMobileAsStation: isEnabled }))}
-                                        />
-                                    </div>
-                                )}
-                                <div>
-                                    <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Mot de passe</label>
-                                    <div className="mt-1 flex rounded-md shadow-sm">
-                                        <input
-                                            type="text"
-                                            name="password"
-                                            id="password"
-                                            value={formData.password || ''}
-                                            onChange={handleChange}
-                                            required={isNewUser && !formData.firstName}
-                                            placeholder={isNewUser ? '' : 'Laisser vide pour ne pas changer'}
-                                            className="block w-full flex-1 rounded-none rounded-l-md border-slate-300 p-2 border dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200 dark:placeholder-slate-400"
-                                        />
-                                        <button type="button" onClick={handleGeneratePassword} className="inline-flex items-center rounded-r-md border border-l-0 border-slate-300 bg-slate-50 px-3 text-sm text-slate-500 hover:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-600">Générer</button>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label htmlFor="role" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Rôle</label>
-                                        <select id="role" name="role" value={formData.role} onChange={handleChange} className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border bg-white dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
-                                            <option>Agent</option>
-                                            <option>Superviseur</option>
-                                            <option>Administrateur</option>
-                                            {currentUser.role === 'SuperAdmin' && <option>SuperAdmin</option>}
-                                        </select>
-                                    </div>
-                                     <div>
-                                        <label htmlFor="siteId" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Site d'affectation</label>
-                                        <select id="siteId" name="siteId" value={formData.siteId || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border bg-white dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
-                                            <option value="">Aucun site</option>
-                                            {sites.map(site => (
-                                                <option key={site.id} value={site.id}>{site.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="flex items-start">
-                                    <div className="flex h-5 items-center">
-                                        <input id="isActive" name="isActive" type="checkbox" checked={formData.isActive} onChange={handleChange} className="h-4 w-4 rounded border-slate-300 text-indigo-600"/>
-                                    </div>
-                                    <div className="ml-3 text-sm">
-                                        <label htmlFor="isActive" className="font-medium text-slate-700 dark:text-slate-300">Utilisateur Actif</label>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {activeTab === 'groups' && (
-                             <div className="space-y-2">
-                                {userGroups.length > 0 ? userGroups.map(group => (
-                                    <div key={group.id} className="flex items-center p-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700">
-                                        <input id={`group-${group.id}`} type="checkbox" checked={selectedGroupIds.includes(group.id)} onChange={(e) => handleGroupChange(group.id, e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-indigo-600"/>
-                                        <label htmlFor={`group-${group.id}`} className="ml-3 text-sm text-slate-600 dark:text-slate-300">{group.name}</label>
-                                    </div>
-                                )) : <p className="text-sm text-slate-500 italic text-center">Aucun groupe d'agents n'a été créé.</p>}
-                            </div>
-                        )}
-                        {activeTab === 'campaigns' && (
-                            <div className="space-y-2">
-                                {campaigns.length > 0 ? campaigns.map(campaign => (
-                                    <div key={campaign.id} className="flex items-center p-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700">
-                                        <input id={`campaign-${campaign.id}`} type="checkbox" checked={formData.campaignIds?.includes(campaign.id) || false} onChange={(e) => handleCampaignChange(campaign.id, e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-indigo-600"/>
-                                        <label htmlFor={`campaign-${campaign.id}`} className="ml-3 text-sm text-slate-600 dark:text-slate-300">{campaign.name}</label>
-                                    </div>
-                                )) : <p className="text-sm text-slate-500 italic text-center">Aucune campagne disponible.</p>}
-                            </div>
-                        )}
-                    </div>
-                    
-                    <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 sm:flex sm:flex-row-reverse rounded-b-lg border-t dark:border-slate-700">
-                        <button type="submit" className="inline-flex w-full justify-center rounded-md border border-transparent bg-primary px-4 py-2 font-medium text-primary-text shadow-sm hover:bg-primary-hover sm:ml-3 sm:w-auto">Enregistrer</button>
-                        <button type="button" onClick={onClose} className="mt-3 inline-flex w-full justify-center rounded-md border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-600">Annuler</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-// --- MODAL: Generate Users in Bulk ---
-interface GenerateModalProps {
-    onConfirm: (count: number) => void;
-    onClose: () => void;
-}
-
-const GenerateModal: React.FC<GenerateModalProps> = ({ onConfirm, onClose }) => {
-    const [count, setCount] = useState(10);
-    return (
-        <div className="fixed inset-0 bg-slate-800 bg-opacity-75 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-sm">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
                 <div className="p-6">
-                    <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">Générer des utilisateurs en masse</h3>
-                    <div className="mt-4">
-                        <label htmlFor="user-count" className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                            Nombre d'utilisateurs à créer
-                        </label>
-                        <input
-                            type="number"
-                            id="user-count"
-                            value={count}
-                            onChange={e => setCount(Math.max(1, Math.min(99, parseInt(e.target.value, 10) || 1)))}
-                            min="1"
-                            max="99"
-                            className="mt-1 block w-full p-2 border border-slate-300 rounded-md dark:bg-slate-900 dark:text-slate-200 dark:border-slate-600"
-                        />
+                    <h3 className="text-lg font-medium text-slate-900">{isEditing ? 'Modifier Utilisateur' : 'Nouvel Utilisateur'}</h3>
+                    <div className="mt-4 grid grid-cols-2 gap-4">
+                        <input value={formData.firstName} onChange={e => setFormData(f => ({...f, firstName: e.target.value}))} placeholder="Prénom" className="p-2 border rounded" />
+                        <input value={formData.lastName} onChange={e => setFormData(f => ({...f, lastName: e.target.value}))} placeholder="Nom" className="p-2 border rounded" />
+                        <input value={formData.loginId} onChange={e => setFormData(f => ({...f, loginId: e.target.value}))} placeholder="Identifiant" className="p-2 border rounded" />
+                        <input value={formData.email} onChange={e => setFormData(f => ({...f, email: e.target.value}))} placeholder="Email" className="p-2 border rounded" />
+                        <select value={formData.role} onChange={e => setFormData(f => ({...f, role: e.target.value as UserRole}))} className="p-2 border rounded bg-white">
+                            <option value="Agent">Agent</option>
+                            <option value="Superviseur">Superviseur</option>
+                            <option value="Administrateur">Administrateur</option>
+                        </select>
+                         <select value={formData.siteId || ''} onChange={e => setFormData(f => ({...f, siteId: e.target.value || null}))} className="p-2 border rounded bg-white">
+                            <option value="">Aucun site</option>
+                            {sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                        <input type="password" onChange={e => setFormData(f => ({...f, password: e.target.value}))} placeholder={isEditing ? "Nouveau mot de passe (optionnel)" : "Mot de passe"} className="p-2 border rounded col-span-2" />
+                        <div className="flex items-center gap-2">
+                            <input type="checkbox" id="isActive" checked={formData.isActive} onChange={e => setFormData(f => ({...f, isActive: e.target.checked}))} />
+                            <label htmlFor="isActive">Actif</label>
+                        </div>
                     </div>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-900 px-4 py-3 flex justify-end gap-2">
-                    <button onClick={onClose} className="border border-slate-300 bg-white px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-50 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-600">Annuler</button>
-                    <button onClick={() => onConfirm(count)} className="bg-primary text-primary-text px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-hover">Confirmer</button>
+                <div className="bg-slate-50 px-4 py-3 flex justify-end gap-2">
+                    <button onClick={onClose} className="bg-white border rounded-md px-4 py-2">Annuler</button>
+                    <button onClick={handleSave} className="bg-indigo-600 text-white rounded-md px-4 py-2">Enregistrer</button>
                 </div>
             </div>
         </div>
     );
 };
 
-interface UserManagerProps {
-    feature: Feature;
-    users: User[];
-    campaigns: Campaign[];
-    userGroups: UserGroup[];
-    sites: Site[];
-    onSaveUser: (user: User, groupIds: string[]) => void;
-    onDeleteUser: (userId: string) => void;
-    onGenerateUsers: (users: User[]) => void;
-    onImportUsers: (users: User[]) => void;
-    currentUser: User;
-}
+// --- UserManager Component ---
+const UserManager: React.FC<{ feature: Feature, users: User[], userGroups: UserGroup[], sites: Site[], apiClient: any, refreshData: () => void }> = ({ feature, users, userGroups, sites, apiClient, refreshData }) => {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<User | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
-const UserManager: React.FC<UserManagerProps> = ({ feature, users, campaigns, userGroups, sites, onSaveUser, onDeleteUser, onGenerateUsers, onImportUsers, currentUser }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isGeneratingModalOpen, setIsGeneratingModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortConfig, setSortConfig] = useState<{ key: keyof User; direction: 'ascending' | 'descending' }>({ key: 'firstName', direction: 'ascending' });
+    const filteredUsers = useMemo(() => {
+        return users.filter(user => 
+            user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            user.loginId.includes(searchTerm)
+        );
+    }, [users, searchTerm]);
 
-
-  const usersToDisplay = useMemo(() => {
-    if (currentUser.role === 'SuperAdmin') {
-        return users;
-    }
-    return users.filter(user => user.role !== 'SuperAdmin');
-  }, [users, currentUser]);
-  
-  const filteredAndSortedUsers = useMemo(() => {
-    let sortableUsers = [...usersToDisplay];
-
-    if (searchTerm) {
-        sortableUsers = sortableUsers.filter(user => {
-            const term = searchTerm.toLowerCase();
-            return (
-                user.firstName.toLowerCase().includes(term) ||
-                user.lastName.toLowerCase().includes(term) ||
-                (user.email && user.email.toLowerCase().includes(term)) ||
-                user.loginId.toLowerCase().includes(term) ||
-                user.role.toLowerCase().includes(term)
-            );
-        });
-    }
-
-    sortableUsers.sort((a, b) => {
-        const key = sortConfig.key;
-        if (a[key] === null || a[key] === undefined) return 1;
-        if (b[key] === null || b[key] === undefined) return -1;
-        
-        let aValue = a[key];
-        let bValue = b[key];
-
-        if (typeof aValue === 'boolean' && typeof bValue === 'boolean') {
-            if (aValue === bValue) return 0;
-            if (sortConfig.direction === 'ascending') return aValue ? -1 : 1;
-            return aValue ? 1 : -1;
+    const handleSave = async (user: User, groupIds: string[]) => {
+        const payload = { ...user, groupIds };
+        if (editingUser) {
+            await apiClient.put(`/users/${user.id}`, payload);
+        } else {
+            await apiClient.post('/users', payload);
         }
+        refreshData();
+    };
 
-        if (typeof aValue === 'string' && typeof bValue === 'string') {
-            return aValue.localeCompare(bValue, undefined, { numeric: true }) * (sortConfig.direction === 'ascending' ? 1 : -1);
+    const handleDelete = async (userId: string) => {
+        if (window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
+            await apiClient.delete(`/users/${userId}`);
+            refreshData();
         }
-        
-        if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
-        
-        return 0;
-    });
-
-    return sortableUsers;
-  }, [usersToDisplay, searchTerm, sortConfig]);
-
-
-  const requestSort = (key: keyof User) => {
-    let direction: 'ascending' | 'descending' = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-        direction = 'descending';
-    }
-    setSortConfig({ key, direction });
-  };
-
-
-  const handleAddNew = () => {
-    setEditingUser({
-        id: `new-${Date.now()}`,
-        loginId: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        role: 'Agent',
-        isActive: true,
-        campaignIds: [],
-        password: '',
-        siteId: null,
-        mobileNumber: '',
-        useMobileAsStation: false,
-    });
-    setIsModalOpen(true);
-  };
-
-  const handleEdit = (user: User) => {
-    setEditingUser(user);
-    setIsModalOpen(true);
-  };
-  
-  const handleSave = (user: User, groupIds: string[]) => {
-    onSaveUser(user, groupIds);
-    setIsModalOpen(false);
-    setEditingUser(null);
-  };
-  
-  const handleImport = () => {
-    setIsImportModalOpen(true);
-  };
-  
-  const handleConfirmGeneration = (count: number) => {
-    const newUsers: User[] = [];
-    const existingLoginIds = new Set(users.map(u => u.loginId));
+    };
     
-    const highestAgentId = users
-      .map(u => parseInt(u.loginId, 10))
-      .filter(id => !isNaN(id) && id >= 1000 && id < 9000)
-      .reduce((max, current) => Math.max(max, current), 1000);
+    const handleImport = async (newUsers: User[]) => {
+        await apiClient.post('/users/bulk', { users: newUsers });
+        refreshData();
+    };
 
-    let nextLoginId = highestAgentId + 1;
-
-    for (let i = 0; i < count; i++) {
-        while (existingLoginIds.has(nextLoginId.toString())) {
-            nextLoginId++;
-        }
-        const loginId = nextLoginId.toString();
-        existingLoginIds.add(loginId);
-        
-        newUsers.push({
-            id: `new-gen-${Date.now() + i}`,
-            loginId: loginId,
-            firstName: `Agent`,
-            lastName: `${loginId}`,
-            email: ``,
-            role: 'Agent',
-            isActive: true,
-            campaignIds: [],
-            password: generatePassword(),
-            siteId: null,
-        });
-    }
-    onGenerateUsers(newUsers);
-    setIsGeneratingModalOpen(false);
-  };
-
-  const getDeletionState = (user: User): { canDelete: boolean; tooltip: string } => {
-    if (user.role === 'SuperAdmin') {
-        return { canDelete: false, tooltip: "Un SuperAdmin ne peut pas être supprimé." };
-    }
-    if (user.isActive) {
-      return { canDelete: false, tooltip: "Désactivez l'utilisateur pour pouvoir le supprimer." };
-    }
-    if (user.role === 'Administrateur') {
-      const adminCount = users.filter(u => u.role === 'Administrateur').length;
-      if (adminCount <= 1) {
-        return { canDelete: false, tooltip: "Impossible de supprimer le dernier administrateur." };
-      }
-    }
-    return { canDelete: true, tooltip: "Supprimer l'utilisateur" };
-  };
-
-  const SortableHeader: React.FC<{ sortKey: keyof User; label: string }> = ({ sortKey, label }) => (
-    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-        <button onClick={() => requestSort(sortKey)} className="group inline-flex items-center gap-1">
-            {label}
-            <span className="opacity-0 group-hover:opacity-100 transition-opacity">
-                {sortConfig.key === sortKey
-                    ? <ChevronDownIcon className={`w-4 h-4 transition-transform ${sortConfig.direction === 'ascending' ? 'rotate-180' : ''}`} />
-                    : <ChevronDownIcon className="w-4 h-4 text-slate-400" />
-                }
-            </span>
-        </button>
-    </th>
-  );
-
-
-  return (
-    <div className="max-w-7xl mx-auto space-y-8">
-      {isModalOpen && editingUser && <UserModal user={editingUser} users={users} campaigns={campaigns} userGroups={userGroups} sites={sites} currentUser={currentUser} onSave={handleSave} onClose={() => setIsModalOpen(false)} />}
-      {isImportModalOpen && <ImportUsersModal onClose={() => setIsImportModalOpen(false)} onImport={onImportUsers} existingUsers={users} />}
-      {isGeneratingModalOpen && <GenerateModal onClose={() => setIsGeneratingModalOpen(false)} onConfirm={handleConfirmGeneration} />}
-      <header>
-        <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{feature.title}</h1>
-        <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{feature.description}</p>
-      </header>
-      
-      <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-        <div className="flex flex-wrap gap-4 justify-between items-center mb-4">
-          <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">Utilisateurs</h2>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={handleImport} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-4 rounded-lg shadow-sm transition-colors dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600">Importer (CSV)</button>
-             <button onClick={() => setIsGeneratingModalOpen(true)} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-4 rounded-lg shadow-sm transition-colors dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600">Générer en masse</button>
-            <button onClick={handleAddNew} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md transition-colors inline-flex items-center">
-              <PlusIcon className="w-5 h-5 mr-2" />
-              Ajouter un utilisateur
-            </button>
-          </div>
+    return (
+        <div className="max-w-7xl mx-auto space-y-8">
+            {isModalOpen && <UserModal user={editingUser} userGroups={userGroups} sites={sites} onSave={handleSave} onClose={() => setIsModalOpen(false)} existingUsers={users} />}
+            {isImportModalOpen && <ImportUsersModal onClose={() => setIsImportModalOpen(false)} onImport={handleImport} existingUsers={users} />}
+            <header>
+                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{feature.title}</h1>
+                <p className="mt-2 text-lg text-slate-600">{feature.description}</p>
+            </header>
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+                <div className="flex justify-between items-center mb-4">
+                    <input type="text" placeholder="Rechercher un utilisateur..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="p-2 border rounded-md" />
+                    <div className="space-x-2">
+                        <button onClick={() => setIsImportModalOpen(true)} className="bg-slate-200 hover:bg-slate-300 font-bold py-2 px-4 rounded-lg inline-flex items-center"><ArrowUpTrayIcon className="w-5 h-5 mr-2" />Importer</button>
+                        <button onClick={() => { setEditingUser(null); setIsModalOpen(true); }} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md inline-flex items-center"><PlusIcon className="w-5 h-5 mr-2" />Ajouter un utilisateur</button>
+                    </div>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-200">
+                        <thead className="bg-slate-50">
+                            <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nom</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Identifiant</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Rôle</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Statut</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-slate-200">
+                            {filteredUsers.map(user => (
+                                <tr key={user.id}>
+                                    <td className="px-6 py-4 font-medium text-slate-800">{user.firstName} {user.lastName}</td>
+                                    <td className="px-6 py-4 font-mono">{user.loginId}</td>
+                                    <td className="px-6 py-4">{user.role}</td>
+                                    <td className="px-6 py-4"><span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{user.isActive ? 'Actif' : 'Inactif'}</span></td>
+                                    <td className="px-6 py-4 text-right space-x-4">
+                                        <button onClick={() => { setEditingUser(user); setIsModalOpen(true); }} className="text-link hover:underline"><EditIcon className="w-4 h-4 inline-block -mt-1"/> Modifier</button>
+                                        <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-900"><TrashIcon className="w-4 h-4 inline-block -mt-1"/> Supprimer</button>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        
-        <div className="mb-4">
-            <input
-                type="text"
-                placeholder="Rechercher par nom, identifiant, email, rôle..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full max-w-lg p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"
-            />
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
-            <thead className="bg-slate-50 dark:bg-slate-700">
-              <tr>
-                <SortableHeader sortKey="firstName" label="Nom" />
-                <SortableHeader sortKey="id" label="ID" />
-                <SortableHeader sortKey="loginId" label="Identifiant / Ext." />
-                <SortableHeader sortKey="role" label="Rôle" />
-                <SortableHeader sortKey="isActive" label="Statut" />
-                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
-              {filteredAndSortedUsers.map(user => {
-                const { canDelete, tooltip } = getDeletionState(user);
-                return (
-                  <tr key={user.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 flex-shrink-0 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center">
-                          <UsersIcon className="h-6 w-6 text-slate-500 dark:text-slate-400"/>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{user.firstName} {user.lastName}</div>
-                          <div className="text-sm text-slate-500 dark:text-slate-400">{user.email}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 font-mono">{user.id}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-slate-500 dark:text-slate-400">{user.loginId}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300">{user.role}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200'}`}>
-                        {user.isActive ? 'Actif' : 'Inactif'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                      <button onClick={() => handleEdit(user)} className="text-link hover:underline inline-flex items-center"><EditIcon className="w-4 h-4 mr-1"/> Modifier</button>
-                      <button onClick={() => onDeleteUser(user.id)} className={`inline-flex items-center ${!canDelete ? 'text-slate-400 cursor-not-allowed' : 'text-red-600 hover:text-red-900 dark:hover:text-red-400'}`} disabled={!canDelete} title={tooltip}>
-                          <TrashIcon className="w-4 h-4 mr-1"/> Supprimer
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default UserManager;
