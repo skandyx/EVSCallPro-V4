@@ -1,5 +1,6 @@
 const pool = require('./connection');
 const { keysToCamel } = require('./utils');
+const { broadcast } = require('../webSocketServer');
 
 // --- HELPER FUNCTIONS for Quotas & Filters ---
 
@@ -129,30 +130,88 @@ const buildWhereClauseForRule = (rule, paramStartIndex) => {
 // --- CORE DB FUNCTIONS ---
 
 const getCampaigns = async () => {
-    const res = await pool.query('SELECT * FROM campaigns ORDER BY name');
-    // Fetch contacts for each campaign separately. In a high-performance scenario,
-    // this could be optimized with a single JOIN query and data aggregation in JS.
-    for (const campaign of res.rows) {
-        const contactsRes = await pool.query('SELECT * FROM contacts WHERE campaign_id = $1', [campaign.id]);
-        campaign.contacts = contactsRes.rows.map(keysToCamel);
-    }
+    // This query now fetches everything in one go: campaigns, their contacts, and their assigned user IDs.
+    const query = `
+        SELECT
+            c.*,
+            COALESCE(
+                (SELECT json_agg(ct.*) FROM contacts ct WHERE ct.campaign_id = c.id),
+                '[]'::json
+            ) as contacts,
+            COALESCE(
+                ARRAY_AGG(ca.user_id) FILTER (WHERE ca.user_id IS NOT NULL),
+                '{}'
+            ) as assigned_user_ids
+        FROM campaigns c
+        LEFT JOIN campaign_agents ca ON c.id = ca.campaign_id
+        GROUP BY c.id
+        ORDER BY c.name;
+    `;
+    const res = await pool.query(query);
+    // The keysToCamel util will handle nested objects correctly.
     return res.rows.map(keysToCamel);
 };
 
 const saveCampaign = async (campaign, id) => {
-    const { name, description, scriptId, qualificationGroupId, callerId, isActive, dialingMode, wrapUpTime, quotaRules, filterRules, priority } = campaign;
-    if (id) {
-        const res = await pool.query(
-            'UPDATE campaigns SET name=$1, description=$2, script_id=$3, qualification_group_id=$4, caller_id=$5, is_active=$6, dialing_mode=$7, wrap_up_time=$8, quota_rules=$9, filter_rules=$10, priority=$11, updated_at=NOW() WHERE id=$12 RETURNING *',
-            [name, description, scriptId, qualificationGroupId, callerId, isActive, dialingMode, wrapUpTime, JSON.stringify(quotaRules || []), JSON.stringify(filterRules || []), priority || 5, id]
-        );
-        return keysToCamel(res.rows[0]);
+    const { name, description, scriptId, qualificationGroupId, callerId, isActive, dialingMode, wrapUpTime, quotaRules, filterRules, priority, assignedUserIds } = campaign;
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        
+        let savedCampaign;
+        const campaignId = id || campaign.id;
+
+        if (id) {
+            const res = await client.query(
+                'UPDATE campaigns SET name=$1, description=$2, script_id=$3, qualification_group_id=$4, caller_id=$5, is_active=$6, dialing_mode=$7, wrap_up_time=$8, quota_rules=$9, filter_rules=$10, priority=$11, updated_at=NOW() WHERE id=$12 RETURNING *',
+                [name, description, scriptId, qualificationGroupId, callerId, isActive, dialingMode, wrapUpTime, JSON.stringify(quotaRules || []), JSON.stringify(filterRules || []), priority || 5, id]
+            );
+            savedCampaign = res.rows[0];
+        } else {
+            const res = await client.query(
+                'INSERT INTO campaigns (id, name, description, script_id, qualification_group_id, caller_id, is_active, dialing_mode, wrap_up_time, quota_rules, filter_rules, priority) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
+                [campaign.id, name, description, scriptId, qualificationGroupId, callerId, isActive, dialingMode, wrapUpTime, JSON.stringify(quotaRules || []), JSON.stringify(filterRules || []), priority || 5]
+            );
+            savedCampaign = res.rows[0];
+        }
+
+        // Now handle agent assignments
+        const { rows: currentAgents } = await client.query('SELECT user_id FROM campaign_agents WHERE campaign_id = $1', [campaignId]);
+        const currentAgentIds = new Set(currentAgents.map(a => a.user_id));
+        const desiredAgentIds = new Set(assignedUserIds || []);
+
+        const toAdd = [...desiredAgentIds].filter(userId => !currentAgentIds.has(userId));
+        const toRemove = [...currentAgentIds].filter(userId => !desiredAgentIds.has(userId));
+
+        if (toRemove.length > 0) {
+            await client.query(`DELETE FROM campaign_agents WHERE campaign_id = $1 AND user_id = ANY($2::text[])`, [campaignId, toRemove]);
+        }
+        if (toAdd.length > 0) {
+            for (const userId of toAdd) {
+                await client.query('INSERT INTO campaign_agents (campaign_id, user_id) VALUES ($1, $2)', [campaignId, userId]);
+            }
+        }
+
+        await client.query('COMMIT');
+        
+        const finalCampaign = keysToCamel(savedCampaign);
+        finalCampaign.assignedUserIds = assignedUserIds || [];
+        // Fetch contacts for the campaign to have a complete object for broadcasting
+        const contactsRes = await pool.query('SELECT * FROM contacts WHERE campaign_id = $1', [finalCampaign.id]);
+        finalCampaign.contacts = contactsRes.rows.map(keysToCamel);
+        
+        // Broadcast the update to all clients
+        broadcast({ type: 'campaignUpdate', payload: finalCampaign });
+        
+        return finalCampaign;
+
+    } catch (e) {
+        await client.query('ROLLBACK');
+        console.error("Error in saveCampaign transaction:", e);
+        throw e;
+    } finally {
+        client.release();
     }
-    const res = await pool.query(
-        'INSERT INTO campaigns (id, name, description, script_id, qualification_group_id, caller_id, is_active, dialing_mode, wrap_up_time, quota_rules, filter_rules, priority) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
-        [campaign.id, name, description, scriptId, qualificationGroupId, callerId, isActive, dialingMode, wrapUpTime, JSON.stringify(quotaRules || []), JSON.stringify(filterRules || []), priority || 5]
-    );
-    return keysToCamel(res.rows[0]);
 };
 
 const deleteCampaign = async (id) => {

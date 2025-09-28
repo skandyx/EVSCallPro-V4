@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact, CallHistoryRecord, Qualification } from '../types.ts';
+import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact, CallHistoryRecord, Qualification, UserGroup } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ArrowUpTrayIcon } from './Icons.tsx';
 import ImportContactsModal from './ImportContactsModal.tsx';
 // FIX: Corrected import path for CampaignDetailView
@@ -30,16 +30,17 @@ interface CampaignModalProps {
     scripts: SavedScript[];
     script: SavedScript | null; // Pass the selected script for dynamic fields
     qualificationGroups: QualificationGroup[];
+    userGroups: UserGroup[];
     onSave: (campaign: Campaign) => void;
     onClose: () => void;
 }
 
-const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts, script, qualificationGroups, onSave, onClose }) => {
+const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts, script, qualificationGroups, userGroups, onSave, onClose }) => {
     const [activeTab, setActiveTab] = useState('general');
     const [formData, setFormData] = useState<Campaign>(campaign || {
         id: `campaign-${Date.now()}`, name: '', description: '', scriptId: null, callerId: '', isActive: true,
         assignedUserIds: [], qualificationGroupId: qualificationGroups.length > 0 ? qualificationGroups[0].id : null,
-        contacts: [], dialingMode: 'PROGRESSIVE', priority: 5, timezone: 'Europe/Paris', callingDays: [1, 2, 3, 4, 5],
+        contacts: [], dialingMode: 'MANUAL', priority: 5, timezone: 'Europe/Paris', callingDays: [1, 2, 3, 4, 5],
         callingStartTime: '09:00', callingEndTime: '20:00', maxAbandonRate: 3, paceFactor: 1.2, minAgentsBeforeStart: 1,
         retryAttempts: 3, retryIntervals: [30, 60, 120], retryOnStatus: [], amdEnabled: true, amdConfidence: 80,
         voicemailAction: 'HANGUP', recordingEnabled: true, recordingBeep: true, maxRingDuration: 25, wrapUpTime: 10,
@@ -75,6 +76,35 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
         else setFormData(prev => ({ ...prev, [name]: value }));
     };
     
+    const handleAgentAssignment = (agentId: string, isChecked: boolean) => {
+        setFormData(prev => {
+            const currentAssigned = prev.assignedUserIds || [];
+            if (isChecked) {
+                return { ...prev, assignedUserIds: [...new Set([...currentAssigned, agentId])] };
+            } else {
+                return { ...prev, assignedUserIds: currentAssigned.filter(id => id !== agentId) };
+            }
+        });
+    };
+
+    const isGroupAssigned = (groupId: string): boolean => {
+        const group = userGroups.find(g => g.id === groupId);
+        if (!group || group.memberIds.length === 0) return false;
+        return group.memberIds.every(memberId => formData.assignedUserIds.includes(memberId));
+    };
+
+    const handleGroupAssignment = (group: UserGroup, isChecked: boolean) => {
+        setFormData(prev => {
+            const currentAssigned = new Set(prev.assignedUserIds || []);
+            if (isChecked) {
+                group.memberIds.forEach(id => currentAssigned.add(id));
+            } else {
+                group.memberIds.forEach(id => currentAssigned.delete(id));
+            }
+            return { ...prev, assignedUserIds: Array.from(currentAssigned) };
+        });
+    };
+
     const handleRuleChange = (type: 'quota' | 'filter', index: number, field: string, value: any) => {
         const key = type === 'quota' ? 'quotaRules' : 'filterRules';
         const updatedRules = [...formData[key]];
@@ -127,6 +157,41 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
                                 <div><label className="block text-sm font-medium text-slate-700 flex items-center">Numéro présenté (Caller ID) <span className={`w-2 h-2 rounded-full inline-block ml-2 ${isCallerIdValid ? 'bg-green-500' : 'bg-red-500'}`}></span></label><input type="text" name="callerId" value={formData.callerId} onChange={handleChange} required className="mt-1 block w-full p-2 border border-slate-300 rounded-md" /></div>
                             </div>
                             <div><label className="block text-sm font-medium text-slate-700 flex items-center">Temps de Post-Appel (secondes) <span className={`w-2 h-2 rounded-full inline-block ml-2 ${isWrapUpTimeValid ? 'bg-green-500' : 'bg-red-500'}`}></span></label><input type="number" name="wrapUpTime" value={formData.wrapUpTime} onChange={handleChange} min="0" max="120" required className="mt-1 block w-full p-2 border rounded-md" /><p className="text-xs text-slate-500 mt-1">Durée max pour l'agent en état "Post-appel" (max 120s).</p></div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700">Agents & Groupes Assignés</label>
+                                <div className="mt-1 max-h-48 overflow-y-auto rounded-md border border-slate-300 p-2 space-y-2 bg-slate-50">
+                                    <p className="font-semibold text-xs text-slate-500 uppercase">Groupes</p>
+                                    {userGroups.map(group => (
+                                        <div key={`group-${group.id}`} className="flex items-center pl-2">
+                                            <input
+                                                id={`group-${group.id}`}
+                                                type="checkbox"
+                                                checked={isGroupAssigned(group.id)}
+                                                onChange={(e) => handleGroupAssignment(group, e.target.checked)}
+                                                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                            />
+                                            <label htmlFor={`group-${group.id}`} className="ml-3 text-sm text-slate-600">
+                                                {group.name} ({group.memberIds.length} agents)
+                                            </label>
+                                        </div>
+                                    ))}
+                                    <p className="font-semibold text-xs text-slate-500 uppercase pt-2 border-t mt-2">Agents Individuels</p>
+                                    {users.filter(u => u.role === 'Agent').map(agent => (
+                                        <div key={agent.id} className="flex items-center pl-2">
+                                            <input
+                                                id={`agent-${agent.id}`}
+                                                type="checkbox"
+                                                checked={formData.assignedUserIds.includes(agent.id)}
+                                                onChange={(e) => handleAgentAssignment(agent.id, e.target.checked)}
+                                                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                            />
+                                            <label htmlFor={`agent-${agent.id}`} className="ml-3 text-sm text-slate-600">
+                                                {agent.firstName} {agent.lastName}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                             <div className="flex items-center justify-between pt-4 border-t">
                                 <label htmlFor="isActive" className="font-medium text-slate-700">Campagne Active</label>
                                 <ToggleSwitch 
@@ -170,6 +235,7 @@ interface OutboundCampaignsManagerProps {
     users: User[];
     savedScripts: SavedScript[];
     qualificationGroups: QualificationGroup[];
+    userGroups: UserGroup[];
     callHistory: CallHistoryRecord[];
     qualifications: Qualification[];
     onSaveCampaign: (campaign: Campaign) => void;
@@ -181,7 +247,7 @@ interface OutboundCampaignsManagerProps {
 }
 
 const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props) => {
-    const { feature, campaigns, users, savedScripts, qualificationGroups, onSaveCampaign, onDeleteCampaign, onImportContacts, onUpdateContact, onDeleteContacts, callHistory, qualifications } = props;
+    const { feature, campaigns, users, savedScripts, qualificationGroups, userGroups, onSaveCampaign, onDeleteCampaign, onImportContacts, onUpdateContact, onDeleteContacts, callHistory, qualifications } = props;
     const [view, setView] = useState<'list' | 'detail'>('list');
     const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -257,6 +323,7 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
                     scripts={savedScripts}
                     script={savedScripts.find(s => s.id === editingCampaign?.scriptId) || null}
                     qualificationGroups={qualificationGroups}
+                    userGroups={userGroups}
                     onSave={handleSave}
                     onClose={() => setIsModalOpen(false)}
                 />

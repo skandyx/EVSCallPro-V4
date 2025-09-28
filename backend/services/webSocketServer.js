@@ -59,6 +59,44 @@ function initializeWebSocketServer(server) {
 }
 
 /**
+ * Diffuse un événement à tous les clients connectés.
+ * @param {object} event - L'objet événement à envoyer.
+ */
+function broadcast(event) {
+    if (!wss) {
+        console.error("[WS] WebSocket server is not initialized for broadcast.");
+        return;
+    }
+    const message = JSON.stringify(event);
+    clients.forEach((_, clientWs) => {
+        if (clientWs.readyState === WebSocket.OPEN) {
+            clientWs.send(message);
+        }
+    });
+}
+
+/**
+ * Envoie un événement à un utilisateur spécifique par son ID.
+ * @param {string} userId - L'ID de l'utilisateur cible.
+ * @param {object} event - L'objet événement à envoyer.
+ */
+function sendToUser(userId, event) {
+    if (!wss) {
+        console.error("[WS] WebSocket server is not initialized for targeted send.");
+        return;
+    }
+    const message = JSON.stringify(event);
+    for (const [clientWs, clientInfo] of clients.entries()) {
+        if (clientInfo.id === userId && clientWs.readyState === WebSocket.OPEN) {
+            clientWs.send(message);
+            // On peut s'arrêter si on suppose qu'un utilisateur n'a qu'une seule connexion
+            // break; 
+        }
+    }
+}
+
+
+/**
  * Diffuse un événement à tous les clients connectés dans une "room" spécifique.
  * Les rooms sont basées sur le rôle de l'utilisateur.
  * @param {string} room - Le nom de la room (ex: 'superviseur', 'admin').
@@ -85,4 +123,6 @@ function broadcastToRoom(room, event) {
 module.exports = {
     initializeWebSocketServer,
     broadcastToRoom,
+    sendToUser,
+    broadcast
 };

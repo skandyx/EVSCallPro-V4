@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
 import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus, ActiveCall, CampaignState, SystemSmtpSettings, SystemAppSettings } from './types.ts';
 import { features } from './data/features.ts';
@@ -231,9 +232,30 @@ const AppContent: React.FC = () => {
             }
 
             const handleWebSocketMessage = (event: any) => {
-                if (event.type && event.payload) {
-                    const actionType = event.type.replace(/([A-Z])/g, '_$1').toUpperCase();
+                // --- Live Supervision Data Handler ---
+                if (['agentStatusUpdate', 'newCall', 'callHangup'].includes(event.type)) {
+                     const actionType = event.type.replace(/([A-Z])/g, '_$1').toUpperCase();
                     dispatch({ type: actionType as any, payload: event.payload });
+                }
+                
+                // --- Application State Sync Handler ---
+                if (event.type === 'campaignUpdate') {
+                     setAllData(prev => {
+                        const newCampaigns = prev.campaigns.map((c: Campaign) => c.id === event.payload.id ? event.payload : c);
+                        const campaignExists = newCampaigns.some(c => c.id === event.payload.id);
+                        if (!campaignExists) newCampaigns.push(event.payload);
+                        return { ...prev, campaigns: newCampaigns };
+                    });
+                }
+                
+                if (event.type === 'userProfileUpdate') {
+                     setAllData(prev => ({
+                        ...prev,
+                        users: prev.users.map((u: User) => u.id === event.payload.id ? event.payload : u)
+                    }));
+                    if (currentUser && currentUser.id === event.payload.id) {
+                        setCurrentUser(event.payload);
+                    }
                 }
             };
 
@@ -287,7 +309,8 @@ const AppContent: React.FC = () => {
                 ? await apiClient.post(url, data)
                 : await apiClient.put(`${url}/${data.id}`, data);
             
-            await fetchApplicationData(); // Re-fetch all data to ensure consistency
+            // We no longer need to re-fetch all data, as WebSocket events will handle updates.
+            // await fetchApplicationData();
             showAlert(t('alerts.saveSuccess'), 'success');
             return response.data;
         } catch (error: any) {
@@ -304,7 +327,7 @@ const AppContent: React.FC = () => {
             try {
                 const url = endpoint || `/${dataType.toLowerCase()}`;
                 await apiClient.delete(`${url}/${id}`);
-                await fetchApplicationData();
+                await fetchApplicationData(); // Re-fetch on delete is still simplest
                 showAlert(t('alerts.deleteSuccess'), 'success');
             } catch (error: any) {
                 const errorMessage = error.response?.data?.error || t('alerts.deleteError');

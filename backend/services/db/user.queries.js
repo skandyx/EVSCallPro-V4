@@ -1,6 +1,7 @@
 
 const pool = require('./connection');
 const { keysToCamel } = require('./utils');
+const { sendToUser } = require('../webSocketServer');
 
 // Define safe columns to be returned, excluding sensitive ones like password_hash
 const SAFE_USER_COLUMNS = 'u.id, u.login_id, u.extension, u.first_name, u.last_name, u.email, u."role", u.is_active, u.site_id, u.created_at, u.updated_at, u.mobile_number, u.use_mobile_as_station, u.profile_picture_url';
@@ -130,7 +131,7 @@ const updateUser = async (userId, userData) => {
                 "role" = $6, is_active = $7, site_id = $8, mobile_number = $9, use_mobile_as_station = $10
                 ${passwordUpdateClause}, updated_at = NOW()
             WHERE id = $${userIdIndex}
-            RETURNING id, login_id, first_name, last_name, email, "role", is_active, site_id, mobile_number, use_mobile_as_station;
+            RETURNING *;
         `;
 
         const { rows: updatedUserRows } = await client.query(userQuery, queryParams);
@@ -158,10 +159,15 @@ const updateUser = async (userId, userData) => {
         
         await client.query('COMMIT');
         
-        const finalUser = updatedUserRows[0];
-        finalUser.campaign_ids = user.campaignIds || [];
+        const finalUserRaw = updatedUserRows[0];
+        // Ensure the campaign_ids property is correctly set for the returned object
+        finalUserRaw.campaign_ids = user.campaignIds || [];
+        const finalUser = keysToCamel(finalUserRaw);
         
-        return keysToCamel(finalUser);
+        // Broadcast the update to the specific user
+        sendToUser(userId, { type: 'userProfileUpdate', payload: finalUser });
+        
+        return finalUser;
     } catch (e) {
         await client.query('ROLLBACK');
         console.error("Error in updateUser transaction:", e);
