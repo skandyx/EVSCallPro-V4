@@ -299,8 +299,8 @@ export interface BackupSchedule {
     time: string;
 }
 
-// FIX: Added 'Déconnecté' to AgentStatus to properly model agent connection state.
-export type AgentStatus = 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause' | 'Ringing' | 'Déconnecté';
+// FIX: Added 'Mise en attente' to model the 'ONHOLD' state and align with new color requirements.
+export type AgentStatus = 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause' | 'Ringing' | 'Déconnecté' | 'Mise en attente';
 
 export interface AgentState extends User {
     status: AgentStatus;

@@ -35,15 +35,16 @@ const categoryIcons: Record<FeatureCategory, React.FC<any>> = {
 const categoryOrder: FeatureCategory[] = ['Agent', 'Outbound', 'Inbound', 'Sound', 'Configuration', 'Supervision & Reporting', 'Système', 'Paramètres'];
 
 const getStatusColor = (status: AgentStatus | undefined): string => {
-    if (!status) return 'bg-slate-400'; // Default for non-agents or disconnected
+    if (!status) return 'bg-gray-400';
     switch (status) {
-        case 'En Attente': return 'bg-green-500';
-        case 'En Appel': return 'bg-red-500';
-        case 'En Post-Appel': return 'bg-red-500';
-        // FIX: Added 'Ringing' status to turn the status indicator yellow when the phone is ringing, enhancing real-time feedback.
-        case 'Ringing': return 'bg-yellow-400';
-        case 'En Pause': return 'bg-slate-400';
-        default: return 'bg-slate-400';
+        case 'En Attente': return 'bg-green-500'; // READY
+        case 'En Appel': return 'bg-red-500'; // BUSY
+        case 'En Post-Appel': return 'bg-yellow-500'; // WRAPUP
+        case 'Ringing': return 'bg-blue-500'; // RINGING
+        case 'En Pause': return 'bg-orange-500'; // PAUSE
+        case 'Mise en attente': return 'bg-purple-500'; // ONHOLD
+        case 'Déconnecté': return 'bg-gray-500'; // LOGGEDOUT
+        default: return 'bg-gray-400'; // OFFLINE as default
     }
 };
 

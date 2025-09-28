@@ -9,23 +9,25 @@ interface AgentBoardProps {
 }
 
 const STATUS_CONFIG: { [key in AgentStatus]: { label: string; color: string } } = {
-    'En Attente': { label: 'En Attente', color: 'bg-green-100 text-green-800' },
-    'En Appel': { label: 'En Appel', color: 'bg-red-100 text-red-800' },
-    'En Post-Appel': { label: 'En Post-Appel', color: 'bg-red-100 text-red-800' },
-    'En Pause': { label: 'En Pause', color: 'bg-slate-200 text-slate-800' },
-    'Ringing': { label: 'Sonne', color: 'bg-yellow-100 text-yellow-800' },
+    'En Attente': { label: 'Connecté', color: 'bg-green-100 text-green-800' },
+    'En Appel': { label: 'En appel', color: 'bg-red-100 text-red-800' },
+    'En Post-Appel': { label: 'Post-appel', color: 'bg-yellow-100 text-yellow-800' },
+    'En Pause': { label: 'En Pause', color: 'bg-orange-100 text-orange-800' },
+    'Ringing': { label: 'Sonnerie', color: 'bg-blue-100 text-blue-800' },
     'Déconnecté': { label: 'Déconnecté', color: 'bg-gray-100 text-gray-800' },
+    'Mise en attente': { label: 'Mise en attente', color: 'bg-purple-100 text-purple-800' },
 };
 
 const getStatusLedColor = (status: AgentStatus): string => {
     switch (status) {
-        case 'En Attente': return 'bg-green-500';
-        case 'En Appel': return 'bg-red-500';
-        case 'En Post-Appel': return 'bg-red-500';
-        case 'Ringing': return 'bg-yellow-400';
-        case 'En Pause': return 'bg-slate-400';
-        case 'Déconnecté': return 'bg-slate-400';
-        default: return 'bg-slate-400';
+        case 'En Attente': return 'bg-green-500'; // READY
+        case 'En Appel': return 'bg-red-500'; // BUSY
+        case 'En Post-Appel': return 'bg-yellow-500'; // WRAPUP
+        case 'Ringing': return 'bg-blue-500'; // RINGING
+        case 'En Pause': return 'bg-orange-500'; // PAUSE
+        case 'Mise en attente': return 'bg-purple-500'; // ONHOLD
+        case 'Déconnecté': return 'bg-gray-500'; // LOGGEDOUT
+        default: return 'bg-gray-400'; // OFFLINE as default
     }
 };
 
@@ -96,8 +98,8 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall })
                                 </div>
                             </td>
                             <td className="px-4 py-3">
-                                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${STATUS_CONFIG[agent.status].color}`}>
-                                    {STATUS_CONFIG[agent.status].label}
+                                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${STATUS_CONFIG[agent.status]?.color || 'bg-gray-100 text-gray-800'}`}>
+                                    {STATUS_CONFIG[agent.status]?.label || agent.status}
                                 </span>
                             </td>
                             <td className="px-4 py-3 font-mono text-slate-600">{formatDuration(agent.statusDuration)}</td>
