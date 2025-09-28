@@ -36,6 +36,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const [isLoadingNextContact, setIsLoadingNextContact] = useState(false);
     const [newNote, setNewNote] = useState('');
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
     // Timer effect
     useEffect(() => {
@@ -54,6 +55,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const requestNextContact = useCallback(async () => {
         if (isLoadingNextContact || status !== 'En Attente') return;
         setIsLoadingNextContact(true);
+        setFeedbackMessage(null);
         try {
             const response = await apiClient.post('/campaigns/next-contact', { agentId: currentUser.id });
             const { contact, campaign } = response.data;
@@ -65,11 +67,13 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 setStatus('En Appel');
                 setStatusTimer(0);
             } else {
-                 // No contact available, agent stays in 'En Attente'
+                 setFeedbackMessage("Aucun contact disponible pour le moment. Veuillez réessayer plus tard.");
+                 setTimeout(() => setFeedbackMessage(null), 3000); // Clear message after 3 seconds
             }
         } catch (error) {
             console.error("Failed to get next contact:", error);
-            // Handle error, maybe show a toast to the agent
+            setFeedbackMessage("Erreur lors de la recherche de contact.");
+            setTimeout(() => setFeedbackMessage(null), 3000);
         } finally {
             setIsLoadingNextContact(false);
         }
@@ -186,8 +190,12 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                                 <p><span className="font-semibold">Code Postal:</span> {currentContact.postalCode}</p>
                             </div>
                         ) : (
-                             <div className="h-full flex flex-col items-center justify-center">
-                                <p className="text-slate-500 text-center">En attente d'un appel...</p>
+                             <div className="h-full flex flex-col items-center justify-center text-center">
+                                {feedbackMessage ? (
+                                    <p className="text-amber-600 font-semibold">{feedbackMessage}</p>
+                                ) : (
+                                    <p className="text-slate-500">En attente d'un appel...</p>
+                                )}
                                 {status === 'En Attente' && (
                                      <button onClick={requestNextContact} disabled={isLoadingNextContact} className="mt-4 bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-indigo-400">
                                         {isLoadingNextContact ? 'Recherche...' : 'Prochain Appel'}
