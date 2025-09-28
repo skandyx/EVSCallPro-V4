@@ -121,8 +121,7 @@
       "id": "ID",
       "loginId": "Identifiant / Ext.",
       "role": "Rôle",
-      "status": "Statut",
-      "actions": "Actions"
+      "status": "Statut"
     },
     "modal": {
       "addTitle": "Ajouter un nouvel utilisateur",
@@ -140,10 +139,8 @@
       "mobileNumber": "Numéro de mobile (pour \"Connect to Phone\")",
       "useMobileAsStation": "Utiliser le mobile comme poste de travail",
       "useMobileAsStationHelp": "Si activé, les appels seront envoyés vers ce numéro mobile.",
-      "password": "Mot de passe",
       "passwordHelp": "Laisser vide pour ne pas changer",
       "generate": "Générer",
-      "role": "Rôle",
       "site": "Site d'affectation",
       "noSite": "Aucun site",
       "activeUser": "Utilisateur Actif",
@@ -163,21 +160,12 @@
     }
   },
   "groupManager": {
-    "title": "Groupes d'agents",
-    "createGroup": "Créer un groupe",
-    "searchPlaceholder": "Rechercher par nom de groupe...",
-    "headers": {
-      "name": "Nom du Groupe",
-      "members": "Nombre de Membres"
-    },
-    "noGroups": "Aucun groupe créé.",
     "modal": {
-      "editTitle": "Modifier le Groupe",
-      "addTitle": "Nouveau Groupe",
-      "name": "Nom du groupe",
-      "members": "Membres du groupe (Agents)",
-      "noAgents": "Aucun agent actif disponible."
+        "noAgents": "Aucun agent actif disponible."
     }
+  },
+  "agentView": {
+      "noCampaigns": "Aucune campagne assignée."
   },
   "outboundCampaignsManager": {
     "title": "Campagnes",
@@ -188,8 +176,7 @@
       "status": "Statut",
       "mode": "Mode",
       "contacts": "Contacts",
-      "remaining": "Restants",
-      "actions": "Actions"
+      "remaining": "Restants"
     },
     "import": "Importer",
     "deleteDisabledTooltip": "Désactivez la campagne pour la supprimer.",
@@ -227,8 +214,7 @@
     "searchPlaceholder": "Rechercher par nom ou ID de script...",
     "headers": {
       "id": "ID",
-      "name": "Nom du Script",
-      "actions": "Actions"
+      "name": "Nom du Script"
     },
     "noScripts": "Aucun script ne correspond à votre recherche ou aucun script n'a été créé."
   },
@@ -238,8 +224,7 @@
     "searchPlaceholder": "Rechercher par nom ou ID de flux...",
     "headers": {
       "id": "ID",
-      "name": "Nom du Flux",
-      "actions": "Actions"
+      "name": "Nom du Flux"
     },
     "noFlows": "Aucun flux SVI ne correspond à votre recherche ou aucun flux n'a été créé."
   },
@@ -332,17 +317,107 @@
     "saving": "Enregistrement..."
   },
   "features": {
+    "users": {
+      "title": "Utilisateurs",
+      "description": "Gérez les comptes des collaborateurs, leurs rôles et leurs permissions."
+    },
+    "groups": {
+      "title": "Groupes",
+      "description": "Créez des groupes d'agents pour une gestion et un routage d'appels simplifiés."
+    },
+    "planning": {
+      "title": "Plannings",
+      "description": "Gérez les plannings hebdomadaires des agents et leurs différentes activités."
+    },
+    "outbound": {
+      "title": "Campagnes Sortantes",
+      "description": "Créez et gérez des campagnes d'appels sortants avec des stratégies d'appel avancées."
+    },
+    "scripts": {
+      "title": "Scripts d'agent",
+      "description": "Construisez des guides d'appel interactifs pour vos agents avec un éditeur visuel."
+    },
+    "ivr": {
+      "title": "Flux SVI",
+      "description": "Concevez des parcours d'appels entrants complexes avec un designer graphique."
+    },
+    "audio": {
+      "title": "Bibliothèque Média",
+      "description": "Importez et gérez les messages audio pour les SVI et les musiques d'attente."
+    },
+    "records": {
+      "title": "Enregistrements",
+      "description": "Écoutez, téléchargez et archivez les enregistrements d'appels pour la qualité et la conformité."
+    },
+    "qualifications": {
+      "title": "Qualifications d'appel",
+      "description": "Définissez les statuts de fin d'appel pour le reporting et les stratégies de rappel."
+    },
+    "supervision": {
+      "title": "Supervision en Temps Réel",
+      "description": "Visualisez l'activité de votre centre de contact en direct et interagissez avec les agents."
+    },
+    "reporting": {
+      "title": "Rapports & Analytiques",
+      "description": "Explorez les données historiques, créez des rapports personnalisés et exportez les résultats."
+    },
+    "history": {
+      "title": "Historique des Appels",
+      "description": "Consultez, filtrez et recherchez dans le journal détaillé de tous les appels entrants et sortants."
+    },
+    "sessions": {
+      "title": "Login/Logout Agents",
+      "description": "Consultez le journal détaillé des connexions, déconnexions et temps de travail des agents."
+    },
+    "trunks": {
+      "title": "Trunks SIP",
+      "description": "Connectez vos opérateurs téléphoniques pour les appels entrants et sortants."
+    },
+    "dids": {
+      "title": "Numéros (SDA)",
+      "description": "Gérez vos numéros de téléphone entrants et leur routage initial."
+    },
+    "sites-config": {
+      "title": "Configuration des Sites",
+      "description": "Gérez les différents sites physiques pour le routage des appels sortants."
+    },
+    "module-settings": {
+      "title": "Gestion des Modules",
+      "description": "Activez ou désactivez les menus pour les rôles administrateur et superviseur."
+    },
     "languages": {
-        "userJourney": {
-            "title": "Gestion de la Langue",
-            "steps": [
-                "L'utilisateur change la langue via le sélecteur dans l'en-tête pour une expérience traduite instantanément."
-            ]
-        },
-        "simplificationTip": {
-            "title": "Information",
-            "content": "Ce module est un placeholder. La gestion de la langue se fait via le sélecteur dans l'en-tête pour un accès rapide."
-        }
+      "title": "Langues",
+      "description": "Gérez les langues disponibles dans l'application.",
+      "userJourney": {
+        "title": "Gestion de la Langue",
+        "steps": [
+          "L'utilisateur change la langue via le sélecteur dans l'en-tête pour une expérience traduite instantanément."
+        ]
+      },
+      "simplificationTip": {
+        "title": "Information",
+        "content": "Ce module est un placeholder. La gestion de la langue se fait via le sélecteur dans l'en-tête pour un accès rapide."
+      }
+    },
+    "database-client": {
+      "title": "Base de Données",
+      "description": "Exécutez des requêtes SQL directement sur la base de données pour le débogage et les rapports avancés."
+    },
+    "system-connection": {
+      "title": "Connexion Système",
+      "description": "Configurez les connexions à la base de données et au serveur de téléphonie Asterisk."
+    },
+    "api-docs": {
+      "title": "Documentation API",
+      "description": "Consultez la documentation complète de l'API pour l'intégration et le développement."
+    },
+    "billing": {
+      "title": "Facturation",
+      "description": "Gérez les abonnements et consultez l'historique de facturation."
+    },
+    "system-settings": {
+      "title": "Système",
+      "description": "Configurez les paramètres système de bas niveau, comme l'envoi d'e-mails."
     }
   }
 }
