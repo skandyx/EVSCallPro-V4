@@ -55,8 +55,11 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall })
         }
     };
     
-    // FIX: Filter out disconnected agents to show only active users in the supervision view.
-    const connectedAgents = agents.filter(agent => agent.status && agent.status !== 'Déconnecté');
+    // FIX: Removed filtering of disconnected agents. The supervisor dashboard should now
+    // display all agents and their real-time status, including 'Déconnecté', providing a
+    // complete and instantaneous overview of the team's state and resolving the perceived
+    // connection delay.
+    const connectedAgents = agents;
 
     return (
         <div className="overflow-x-auto">

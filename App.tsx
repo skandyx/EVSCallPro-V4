@@ -277,6 +277,10 @@ const AppContent: React.FC = () => {
                     }
                 }
 
+                // FIX: Added handler for 'agentRaisedHand' event. This was the missing piece
+                // to make supervisor notifications work. It receives the event broadcasted by the
+                // server and adds it to the local notifications state, which in turn triggers
+                // the UI update in the Header component.
                 if (event.type === 'agentRaisedHand') {
                      const newNotification: Notification = {
                         ...event.payload,
