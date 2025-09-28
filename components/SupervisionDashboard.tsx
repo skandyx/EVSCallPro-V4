@@ -33,7 +33,6 @@ const KpiCard: React.FC<{ title: string; value: string | number; icon: React.FC<
     </div>
 );
 
-// FIX: Imported useState hook from React to resolve 'Cannot find name' error.
 const SupervisionDashboard: React.FC<SupervisionDashboardProps> = ({ feature, users, campaigns, currentUser, agentStates, activeCalls, campaignStates, apiCall }) => {
     const [activeTab, setActiveTab] = useState<Tab>('agents');
     const { t } = useI18n();
@@ -52,11 +51,11 @@ const SupervisionDashboard: React.FC<SupervisionDashboardProps> = ({ feature, us
             case 'live':
                 return (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                        <KpiCard title="Agents en Attente" value={kpis.agentsReady} icon={UsersIcon} />
-                        <KpiCard title="Agents en Appel" value={kpis.agentsOnCall} icon={PhoneIcon} />
-                        <KpiCard title="Agents en Post-Appel" value={kpis.agentsOnWrapup} icon={UsersIcon} />
-                        <KpiCard title="Agents en Pause" value={kpis.agentsOnPause} icon={UsersIcon} />
-                        <KpiCard title="Appels Actifs" value={kpis.activeCalls} icon={ChartBarIcon} />
+                        <KpiCard title={t('supervision.kpis.agentsReady')} value={kpis.agentsReady} icon={UsersIcon} />
+                        <KpiCard title={t('supervision.kpis.agentsOnCall')} value={kpis.agentsOnCall} icon={PhoneIcon} />
+                        <KpiCard title={t('supervision.kpis.agentsOnWrapup')} value={kpis.agentsOnWrapup} icon={UsersIcon} />
+                        <KpiCard title={t('supervision.kpis.agentsOnPause')} value={kpis.agentsOnPause} icon={UsersIcon} />
+                        <KpiCard title={t('supervision.kpis.activeCalls')} value={kpis.activeCalls} icon={ChartBarIcon} />
                     </div>
                 );
             case 'agents':
@@ -70,32 +69,30 @@ const SupervisionDashboard: React.FC<SupervisionDashboardProps> = ({ feature, us
         }
     };
     
-    const TabButton: React.FC<{ tabName: Tab; label: string; }> = ({ tabName, label }) => (
+    const TabButton: React.FC<{ tabName: Tab; labelKey: string; }> = ({ tabName, labelKey }) => (
         <button
             onClick={() => setActiveTab(tabName)}
             className={`px-4 py-2 text-sm font-semibold rounded-md ${activeTab === tabName ? 'bg-primary text-primary-text shadow' : 'text-slate-600 hover:bg-slate-200'}`}
         >
-            {label}
+            {t(labelKey)}
         </button>
     );
 
     return (
         <div className="max-w-7xl mx-auto space-y-8">
             <header>
-                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
                 <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
-                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
                 <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
             
             <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
                  <div className="flex justify-between items-center mb-4 border-b pb-4">
-                    <h2 className="text-2xl font-semibold text-slate-800">Panneau de Contrôle</h2>
+                    <h2 className="text-2xl font-semibold text-slate-800">{t('supervision.controlPanel')}</h2>
                     <div className="flex space-x-2 p-1 bg-slate-100 rounded-lg">
-                        <TabButton tabName="live" label="Live" />
-                        <TabButton tabName="agents" label="Agents" />
-                        <TabButton tabName="calls" label="Appels" />
-                        <TabButton tabName="campaigns" label="Campagnes" />
+                        <TabButton tabName="live" labelKey="supervision.tabs.live" />
+                        <TabButton tabName="agents" labelKey="supervision.tabs.agents" />
+                        <TabButton tabName="calls" labelKey="supervision.tabs.calls" />
+                        <TabButton tabName="campaigns" labelKey="supervision.tabs.campaigns" />
                     </div>
                 </div>
                 {renderContent()}

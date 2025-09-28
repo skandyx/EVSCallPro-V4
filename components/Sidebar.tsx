@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import type { Feature, FeatureId, User, FeatureCategory, ModuleVisibility, AgentStatus } from '../types.ts';
 import {
@@ -61,6 +60,10 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
         );
     };
 
+    const getCategoryTranslationKey = (categoryName: FeatureCategory) => {
+        return `sidebar.categories.${categoryName.replace(/ & /g, '_')}`;
+    }
+
     const categories = features.reduce((acc, feature) => {
         (acc[feature.category] = acc[feature.category] || []).push(feature);
         return acc;
@@ -86,6 +89,7 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                         const isExpanded = expandedCategories.includes(categoryName);
                         const Icon = categoryIcons[categoryName as FeatureCategory];
                         const isActiveCategory = featuresInCategory.some(f => f.id === activeFeatureId);
+                        const translatedCategoryName = t(getCategoryTranslationKey(categoryName as FeatureCategory));
 
                         return (
                             <div key={categoryName}>
@@ -96,10 +100,10 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                                     } ${
                                         isActiveCategory ? 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-slate-50' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
                                     }`}
-                                    title={categoryName}
+                                    title={translatedCategoryName}
                                 >
                                     {Icon && <Icon className="w-5 h-5 flex-shrink-0" />}
-                                    {!isSidebarCollapsed && <span className="flex-1 ml-3">{categoryName}</span>}
+                                    {!isSidebarCollapsed && <span className="flex-1 ml-3">{translatedCategoryName}</span>}
                                     {!isSidebarCollapsed && <ChevronDownIcon className={`w-5 h-5 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />}
                                 </button>
                                 {!isSidebarCollapsed && isExpanded && (
@@ -123,7 +127,6 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                                                         : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
                                                 }`}
                                             >
-                                                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
                                                 {t(feature.titleKey)}
                                             </button>
                                         ))}
@@ -139,7 +142,7 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                     <button
                         onClick={onOpenProfile}
                         className={`w-full text-left p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 ${isSidebarCollapsed ? 'flex justify-center' : 'flex items-center'}`}
-                        title="Mon Profil"
+                        title={t('sidebar.profile')}
                     >
                         <div className="relative flex-shrink-0">
                             {currentUser.profilePictureUrl ? (
@@ -161,18 +164,18 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                     <button
                         onClick={onLogout}
                         className="w-full flex items-center p-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
-                        title="Déconnexion"
+                        title={t('sidebar.logout')}
                     >
                         <PowerIcon className={`w-5 h-5 ${isSidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
-                        {!isSidebarCollapsed && <span className="font-semibold">Déconnexion</span>}
+                        {!isSidebarCollapsed && <span className="font-semibold">{t('sidebar.logout')}</span>}
                     </button>
                     <button
                         onClick={() => setIsSidebarCollapsed(p => !p)}
                         className="w-full flex items-center p-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md"
-                        title={isSidebarCollapsed ? "Agrandir le menu" : "Réduire le menu"}
+                        title={isSidebarCollapsed ? t('sidebar.expand') : t('sidebar.collapse')}
                     >
                         <ChevronDoubleLeftIcon className={`w-5 h-5 transition-transform ${isSidebarCollapsed ? 'rotate-180 mx-auto' : 'mr-3'}`} />
-                        {!isSidebarCollapsed && <span className="font-semibold">Réduire</span>}
+                        {!isSidebarCollapsed && <span className="font-semibold">{t('sidebar.collapse')}</span>}
                     </button>
                 </div>
             </div>

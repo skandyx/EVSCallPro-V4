@@ -20,8 +20,8 @@ interface NotificationPopoverProps {
 }
 
 const NotificationPopover: React.FC<NotificationPopoverProps> = ({ notifications, onClearAll, onRespond, onClose }) => {
+    const { t } = useI18n();
     const [responseText, setResponseText] = useState('');
-    // FIX: Target notifications by their unique ID instead of agentId to handle multiple requests from the same agent.
     const [targetNotificationId, setTargetNotificationId] = useState<number | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -42,17 +42,17 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({ notifications
     return (
         <div className="absolute right-0 mt-2 w-80 origin-top-right bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-20">
             <div className="p-3 border-b dark:border-slate-700 flex justify-between items-center">
-                <h3 className="font-semibold text-slate-800 dark:text-slate-200">Notifications</h3>
-                {notifications.length > 0 && <button onClick={onClearAll} className="text-xs font-medium text-indigo-600 hover:underline">Tout marquer comme lu</button>}
+                <h3 className="font-semibold text-slate-800 dark:text-slate-200">{t('header.notifications.title')}</h3>
+                {notifications.length > 0 && <button onClick={onClearAll} className="text-xs font-medium text-indigo-600 hover:underline">{t('header.notifications.markAllAsRead')}</button>}
             </div>
             <div className="max-h-96 overflow-y-auto">
                 {notifications.length === 0 ? (
-                    <p className="text-sm text-slate-500 text-center p-8">Aucune nouvelle notification.</p>
+                    <p className="text-sm text-slate-500 text-center p-8">{t('header.notifications.noNotifications')}</p>
                 ) : (
                     notifications.map(notif => (
                         <div key={notif.id} className="p-3 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
                             <p className="text-sm text-slate-700 dark:text-slate-200">
-                                <span className="font-bold">{notif.agentName}</span> ({notif.agentLoginId}) a besoin d'aide.
+                                {t('header.notifications.needsHelp', { agentName: notif.agentName, agentLoginId: notif.agentLoginId })}
                             </p>
                             <p className="text-xs text-slate-400 mt-1">{new Date(notif.timestamp).toLocaleTimeString()}</p>
                             {targetNotificationId === notif.id ? (
@@ -62,13 +62,13 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({ notifications
                                         type="text"
                                         value={responseText}
                                         onChange={e => setResponseText(e.target.value)}
-                                        placeholder="Votre message..."
+                                        placeholder={t('header.notifications.yourMessage')}
                                         className="w-full text-sm p-1.5 border rounded-md dark:bg-slate-900 dark:border-slate-600"
                                     />
-                                    <button type="submit" className="text-sm bg-indigo-600 text-white px-3 rounded-md hover:bg-indigo-700">Envoyer</button>
+                                    <button type="submit" className="text-sm bg-indigo-600 text-white px-3 rounded-md hover:bg-indigo-700">{t('header.notifications.send')}</button>
                                 </form>
                             ) : (
-                                <button onClick={() => handleRespondClick(notif.id)} className="mt-2 text-xs font-semibold text-indigo-600 hover:underline">Répondre</button>
+                                <button onClick={() => handleRespondClick(notif.id)} className="mt-2 text-xs font-semibold text-indigo-600 hover:underline">{t('header.notifications.respond')}</button>
                             )}
                         </div>
                     ))
