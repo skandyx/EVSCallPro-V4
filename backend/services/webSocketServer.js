@@ -70,11 +70,13 @@ function initializeWebSocketServer(server) {
         ws.on('message', (message) => {
             try {
                 const event = JSON.parse(message.toString());
-                // Handle agent-initiated status changes and broadcast to supervisors
+                let handled = false;
+
                 if (event.type === 'agentStatusChange' && ws.user.role === 'Agent') {
+                    handled = true;
                     console.log(`[WS] Received agentStatusChange from ${ws.user.id}: ${event.payload.status}`);
                     const broadcastEvent = {
-                        type: 'agentStatusUpdate', // The event supervisors listen for
+                        type: 'agentStatusUpdate',
                         payload: {
                             agentId: ws.user.id,
                             status: event.payload.status
@@ -82,17 +84,19 @@ function initializeWebSocketServer(server) {
                     };
                     broadcastToRoom('superviseur', broadcastEvent);
                 }
-                // FEATURE: Handle "raise hand" event from agent
-                else if (event.type === 'agentRaisedHand' && ws.user.role === 'Agent') {
-                    console.log(`[WS] Agent ${ws.user.id} raised hand.`);
+                
+                if (event.type === 'agentRaisedHand' && ws.user.role === 'Agent') {
+                    handled = true;
+                    console.log(`[WS] Agent ${ws.user.id} raised hand. Broadcasting to supervisors.`);
                     const broadcastEvent = {
-                        type: 'agentRaisedHand', // new event type for supervisors
+                        type: 'agentRaisedHand',
                         payload: event.payload 
                     };
                     broadcastToRoom('superviseur', broadcastEvent);
                 }
-                // FEATURE: Handle supervisor response to agent's raised hand
-                else if (event.type === 'supervisorResponseToAgent') {
+                
+                if (event.type === 'supervisorResponseToAgent') {
+                    handled = true;
                     console.log(`[WS] Supervisor ${ws.user.id} responding to agent ${event.payload.agentId}`);
                     sendToUser(event.payload.agentId, {
                         type: 'supervisorMessage',
@@ -102,6 +106,11 @@ function initializeWebSocketServer(server) {
                         }
                     });
                 }
+
+                if (!handled) {
+                    console.log(`[WS] Received unhandled message type '${event.type}' from user ${ws.user.id}`);
+                }
+
             } catch (e) {
                 console.error('[WS] Error processing message:', e);
             }
