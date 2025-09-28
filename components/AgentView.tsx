@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { User, Campaign, Contact, Qualification, SavedScript, QualificationGroup, ContactNote, PersonalCallback, AgentStatus } from '../types.ts';
 import { PowerIcon, PhoneIcon, UserCircleIcon, PauseIcon, CalendarDaysIcon, ComputerDesktopIcon, SunIcon, MoonIcon, ChevronDownIcon, ArrowLeftIcon, ArrowRightIcon } from './Icons.tsx';
@@ -251,8 +250,14 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
              <CallbackSchedulerModal isOpen={isCallbackModalOpen} onClose={() => setIsCallbackModalOpen(false)} onSchedule={handleScheduleAndEndCall} />
              <header className="flex-shrink-0 bg-white dark:bg-slate-800 shadow-md p-3 flex justify-between items-center z-10">
                 <button onClick={() => setIsProfileModalOpen(true)} className="flex items-center gap-4 text-left p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
-                    <div className="relative"><{currentUser.profilePictureUrl ? <img src={currentUser.profilePictureUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" /> : <UserCircleIcon className="w-10 h-10 text-slate-400" />}<span className={`absolute top-0 right-0 block h-3.5 w-3.5 rounded-full border-2 border-white dark:border-slate-800 ${getStatusColor(agentStatus)}`}></span></div>
-                    <div><h1 className="font-bold text-slate-800 dark:text-slate-100">Interface Agent</h1><p className="text-sm text-slate-600 dark:text-slate-400">{currentUser.firstName} {currentUser.lastName} - Ext: {currentUser.loginId}</p></div>
+                    <div className="relative">
+                        {currentUser.profilePictureUrl ? <img src={currentUser.profilePictureUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" /> : <UserCircleIcon className="w-10 h-10 text-slate-400" />}
+                        <span className={`absolute top-0 right-0 block h-3.5 w-3.5 rounded-full border-2 border-white dark:border-slate-800 ${getStatusColor(agentStatus)}`}></span>
+                    </div>
+                    <div>
+                        <h1 className="font-bold text-slate-800 dark:text-slate-100">Interface Agent</h1>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">{currentUser.firstName} {currentUser.lastName} - Ext: {currentUser.loginId}</p>
+                    </div>
                 </button>
                 <div className="flex items-center gap-4">
                     <Clock />
