@@ -1,14 +1,92 @@
-import React, { useState, useEffect } from 'react';
-import { WrenchScrewdriverIcon, ServerStackIcon, ComputerDesktopIcon, SunIcon, MoonIcon, ChevronDownIcon } from './Icons.tsx';
+import React, { useState, useEffect, useRef } from 'react';
+import { WrenchScrewdriverIcon, ServerStackIcon, ComputerDesktopIcon, SunIcon, MoonIcon, ChevronDownIcon, BellAlertIcon } from './Icons.tsx';
 import { useI18n } from '../src/i18n/index.tsx';
 
 type Theme = 'light' | 'dark' | 'system';
+
+interface Notification {
+    id: number;
+    agentId: string;
+    agentName: string;
+    agentLoginId: string;
+    timestamp: string;
+}
+
+interface NotificationPopoverProps {
+    notifications: Notification[];
+    onClear: () => void;
+    onRespond: (agentId: string, message: string) => void;
+    onClose: () => void;
+}
+
+const NotificationPopover: React.FC<NotificationPopoverProps> = ({ notifications, onClear, onRespond, onClose }) => {
+    const [responseText, setResponseText] = useState('');
+    const [targetAgentId, setTargetAgentId] = useState<string | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleRespondClick = (agentId: string) => {
+        setTargetAgentId(agentId);
+        setTimeout(() => inputRef.current?.focus(), 50);
+    };
+
+    const handleSendResponse = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (responseText.trim() && targetAgentId) {
+            onRespond(targetAgentId, responseText);
+            setResponseText('');
+            setTargetAgentId(null);
+            onClose(); // Ferme le popover après réponse
+        }
+    };
+
+    return (
+        <div className="absolute right-0 mt-2 w-80 origin-top-right bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-20">
+            <div className="p-3 border-b dark:border-slate-700 flex justify-between items-center">
+                <h3 className="font-semibold text-slate-800 dark:text-slate-200">Notifications</h3>
+                {notifications.length > 0 && <button onClick={onClear} className="text-xs font-medium text-indigo-600 hover:underline">Tout marquer comme lu</button>}
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+                {notifications.length === 0 ? (
+                    <p className="text-sm text-slate-500 text-center p-8">Aucune nouvelle notification.</p>
+                ) : (
+                    notifications.map(notif => (
+                        <div key={notif.id} className="p-3 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
+                            <p className="text-sm text-slate-700 dark:text-slate-200">
+                                <span className="font-bold">{notif.agentName}</span> ({notif.agentLoginId}) a besoin d'aide.
+                            </p>
+                            <p className="text-xs text-slate-400 mt-1">{new Date(notif.timestamp).toLocaleTimeString()}</p>
+                            {targetAgentId === notif.agentId ? (
+                                <form onSubmit={handleSendResponse} className="mt-2 flex gap-2">
+                                    <input
+                                        ref={inputRef}
+                                        type="text"
+                                        value={responseText}
+                                        onChange={e => setResponseText(e.target.value)}
+                                        placeholder="Votre message..."
+                                        className="w-full text-sm p-1.5 border rounded-md dark:bg-slate-900 dark:border-slate-600"
+                                    />
+                                    <button type="submit" className="text-sm bg-indigo-600 text-white px-3 rounded-md hover:bg-indigo-700">Envoyer</button>
+                                </form>
+                            ) : (
+                                <button onClick={() => handleRespondClick(notif.agentId)} className="mt-2 text-xs font-semibold text-indigo-600 hover:underline">Répondre</button>
+                            )}
+                        </div>
+                    ))
+                )}
+            </div>
+        </div>
+    );
+};
+
 
 interface HeaderProps {
     activeView: 'app' | 'monitoring';
     onViewChange: (view: 'app' | 'monitoring') => void;
     theme: Theme;
     setTheme: (theme: Theme) => void;
+    notifications: Notification[];
+    onClearNotifications: () => void;
+    onRespondToAgent: (agentId: string, message: string) => void;
 }
 
 // --- Clock Component ---
@@ -112,8 +190,9 @@ const LanguageSwitcher: React.FC = () => {
 }
 
 
-const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, theme, setTheme }) => {
+const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, theme, setTheme, notifications, onClearNotifications, onRespondToAgent }) => {
     const { t } = useI18n();
+    const [isNotifOpen, setIsNotifOpen] = useState(false);
 
     const TabButton: React.FC<{
         viewName: 'app' | 'monitoring';
@@ -144,6 +223,18 @@ const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, theme, setThe
             </nav>
             <div className="flex items-center gap-4">
                 <Clock />
+                <div className="relative">
+                    <button onClick={() => setIsNotifOpen(p => !p)} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400">
+                        <BellAlertIcon className="w-6 h-6" />
+                        {notifications.length > 0 && (
+                            <span className="absolute top-1 right-1 flex h-4 w-4">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-white text-xs items-center justify-center">{notifications.length}</span>
+                            </span>
+                        )}
+                    </button>
+                    {isNotifOpen && <NotificationPopover notifications={notifications} onClear={onClearNotifications} onRespond={onRespondToAgent} onClose={() => setIsNotifOpen(false)} />}
+                </div>
                 <ThemeSwitcher theme={theme} setTheme={setTheme} />
                 <LanguageSwitcher />
             </div>

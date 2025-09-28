@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
 import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus, ActiveCall, CampaignState, SystemSmtpSettings, SystemAppSettings } from './types.ts';
 import { features } from './data/features.ts';
@@ -85,6 +84,14 @@ function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
 
 type Theme = 'light' | 'dark' | 'system';
 
+interface Notification {
+    id: number;
+    agentId: string;
+    agentName: string;
+    agentLoginId: string;
+    timestamp: string;
+}
+
 const AppContent: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [activeFeatureId, setActiveFeatureId] = useState<FeatureId>('outbound');
@@ -95,6 +102,7 @@ const AppContent: React.FC = () => {
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false); // State for the new modal
     const [liveState, dispatch] = useReducer(liveDataReducer, initialState);
     const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
+    const [notifications, setNotifications] = useState<Notification[]>([]);
     const { t, language } = useI18n();
 
      // Effect to apply theme class to <html> element
@@ -236,7 +244,7 @@ const AppContent: React.FC = () => {
 
      // Effect to manage WebSocket connection and live data updates
     useEffect(() => {
-        if (currentUser) {
+        if (currentUser && currentUser.role !== 'Agent') {
             const token = localStorage.getItem('authToken');
             if (token) {
                 wsClient.connect(token);
@@ -269,9 +277,13 @@ const AppContent: React.FC = () => {
                     }
                 }
 
-                // FEATURE: Handle "raise hand" event from agent
                 if (event.type === 'agentRaisedHand') {
-                    showAlert(`L'agent ${event.payload.agentName} demande de l'aide !`, 'info');
+                     const newNotification: Notification = {
+                        ...event.payload,
+                        id: Date.now(),
+                        timestamp: new Date().toISOString()
+                    };
+                    setNotifications(prev => [newNotification, ...prev]);
                 }
             };
 
@@ -284,7 +296,7 @@ const AppContent: React.FC = () => {
                 wsClient.disconnect();
             };
         }
-    }, [currentUser, showAlert]);
+    }, [currentUser]);
 
     // Effect to initialize live data state once static data is loaded
     useEffect(() => {
@@ -480,6 +492,14 @@ const AppContent: React.FC = () => {
         }
     }, [currentUser]);
 
+    const handleRespondToAgent = useCallback((agentId: string, message: string) => {
+        wsClient.send({
+            type: 'supervisorResponseToAgent',
+            payload: { agentId, message }
+        });
+        showAlert(`Réponse envoyée à l'agent.`, 'success');
+    }, []);
+
     const currentUserStatus: AgentStatus | undefined = useMemo(() => {
         if (!currentUser) return undefined;
         const agentState = liveState.agentStates.find(a => a.id === currentUser.id);
@@ -617,6 +637,9 @@ const AppContent: React.FC = () => {
                             onViewChange={setActiveView} 
                             theme={theme}
                             setTheme={setTheme}
+                            notifications={notifications}
+                            onClearNotifications={() => setNotifications([])}
+                            onRespondToAgent={handleRespondToAgent}
                         />
                         <main className="flex-1 overflow-y-auto p-8">
                              {activeView === 'app' ? renderFeatureComponent() : <MonitoringDashboard {...({ ...allData, ...liveState, apiCall: apiClient } as any)} />}

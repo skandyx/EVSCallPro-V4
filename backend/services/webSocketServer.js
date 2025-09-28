@@ -83,13 +83,24 @@ function initializeWebSocketServer(server) {
                     broadcastToRoom('superviseur', broadcastEvent);
                 }
                 // FEATURE: Handle "raise hand" event from agent
-                else if (event.type === 'agentRaiseHand' && ws.user.role === 'Agent') {
+                else if (event.type === 'agentRaisedHand' && ws.user.role === 'Agent') {
                     console.log(`[WS] Agent ${ws.user.id} raised hand.`);
                     const broadcastEvent = {
                         type: 'agentRaisedHand', // new event type for supervisors
                         payload: event.payload 
                     };
                     broadcastToRoom('superviseur', broadcastEvent);
+                }
+                // FEATURE: Handle supervisor response to agent's raised hand
+                else if (event.type === 'supervisorResponseToAgent') {
+                    console.log(`[WS] Supervisor ${ws.user.id} responding to agent ${event.payload.agentId}`);
+                    sendToUser(event.payload.agentId, {
+                        type: 'supervisorMessage',
+                        payload: {
+                            from: 'Superviseur',
+                            message: event.payload.message
+                        }
+                    });
                 }
             } catch (e) {
                 console.error('[WS] Error processing message:', e);

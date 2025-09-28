@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { User, Campaign, Contact, Qualification, SavedScript, QualificationGroup, ContactNote, PersonalCallback, AgentStatus } from '../types.ts';
-import { PowerIcon, PhoneIcon, UserCircleIcon, PauseIcon, CalendarDaysIcon, ComputerDesktopIcon, SunIcon, MoonIcon, ChevronDownIcon, ArrowLeftIcon, ArrowRightIcon, HandRaisedIcon } from './Icons.tsx';
+import { PowerIcon, PhoneIcon, UserCircleIcon, PauseIcon, CalendarDaysIcon, ComputerDesktopIcon, SunIcon, MoonIcon, ChevronDownIcon, ArrowLeftIcon, ArrowRightIcon, HandRaisedIcon, XMarkIcon } from './Icons.tsx';
 import AgentPreview from './AgentPreview.tsx';
 import UserProfileModal from './UserProfileModal.tsx';
 import apiClient from '../src/lib/axios.ts';
@@ -131,6 +131,8 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const [isCallbackModalOpen, setIsCallbackModalOpen] = useState(false);
     const [callbacksDate, setCallbacksDate] = useState(new Date());
     const [activeDialingCampaignId, setActiveDialingCampaignId] = useState<string | null>(null);
+    const [supervisorMessage, setSupervisorMessage] = useState<{ from: string; message: string; key: number } | null>(null);
+
     
     const assignedCampaigns = useMemo(() => currentUser.campaignIds.map(id => data.campaigns.find(c => c.id === id)).filter((c): c is Campaign => !!c), [currentUser.campaignIds, data.campaigns]);
     
@@ -164,6 +166,20 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     useEffect(() => {
         const interval = setInterval(() => setStatusTimer(prev => prev + 1), 1000);
         return () => clearInterval(interval);
+    }, []);
+
+    // WebSocket listener for supervisor messages
+    useEffect(() => {
+        const handleWebSocketMessage = (event: any) => {
+            if (event.type === 'supervisorMessage') {
+                setSupervisorMessage({ ...event.payload, key: Date.now() });
+                // Optional: Auto-dismiss after some time
+                setTimeout(() => setSupervisorMessage(null), 15000);
+            }
+        };
+
+        const unsubscribe = wsClient.onMessage(handleWebSocketMessage);
+        return () => unsubscribe();
     }, []);
 
     // FIX: Create a centralized function to change status, which also notifies the backend.
@@ -279,10 +295,11 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
 
     const handleRaiseHand = useCallback(() => {
         wsClient.send({
-            type: 'agentRaiseHand',
+            type: 'agentRaisedHand',
             payload: {
                 agentId: currentUser.id,
-                agentName: `${currentUser.firstName} ${currentUser.lastName}`
+                agentName: `${currentUser.firstName} ${currentUser.lastName}`,
+                agentLoginId: currentUser.loginId
             }
         });
         setFeedbackMessage("Demande d'aide envoyée au superviseur.");
@@ -348,6 +365,13 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                     </div>
                 </div>
             </main>
+            {supervisorMessage && (
+                <div key={supervisorMessage.key} className="fixed bottom-4 left-1/2 -translate-x-1/2 max-w-lg w-full bg-indigo-100 dark:bg-indigo-900/80 backdrop-blur-sm border border-indigo-300 dark:border-indigo-700 text-indigo-800 dark:text-indigo-200 p-4 rounded-lg shadow-lg flex items-start gap-3 animate-fade-in-up">
+                    <div className="flex-shrink-0"><UserCircleIcon className="w-6 h-6 text-indigo-500 dark:text-indigo-400" /></div>
+                    <div className="flex-1"><p className="font-bold">Message du Superviseur</p><p className="text-sm">{supervisorMessage.message}</p></div>
+                    <button onClick={() => setSupervisorMessage(null)} className="p-1 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-800"><XMarkIcon className="w-5 h-5"/></button>
+                </div>
+            )}
         </div>
     );
 };
