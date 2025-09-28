@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
 import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus, ActiveCall, CampaignState, SystemSmtpSettings, SystemAppSettings } from './types.ts';
 import { features } from './data/features.ts';
@@ -448,6 +449,9 @@ const AppContent: React.FC = () => {
             refreshData={fetchApplicationData}
             onUpdatePassword={handleUpdatePassword}
             onUpdateProfilePicture={handleUpdateProfilePicture}
+            theme={theme}
+            setTheme={setTheme}
+            agentStatus={currentUserStatus}
         />;
     }
 
@@ -459,7 +463,9 @@ const AppContent: React.FC = () => {
 
         const componentProps = {
             ...allData,
-            ...liveState,
+            // FIX: Conditionally spread liveState only for components that need it.
+            // This prevents components like Reporting from re-rendering every second.
+            ...( (activeFeatureId === 'supervision' || activeFeatureId === 'monitoring') && liveState),
             features: features, // Pass the main features array to all components
             feature: activeFeature,
             currentUser,
