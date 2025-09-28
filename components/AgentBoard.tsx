@@ -59,7 +59,7 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall })
     // display all agents and their real-time status, including 'Déconnecté', providing a
     // complete and instantaneous overview of the team's state and resolving the perceived
     // connection delay.
-    const connectedAgents = agents;
+    const agentsToDisplay = agents;
 
     return (
         <div className="overflow-x-auto">
@@ -75,7 +75,7 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall })
                     </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-200 text-sm">
-                    {connectedAgents.map(agent => {
+                    {agentsToDisplay.map(agent => {
                         const agentFullName = `${agent.firstName} ${agent.lastName}`;
                         const canCoach = hasPermission && agent.status === 'En Appel';
                         const canForcePause = hasPermission && agent.status !== 'En Pause';
