@@ -326,8 +326,10 @@ const AppContent: React.FC = () => {
                 ? await apiClient.post(url, data)
                 : await apiClient.put(`${url}/${data.id}`, data);
             
-            // We no longer need to re-fetch all data, as WebSocket events will handle updates.
-            // await fetchApplicationData();
+            // FIX: Re-enabled data fetching after mutations. The WebSocket implementation was
+            // incomplete, causing the UI to become stale. This ensures the UI always reflects
+            // the latest state after any save or update operation.
+            await fetchApplicationData();
             showAlert(t('alerts.saveSuccess'), 'success');
             return response.data;
         } catch (error: any) {
