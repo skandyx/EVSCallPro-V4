@@ -288,6 +288,8 @@ const AppContent: React.FC = () => {
                         timestamp: new Date().toISOString()
                     };
                     setNotifications(prev => [newNotification, ...prev]);
+                    // FIX: Re-added the toast notification for immediate feedback, as requested.
+                    showAlert(`L'agent ${event.payload.agentName} demande de l'aide !`, 'info');
                 }
             };
 
@@ -300,7 +302,7 @@ const AppContent: React.FC = () => {
                 wsClient.disconnect();
             };
         }
-    }, [currentUser]);
+    }, [currentUser, showAlert]);
 
     // Effect to initialize live data state once static data is loaded
     useEffect(() => {

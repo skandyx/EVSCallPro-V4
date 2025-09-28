@@ -85,11 +85,13 @@ function initializeWebSocketServer(server) {
                     broadcastToRoom('superviseur', broadcastEvent);
                 }
                 
-                if (event.type === 'agentRaisedHand' && ws.user.role === 'Agent') {
+                // FIX: Made the check more robust to handle a potential typo ('agentRaiseHand' instead of 'agentRaisedHand').
+                // This directly addresses the "unhandled message" error seen in the logs.
+                if ((event.type === 'agentRaisedHand' || event.type === 'agentRaiseHand') && ws.user.role === 'Agent') {
                     handled = true;
                     console.log(`[WS] Agent ${ws.user.id} raised hand. Broadcasting to supervisors.`);
                     const broadcastEvent = {
-                        type: 'agentRaisedHand',
+                        type: 'agentRaisedHand', // Always broadcast with the correct type
                         payload: event.payload 
                     };
                     broadcastToRoom('superviseur', broadcastEvent);
