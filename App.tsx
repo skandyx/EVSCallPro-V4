@@ -25,7 +25,7 @@ interface LiveState {
 
 type LiveAction =
     | { type: 'INIT_STATE'; payload: { agents: User[], campaigns: Campaign[] } }
-    | { type: 'AGENT_STATUS_UPDATE'; payload: Partial<AgentState> & { agentId: string } }
+    | { type: 'AGENT_STATUS_UPDATE'; payload: Partial<AgentState> & { agentId: string, status: AgentStatus } }
     | { type: 'NEW_CALL'; payload: ActiveCall }
     | { type: 'CALL_HANGUP'; payload: { callId: string } }
     | { type: 'TICK' };
@@ -39,11 +39,14 @@ const initialState: LiveState = {
 function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
     switch (action.type) {
         case 'INIT_STATE': {
+            // FIX: Initialize all agents with a 'Déconnecté' status. This ensures only agents
+            // who are truly connected and for whom we receive a real-time status update
+            // will appear as active in the supervision dashboard.
             const initialAgentStates: AgentState[] = action.payload.agents
                 .filter(u => u.role === 'Agent')
                 .map(agent => ({
                     ...agent,
-                    status: 'En Attente',
+                    status: 'Déconnecté',
                     statusDuration: 0,
                     callsHandledToday: 0,
                     averageHandlingTime: 0,
@@ -59,7 +62,7 @@ function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
                 ...state,
                 agentStates: state.agentStates.map(agent =>
                     agent.id === action.payload.agentId
-                        ? { ...agent, ...action.payload, statusDuration: 0 } // Reset timer on status change
+                        ? { ...agent, status: action.payload.status, statusDuration: 0 } // Reset timer on status change
                         : agent
                 ),
             };

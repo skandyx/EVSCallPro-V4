@@ -299,8 +299,8 @@ export interface BackupSchedule {
     time: string;
 }
 
-// FIX: Added 'Ringing' to AgentStatus to support the new status color in the Sidebar component.
-export type AgentStatus = 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause' | 'Ringing';
+// FIX: Added 'Déconnecté' to AgentStatus to properly model agent connection state.
+export type AgentStatus = 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause' | 'Ringing' | 'Déconnecté';
 
 export interface AgentState extends User {
     status: AgentStatus;
@@ -346,7 +346,7 @@ export interface AgentSession {
     id: string;
     agentId: string;
     loginTime: string;
-    logoutTime: string;
+    logoutTime: string | null;
 }
 
 export interface SystemLog {

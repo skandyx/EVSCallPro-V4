@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import type { Feature, AgentSession, User } from '../types.ts';
 import { InformationCircleIcon } from './Icons.tsx';
@@ -12,6 +10,7 @@ interface SessionViewerProps {
 }
 
 const formatDuration = (seconds: number) => {
+    if (isNaN(seconds) || seconds < 0) return '00:00:00';
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.round(seconds % 60);
@@ -63,8 +62,14 @@ const SessionViewer: React.FC<SessionViewerProps> = ({ feature, agentSessions, u
             if (!summary[session.agentId]) {
                 summary[session.agentId] = { name: findAgentName(session.agentId), totalDuration: 0 };
             }
-            const duration = (new Date(session.logoutTime).getTime() - new Date(session.loginTime).getTime()) / 1000;
-            summary[session.agentId].totalDuration += duration;
+            // FIX: Only calculate and add duration for sessions that have ended.
+            if (session.logoutTime) {
+                const duration = (new Date(session.logoutTime).getTime() - new Date(session.loginTime).getTime()) / 1000;
+                // Ensure duration is not negative in case of data inconsistency
+                if (duration > 0) {
+                    summary[session.agentId].totalDuration += duration;
+                }
+            }
         });
         return Object.values(summary).sort((a,b) => b.totalDuration - a.totalDuration);
     }, [filteredSessions]);
@@ -109,8 +114,14 @@ const SessionViewer: React.FC<SessionViewerProps> = ({ feature, agentSessions, u
                                     <tr key={session.id}>
                                         <td className="px-6 py-4 font-medium text-slate-800">{findAgentName(session.agentId)}</td>
                                         <td className="px-6 py-4 text-slate-600">{new Date(session.loginTime).toLocaleString('fr-FR')}</td>
-                                        <td className="px-6 py-4 text-slate-600">{new Date(session.logoutTime).toLocaleString('fr-FR')}</td>
-                                        <td className="px-6 py-4 font-mono">{formatDuration((new Date(session.logoutTime).getTime() - new Date(session.loginTime).getTime()) / 1000)}</td>
+                                        <td className="px-6 py-4 text-slate-600">
+                                            {/* FIX: Display 'En cours' for active sessions instead of an invalid date. */}
+                                            {session.logoutTime ? new Date(session.logoutTime).toLocaleString('fr-FR') : <span className="italic text-green-600 font-semibold">Session en cours</span>}
+                                        </td>
+                                        <td className="px-6 py-4 font-mono">
+                                            {/* FIX: Calculate duration only if logoutTime exists to prevent negative values. */}
+                                            {session.logoutTime ? formatDuration((new Date(session.logoutTime).getTime() - new Date(session.loginTime).getTime()) / 1000) : ''}
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

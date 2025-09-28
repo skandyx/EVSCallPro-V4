@@ -46,6 +46,18 @@ function initializeWebSocketServer(server) {
 
         ws.on('close', () => {
             console.log(`[WS] Client disconnected: User ID ${ws.user.id}`);
+            // FIX: When an agent disconnects, broadcast this to supervisors so they disappear
+            // from the real-time dashboard immediately.
+            if (ws.user.role === 'Agent') {
+                const disconnectEvent = {
+                    type: 'agentStatusUpdate',
+                    payload: {
+                        agentId: ws.user.id,
+                        status: 'Déconnecté'
+                    }
+                };
+                broadcastToRoom('superviseur', disconnectEvent);
+            }
             clients.delete(ws);
         });
 

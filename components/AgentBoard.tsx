@@ -8,12 +8,13 @@ interface AgentBoardProps {
     apiCall: any; // Axios instance
 }
 
-const STATUS_CONFIG: { [key in AgentState['status']]: { label: string; color: string } } = {
+const STATUS_CONFIG: { [key in AgentStatus]: { label: string; color: string } } = {
     'En Attente': { label: 'En Attente', color: 'bg-green-100 text-green-800' },
     'En Appel': { label: 'En Appel', color: 'bg-red-100 text-red-800' },
     'En Post-Appel': { label: 'En Post-Appel', color: 'bg-red-100 text-red-800' },
     'En Pause': { label: 'En Pause', color: 'bg-slate-200 text-slate-800' },
     'Ringing': { label: 'Sonne', color: 'bg-yellow-100 text-yellow-800' },
+    'Déconnecté': { label: 'Déconnecté', color: 'bg-gray-100 text-gray-800' },
 };
 
 const getStatusLedColor = (status: AgentStatus): string => {
@@ -23,6 +24,7 @@ const getStatusLedColor = (status: AgentStatus): string => {
         case 'En Post-Appel': return 'bg-red-500';
         case 'Ringing': return 'bg-yellow-400';
         case 'En Pause': return 'bg-slate-400';
+        case 'Déconnecté': return 'bg-slate-400';
         default: return 'bg-slate-400';
     }
 };
@@ -53,9 +55,8 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall })
         }
     };
     
-    // Filter to show only agents who are "connected" (i.e., their state is being tracked).
-    // An agent who has never logged in won't be in the live `agentStates` array.
-    const connectedAgents = agents.filter(agent => agent.status);
+    // FIX: Filter out disconnected agents to show only active users in the supervision view.
+    const connectedAgents = agents.filter(agent => agent.status && agent.status !== 'Déconnecté');
 
     return (
         <div className="overflow-x-auto">
