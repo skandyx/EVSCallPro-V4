@@ -136,6 +136,7 @@ CREATE TABLE campaigns (
     caller_id TEXT NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     dialing_mode dialing_mode NOT NULL,
+    priority INTEGER NOT NULL DEFAULT 5,
     -- Autres champs de configuration de la campagne
     wrap_up_time INTEGER NOT NULL DEFAULT 10,
     quota_rules JSONB DEFAULT '[]'::jsonb,
