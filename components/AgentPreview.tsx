@@ -179,7 +179,7 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
                 <div {...commonContainerProps}>
                     <h4 className="font-semibold mb-2 border-b pb-1 text-slate-700 flex-shrink-0">Historique des remarques</h4>
                     <div className="space-y-3 overflow-y-auto text-xs flex-1 pr-1">
-                        {contactNotes.length > 0 ? contactNotes.map((note) => (
+                        {contactNotes.length > 0 ? [...contactNotes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((note) => (
                              <div key={note.id} className="p-2 rounded bg-slate-50">
                                  <div className="flex justify-between items-baseline text-slate-500 mb-1">
                                      <span className="font-semibold">{findAgentLogin(note.agentId)}</span>

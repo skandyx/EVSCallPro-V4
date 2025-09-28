@@ -218,9 +218,12 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         ? data.qualifications.filter(q => q.groupId === currentCampaign.qualificationGroupId || q.isStandard)
         : [];
         
-    const contactNotesForCurrentContact = currentContact 
-        ? data.contactNotes.filter(note => note.contactId === currentContact.id) 
-        : [];
+    // FIX: Wrapped the derived state in useMemo to ensure it updates correctly when dependencies change.
+    const contactNotesForCurrentContact = useMemo(() => 
+        currentContact
+            ? data.contactNotes.filter(note => note.contactId === currentContact.id)
+            : [],
+    [currentContact, data.contactNotes]);
 
     const myPersonalCallbacks = useMemo(() => 
         data.personalCallbacks.filter(cb => cb.agentId === currentUser.id),

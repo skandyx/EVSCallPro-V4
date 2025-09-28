@@ -27,7 +27,7 @@ module.exports = {
     getContactNotes: async () => {
          const pool = require('./connection');
         const { keysToCamel } = require('./utils');
-        const res = await pool.query('SELECT * FROM contact_notes');
+        const res = await pool.query('SELECT * FROM contact_notes ORDER BY created_at DESC');
         return res.rows.map(keysToCamel);
     },
     getCallHistory: async () => {
