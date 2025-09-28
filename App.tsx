@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
 import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus, ActiveCall, CampaignState, SystemSmtpSettings, SystemAppSettings } from './types.ts';
 import { features } from './data/features.ts';
@@ -143,7 +144,7 @@ const AppContent: React.FC = () => {
         if (alert) {
             const timer = setTimeout(() => {
                 setAlert(null);
-            }, 3000); // Hide after 3 seconds
+            }, 5000); // Hide after 5 seconds
 
             return () => clearTimeout(timer);
         }
@@ -267,6 +268,11 @@ const AppContent: React.FC = () => {
                         setCurrentUser(event.payload);
                     }
                 }
+
+                // FEATURE: Handle "raise hand" event from agent
+                if (event.type === 'agentRaisedHand') {
+                    showAlert(`L'agent ${event.payload.agentName} demande de l'aide !`, 'info');
+                }
             };
 
             const unsubscribe = wsClient.onMessage(handleWebSocketMessage);
@@ -278,7 +284,7 @@ const AppContent: React.FC = () => {
                 wsClient.disconnect();
             };
         }
-    }, [currentUser]);
+    }, [currentUser, showAlert]);
 
     // Effect to initialize live data state once static data is loaded
     useEffect(() => {

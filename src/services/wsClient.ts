@@ -27,8 +27,8 @@ class WebSocketClient {
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    // FIX: The WebSocket endpoint is behind the /api proxy path.
-    this.url = `${protocol}//${window.location.host}/api?token=${this.token}`;
+    // FIX: The WebSocket endpoint path must end with a slash to match the Nginx proxy configuration.
+    this.url = `${protocol}//${window.location.host}/api/?token=${this.token}`;
 
     this.ws = new WebSocket(this.url);
 

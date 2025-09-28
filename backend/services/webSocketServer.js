@@ -17,8 +17,17 @@ function initializeWebSocketServer(server) {
     wss = new WebSocket.Server({ noServer: true });
 
     server.on('upgrade', (request, socket, head) => {
-        const { query } = url.parse(request.url, true);
-        const token = query.token;
+        const parsedUrl = url.parse(request.url, true);
+        const pathname = parsedUrl.pathname;
+        
+        // FIX: Only handle WebSocket requests on our designated path to improve robustness.
+        if (pathname !== '/api/') {
+            console.log(`[WS] Ignoring upgrade request for path: ${pathname}`);
+            socket.destroy();
+            return;
+        }
+
+        const token = parsedUrl.query.token;
 
         if (!token) {
             socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
@@ -70,6 +79,15 @@ function initializeWebSocketServer(server) {
                             agentId: ws.user.id,
                             status: event.payload.status
                         }
+                    };
+                    broadcastToRoom('superviseur', broadcastEvent);
+                }
+                // FEATURE: Handle "raise hand" event from agent
+                else if (event.type === 'agentRaiseHand' && ws.user.role === 'Agent') {
+                    console.log(`[WS] Agent ${ws.user.id} raised hand.`);
+                    const broadcastEvent = {
+                        type: 'agentRaisedHand', // new event type for supervisors
+                        payload: event.payload 
                     };
                     broadcastToRoom('superviseur', broadcastEvent);
                 }
