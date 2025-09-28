@@ -295,6 +295,7 @@ router.post('/test-email', isSuperAdmin, async (req, res) => {
  *               appLogoUrl: { type: string }
  *               colorPalette: { type: string }
  *               appName: { type: string }
+ *               defaultLanguage: { type: string, enum: ['fr', 'en'] }
  *     responses:
  *       '200':
  *         description: "Paramètres de l'application enregistrés."
@@ -309,6 +310,8 @@ router.put('/app-settings', isSuperAdmin, async (req, res) => {
             APP_LOGO_URL: settings.appLogoUrl,
             COLOR_PALETTE: settings.colorPalette,
             APP_NAME: settings.appName,
+            // FIX: Add defaultLanguage to the list of settings to be saved.
+            DEFAULT_LANGUAGE: settings.defaultLanguage,
         };
 
         for (const [key, value] of Object.entries(updates)) {

@@ -103,7 +103,7 @@ const AppContent: React.FC = () => {
     const [liveState, dispatch] = useReducer(liveDataReducer, initialState);
     const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'system');
     const [notifications, setNotifications] = useState<Notification[]>([]);
-    const { t, language } = useI18n();
+    const { t, language, setLanguage } = useI18n();
 
      // Effect to apply theme class to <html> element
     useEffect(() => {
@@ -191,7 +191,15 @@ const AppContent: React.FC = () => {
             // 1. Always fetch public settings first for the login screen.
             try {
                 const configResponse = await apiClient.get('/public-config');
-                setAllData(prev => ({ ...prev, appSettings: configResponse.data.appSettings }));
+                const settings = configResponse.data.appSettings;
+                setAllData(prev => ({ ...prev, appSettings: settings }));
+                
+                // FIX: Set default language if not already set by user preference in localStorage.
+                const savedLang = localStorage.getItem('language');
+                if (!savedLang && settings.defaultLanguage) {
+                    setLanguage(settings.defaultLanguage);
+                }
+
             } catch (e) {
                 console.error("Failed to load public config:", e);
                 // Set defaults on failure to prevent a broken UI
@@ -202,6 +210,7 @@ const AppContent: React.FC = () => {
                         appLogoUrl: '',
                         colorPalette: 'default',
                         appName: 'Architecte de Solutions',
+                        defaultLanguage: 'fr',
                     }
                 }));
             }
@@ -226,7 +235,7 @@ const AppContent: React.FC = () => {
         };
 
         loadApp();
-    }, [fetchApplicationData]);
+    }, [fetchApplicationData, setLanguage]);
 
     // Effect to handle logout event from axios interceptor
     useEffect(() => {

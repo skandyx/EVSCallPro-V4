@@ -435,4 +435,6 @@ export interface SystemAppSettings {
     appLogoUrl: string;
     colorPalette: 'default' | 'forest' | 'ocean' | 'sunset' | 'slate' | 'rose' | 'amber' | 'cyan';
     appName: string;
+    // FIX: Added 'defaultLanguage' to support system-wide language settings.
+    defaultLanguage: 'fr' | 'en';
 }

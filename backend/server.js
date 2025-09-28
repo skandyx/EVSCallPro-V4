@@ -140,6 +140,8 @@ app.get('/api/public-config', async (req, res) => {
             appLogoUrl: envConfig.APP_LOGO_URL || '',
             colorPalette: envConfig.COLOR_PALETTE || 'default',
             appName: envConfig.APP_NAME || 'Architecte de Solutions',
+            // FIX: Expose default language to the frontend.
+            defaultLanguage: envConfig.DEFAULT_LANGUAGE || 'fr',
         };
 
         res.json({ appSettings });
@@ -151,7 +153,8 @@ app.get('/api/public-config', async (req, res) => {
                 appName: 'Architecte de Solutions',
                 appLogoUrl: '',
                 colorPalette: 'default',
-                companyAddress: ''
+                companyAddress: '',
+                defaultLanguage: 'fr',
             }
          });
     }
@@ -241,6 +244,8 @@ app.get('/api/application-data', async (req, res) => {
             appLogoUrl: envConfig.APP_LOGO_URL || '',
             colorPalette: envConfig.COLOR_PALETTE || 'default',
             appName: envConfig.APP_NAME || 'Architecte de Solutions',
+            // FIX: Expose default language to the frontend.
+            defaultLanguage: envConfig.DEFAULT_LANGUAGE || 'fr',
         };
 
         res.json({

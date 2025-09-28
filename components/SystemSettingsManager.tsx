@@ -67,7 +67,7 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
     };
 
     const handleTestEmail = async () => {
-        if (!testEmail) { alert("Veuillez entrer une adresse e-mail de destination."); return; }
+        if (!testEmail) { alert(t('systemSettings.smtp.test.recipientMissing')); return; }
         setTestStatus('testing');
         try {
             await apiCall.post('/system/test-email', { smtpConfig: { ...smtpConfig, password: smtpPassword }, recipient: testEmail });
@@ -98,6 +98,11 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
         } catch(error) { /* Error shown by App component */ }
         finally { setIsSavingApp(false); }
     };
+    
+    // FIX: Added handler for the new default language toggles.
+    const handleDefaultLangChange = (lang: 'fr' | 'en') => {
+        handleAppSettingChange('defaultLanguage', lang);
+    };
 
     const TabButton: React.FC<{ tab: string; label: string; icon: React.FC<any>}> = ({ tab, label, icon: Icon }) => (
          <button
@@ -115,55 +120,55 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
 
     const renderSmtpContent = () => (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2">Paramètres du Serveur</h3></div>
-            <div><label className="text-sm font-medium">Serveur SMTP</label><input type="text" name="server" value={smtpConfig?.server || ''} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
-            <div><label className="text-sm font-medium">Port</label><input type="number" name="port" value={smtpConfig?.port || 0} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
-            <div className="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-md border"><div><p className="font-medium">Authentification Requise</p><p className="text-xs text-slate-500">Si votre serveur SMTP requiert un login/mot de passe.</p></div><ToggleSwitch enabled={smtpConfig?.auth || false} onChange={e => setSmtpConfig(c => ({...c, auth: e}))} /></div>
+            <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2">{t('systemSettings.smtp.server.title')}</h3></div>
+            <div><label className="text-sm font-medium">{t('systemSettings.smtp.server.host')}</label><input type="text" name="server" value={smtpConfig?.server || ''} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
+            <div><label className="text-sm font-medium">{t('systemSettings.smtp.server.port')}</label><input type="number" name="port" value={smtpConfig?.port || 0} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
+            <div className="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-md border"><div><p className="font-medium">{t('systemSettings.smtp.auth.label')}</p><p className="text-xs text-slate-500">{t('systemSettings.smtp.auth.description')}</p></div><ToggleSwitch enabled={smtpConfig?.auth || false} onChange={e => setSmtpConfig(c => ({...c, auth: e}))} /></div>
             {smtpConfig?.auth && <>
-                <div><label className="text-sm font-medium">Utilisateur</label><input type="text" name="user" value={smtpConfig.user} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
-                <div><label className="text-sm font-medium">Mot de passe</label><input type="password" value={smtpPassword} onChange={e => setSmtpPassword(e.target.value)} placeholder="Laisser vide pour ne pas changer" className="mt-1 w-full p-2 border rounded-md"/></div>
+                <div><label className="text-sm font-medium">{t('systemSettings.smtp.auth.user')}</label><input type="text" name="user" value={smtpConfig.user} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
+                <div><label className="text-sm font-medium">{t('common.password')}</label><input type="password" value={smtpPassword} onChange={e => setSmtpPassword(e.target.value)} placeholder={t('systemSettings.smtp.auth.passwordPlaceholder')} className="mt-1 w-full p-2 border rounded-md"/></div>
             </>}
-            <div className="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-md border"><div><p className="font-medium">Type de sécurité</p><p className="text-xs text-slate-500">Utiliser une connexion sécurisée (SSL/TLS).</p></div><ToggleSwitch enabled={smtpConfig?.secure || false} onChange={e => setSmtpConfig(c => ({...c, secure: e}))} /></div>
-            <div><label className="text-sm font-medium">Adresse d'expédition "From"</label><input type="email" name="from" value={smtpConfig?.from || ''} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
+            <div className="md:col-span-2 flex items-center justify-between p-3 bg-slate-50 rounded-md border"><div><p className="font-medium">{t('systemSettings.smtp.security.label')}</p><p className="text-xs text-slate-500">{t('systemSettings.smtp.security.description')}</p></div><ToggleSwitch enabled={smtpConfig?.secure || false} onChange={e => setSmtpConfig(c => ({...c, secure: e}))} /></div>
+            <div><label className="text-sm font-medium">{t('systemSettings.smtp.fromAddress')}</label><input type="email" name="from" value={smtpConfig?.from || ''} onChange={handleSmtpChange} className="mt-1 w-full p-2 border rounded-md"/></div>
             <div className="md:col-span-2 pt-4 border-t flex justify-end items-center gap-4">
-                {showSmtpSuccess && <span className="text-green-600 font-semibold">Enregistré !</span>}
-                <button onClick={handleSaveSmtp} disabled={isSavingSmtp} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50">{isSavingSmtp ? 'Enregistrement...' : 'Enregistrer les paramètres SMTP'}</button>
+                {showSmtpSuccess && <span className="text-green-600 font-semibold">{t('systemSettings.savedConfirmation')}</span>}
+                <button onClick={handleSaveSmtp} disabled={isSavingSmtp} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50">{isSavingSmtp ? t('systemSettings.saving') : t('systemSettings.smtp.saveButton')}</button>
             </div>
-            <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2 mt-4">Tester la Connexion</h3></div>
+            <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2 mt-4">{t('systemSettings.smtp.test.title')}</h3></div>
             <div className="md:col-span-2 flex items-end gap-3">
-                <div className="flex-grow"><label className="text-sm font-medium">Envoyer un email de test à</label><input type="email" value={testEmail} onChange={e => setTestEmail(e.target.value)} className="mt-1 w-full p-2 border rounded-md"/></div>
-                <button onClick={handleTestEmail} disabled={testStatus === 'testing'} className="bg-slate-200 hover:bg-slate-300 font-semibold py-2 px-4 rounded-lg shadow-sm disabled:opacity-50 inline-flex items-center"><PaperAirplaneIcon className="w-5 h-5 mr-2"/>{testStatus === 'testing' ? 'Envoi...' : 'Envoyer'}</button>
+                <div className="flex-grow"><label className="text-sm font-medium">{t('systemSettings.smtp.test.recipient')}</label><input type="email" value={testEmail} onChange={e => setTestEmail(e.target.value)} className="mt-1 w-full p-2 border rounded-md"/></div>
+                <button onClick={handleTestEmail} disabled={testStatus === 'testing'} className="bg-slate-200 hover:bg-slate-300 font-semibold py-2 px-4 rounded-lg shadow-sm disabled:opacity-50 inline-flex items-center"><PaperAirplaneIcon className="w-5 h-5 mr-2"/>{testStatus === 'testing' ? t('systemSettings.smtp.test.sending') : t('systemSettings.smtp.test.sendButton')}</button>
             </div>
-            {testStatus === 'success' && <div className="md:col-span-2 text-green-600 font-semibold">Email de test envoyé avec succès !</div>}
-            {testStatus === 'error' && <div className="md:col-span-2 text-red-600 font-semibold">Échec de l'envoi de l'email. Vérifiez la console pour les détails.</div>}
+            {testStatus === 'success' && <div className="md:col-span-2 text-green-600 font-semibold">{t('systemSettings.smtp.test.success')}</div>}
+            {testStatus === 'error' && <div className="md:col-span-2 text-red-600 font-semibold">{t('systemSettings.smtp.test.error')}</div>}
         </div>
     );
     
     const renderApparenceContent = () => (
          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2 flex items-center gap-2"><BuildingOfficeIcon className="w-5 h-5"/>Informations Société</h3></div>
+            <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2 flex items-center gap-2"><BuildingOfficeIcon className="w-5 h-5"/>{t('systemSettings.appearance.company.title')}</h3></div>
             <div>
-                <label className="text-sm font-medium">Adresse de la société</label>
+                <label className="text-sm font-medium">{t('systemSettings.appearance.company.address')}</label>
                 <textarea value={localAppSettings?.companyAddress || ''} onChange={e => handleAppSettingChange('companyAddress', e.target.value)} rows={4} className="mt-1 w-full p-2 border rounded-md"/>
             </div>
              <div>
-                <label className="text-sm font-medium">URL du Logo de l'application</label>
+                <label className="text-sm font-medium">{t('systemSettings.appearance.company.logoUrl')}</label>
                 <input type="url" value={localAppSettings?.appLogoUrl || ''} onChange={e => handleAppSettingChange('appLogoUrl', e.target.value)} className="mt-1 w-full p-2 border rounded-md" placeholder="https://.../logo.png"/>
-                {localAppSettings?.appLogoUrl && <img src={localAppSettings.appLogoUrl} alt="Aperçu du logo" className="mt-2 h-12 w-auto bg-slate-100 p-1 rounded-md"/>}
+                {localAppSettings?.appLogoUrl && <img src={localAppSettings.appLogoUrl} alt={t('systemSettings.appearance.company.logoPreview')} className="mt-2 h-12 w-auto bg-slate-100 p-1 rounded-md"/>}
             </div>
             <div className="md:col-span-2">
-                <label className="text-sm font-medium">Nom de l'application</label>
+                <label className="text-sm font-medium">{t('systemSettings.appearance.company.appName')}</label>
                 <input 
                     type="text" 
                     value={localAppSettings?.appName || ''} 
                     onChange={e => handleAppSettingChange('appName', e.target.value)} 
                     className="mt-1 w-full p-2 border rounded-md" 
-                    placeholder="Le nom affiché sur la page de connexion et dans la barre latérale"
+                    placeholder={t('systemSettings.appearance.company.appNamePlaceholder')}
                 />
             </div>
-            <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2 mt-4 flex items-center gap-2"><PaletteIcon className="w-5 h-5"/>Thème de l'Application</h3></div>
+            <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2 mt-4 flex items-center gap-2"><PaletteIcon className="w-5 h-5"/>{t('systemSettings.appearance.theme.title')}</h3></div>
             <div className="md:col-span-2">
-                <p className="text-sm text-slate-600 mb-3">Choisissez une palette de couleurs pour personnaliser l'apparence des boutons et des menus.</p>
+                <p className="text-sm text-slate-600 mb-3">{t('systemSettings.appearance.theme.description')}</p>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     {PALETTES.map(palette => (
                         <button key={palette.id} onClick={() => handleAppSettingChange('colorPalette', palette.id)} className={`p-3 rounded-lg border-2 transition-all ${localAppSettings?.colorPalette === palette.id ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-slate-300 hover:border-indigo-400'}`}>
@@ -175,17 +180,32 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
                     ))}
                 </div>
             </div>
+            {/* FIX: New section for default language setting. */}
+            <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2 mt-4">{t('systemSettings.appearance.language.title')}</h3></div>
+            <div className="md:col-span-2">
+                 <p className="text-sm text-slate-600 mb-3">{t('systemSettings.appearance.language.description')}</p>
+                 <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-md border">
+                        <p className="font-medium">{t('systemSettings.appearance.language.french')}</p>
+                        <ToggleSwitch enabled={localAppSettings?.defaultLanguage === 'fr'} onChange={() => handleDefaultLangChange('fr')} />
+                    </div>
+                     <div className="flex items-center justify-between p-3 bg-slate-50 rounded-md border">
+                        <p className="font-medium">{t('systemSettings.appearance.language.english')}</p>
+                        <ToggleSwitch enabled={localAppSettings?.defaultLanguage === 'en'} onChange={() => handleDefaultLangChange('en')} />
+                    </div>
+                 </div>
+            </div>
              <div className="md:col-span-2 pt-4 border-t flex justify-end items-center gap-4">
-                {showAppSuccess && <span className="text-green-600 font-semibold">Enregistré !</span>}
-                <button onClick={handleSaveApp} disabled={isSavingApp} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50">{isSavingApp ? 'Enregistrement...' : "Enregistrer l'apparence"}</button>
+                {showAppSuccess && <span className="text-green-600 font-semibold">{t('systemSettings.savedConfirmation')}</span>}
+                <button onClick={handleSaveApp} disabled={isSavingApp} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md disabled:opacity-50">{isSavingApp ? t('systemSettings.saving') : t('systemSettings.appearance.saveButton')}</button>
             </div>
          </div>
     );
     
     const renderLicencesContent = () => (
         <div className="text-center p-8 text-slate-500">
-            <h3 className="text-xl font-semibold">Gestion des Licences</h3>
-            <p className="mt-2">Ce module est en cours de développement.</p>
+            <h3 className="text-xl font-semibold">{t('systemSettings.licenses.title')}</h3>
+            <p className="mt-2">{t('systemSettings.licenses.wip')}</p>
         </div>
     );
 
@@ -201,9 +221,9 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
             <div className="bg-white rounded-lg shadow-sm border border-slate-200">
                 <div className="border-b border-slate-200">
                     <nav className="-mb-px flex space-x-6 px-6">
-                        <TabButton tab="apparence" label="Apparence" icon={PaletteIcon} />
-                        <TabButton tab="email" label="Email (SMTP)" icon={EnvelopeIcon} />
-                        <TabButton tab="licences" label="Licences" icon={Cog6ToothIcon} />
+                        <TabButton tab="apparence" label={t('systemSettings.tabs.appearance')} icon={PaletteIcon} />
+                        <TabButton tab="email" label={t('systemSettings.tabs.email')} icon={EnvelopeIcon} />
+                        <TabButton tab="licences" label={t('systemSettings.tabs.licenses')} icon={Cog6ToothIcon} />
                     </nav>
                 </div>
                 <div className="p-6">
