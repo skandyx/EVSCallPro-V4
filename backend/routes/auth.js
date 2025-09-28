@@ -48,6 +48,12 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ error: "Ce compte utilisateur est désactivé." });
         }
 
+        // --- SESSION TRACKING ---
+        if (user.role === 'Agent') {
+            await db.createAgentSession(user.id);
+        }
+        // -------------------------
+
         const userPayload = { id: user.id, role: user.role };
         const accessToken = jwt.sign(userPayload, ACCESS_TOKEN_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRATION });
         const refreshToken = jwt.sign(userPayload, REFRESH_TOKEN_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRATION });
@@ -110,7 +116,18 @@ router.post('/refresh', (req, res) => {
  *       200:
  *         description: Déconnexion réussie.
  */
-router.post('/logout', (req, res) => {
+router.post('/logout', authMiddleware, async (req, res) => {
+    // --- SESSION TRACKING ---
+    const user = req.user;
+    if (user && user.role === 'Agent') {
+        try {
+            await db.endAgentSession(user.id);
+        } catch(e) {
+            console.error(`Failed to end session for agent ${user.id}`, e);
+        }
+    }
+    // -------------------------
+    
     res.clearCookie('refreshToken', { path: '/' });
     res.status(200).json({ message: 'Déconnexion réussie.' });
 });

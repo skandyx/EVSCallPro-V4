@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import type { Feature, AgentState, ActiveCall, CampaignState, User, Campaign } from '../types.ts';
 import AgentBoard from './AgentBoard.tsx';
@@ -16,6 +14,7 @@ interface SupervisionDashboardProps {
     agentStates: AgentState[];
     activeCalls: ActiveCall[];
     campaignStates: CampaignState[];
+    apiCall: any; // AxiosInstance for actions
 }
 
 type Tab = 'live' | 'agents' | 'calls' | 'campaigns';
@@ -35,8 +34,8 @@ const KpiCard: React.FC<{ title: string; value: string | number; icon: React.FC<
 );
 
 // FIX: Imported useState hook from React to resolve 'Cannot find name' error.
-const SupervisionDashboard: React.FC<SupervisionDashboardProps> = ({ feature, users, campaigns, currentUser, agentStates, activeCalls, campaignStates }) => {
-    const [activeTab, setActiveTab] = useState<Tab>('live');
+const SupervisionDashboard: React.FC<SupervisionDashboardProps> = ({ feature, users, campaigns, currentUser, agentStates, activeCalls, campaignStates, apiCall }) => {
+    const [activeTab, setActiveTab] = useState<Tab>('agents');
     const { t } = useI18n();
 
     const kpis = useMemo(() => ({
@@ -61,7 +60,7 @@ const SupervisionDashboard: React.FC<SupervisionDashboardProps> = ({ feature, us
                     </div>
                 );
             case 'agents':
-                return <AgentBoard agents={agentStates} currentUser={currentUser} />;
+                return <AgentBoard agents={agentStates} currentUser={currentUser} apiCall={apiCall} />;
             case 'calls':
                 return <CallBoard calls={activeCalls} agents={users} campaigns={campaigns} />;
             case 'campaigns':

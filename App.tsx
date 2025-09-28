@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback, useMemo, useReducer } from 'react';
 import type { Feature, User, FeatureId, ModuleVisibility, SavedScript, Campaign, Contact, UserGroup, Site, Qualification, QualificationGroup, IvrFlow, AudioFile, Trunk, Did, BackupLog, BackupSchedule, AgentSession, CallHistoryRecord, SystemLog, VersionInfo, ConnectivityService, ActivityType, PlanningEvent, SystemConnectionSettings, ContactNote, PersonalCallback, AgentState, AgentStatus, ActiveCall, CampaignState, SystemSmtpSettings, SystemAppSettings } from './types.ts';
 import { features } from './data/features.ts';
@@ -158,11 +156,17 @@ const AppContent: React.FC = () => {
         }
     }, [showAlert, t]);
     
-    const handleLogout = useCallback(() => {
-        localStorage.removeItem('authToken');
-        setCurrentUser(null);
-        // We keep appSettings in allData so the login screen displays correctly
-        setAllData(prev => ({ appSettings: prev.appSettings }));
+    const handleLogout = useCallback(async () => {
+        try {
+            await apiClient.post('/auth/logout');
+        } catch(e) {
+            console.error("Logout API call failed, proceeding with client-side logout.", e);
+        } finally {
+            localStorage.removeItem('authToken');
+            setCurrentUser(null);
+            // We keep appSettings in allData so the login screen displays correctly
+            setAllData(prev => ({ appSettings: prev.appSettings }));
+        }
     }, []);
 
     // Check for existing token on mount and restore session
@@ -465,6 +469,10 @@ const AppContent: React.FC = () => {
     }
 
     if (currentUser.role === 'Agent') {
+        // BUG FIX: Prevent rendering AgentView until essential data is loaded.
+        if (!allData.campaigns) {
+            return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">{t('common.loading')}...</div>;
+        }
         return <AgentView 
             currentUser={currentUser} 
             onLogout={handleLogout} 

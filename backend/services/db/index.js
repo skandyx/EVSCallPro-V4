@@ -14,6 +14,7 @@ module.exports = {
     ...require('./media.queries'),
     ...require('./planning.queries'),
     ...require('./note.queries'),
+    ...require('./session.queries'),
     // Add other query modules here as they are created
     
     // A function to get all contacts for the application data dump.

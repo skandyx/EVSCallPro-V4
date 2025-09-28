@@ -125,6 +125,7 @@ const planningRoutes = require(path.join(__dirname, 'routes', 'planning.js'));
 const contactsRoutes = require(path.join(__dirname, 'routes', 'contacts.js'));
 const systemRoutes = require(path.join(__dirname, 'routes', 'system.js'));
 const audioRoutes = require(path.join(__dirname, 'routes', 'audio.js'));
+const supervisorRoutes = require(path.join(__dirname, 'routes', 'supervisor.js'));
 
 // Public routes
 app.use('/api/auth', authRoutes);
@@ -175,6 +176,7 @@ app.use('/api/planning-events', planningRoutes);
 app.use('/api/contacts', contactsRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/audio-files', audioRoutes);
+app.use('/api/supervisor', supervisorRoutes);
 
 
 // --- SPECIAL SYSTEM ROUTES ---

@@ -5,6 +5,7 @@ import { MicrophoneIcon, PhoneArrowUpRightIcon, AcademicCapIcon, PauseIcon, Tras
 interface AgentBoardProps {
     agents: AgentState[];
     currentUser: User;
+    apiCall: any; // Axios instance
 }
 
 const STATUS_CONFIG: { [key in AgentState['status']]: { label: string; color: string } } = {
@@ -32,19 +33,29 @@ const formatDuration = (seconds: number) => {
     return `${m}:${s}`;
 };
 
-const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser }) => {
+const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall }) => {
     
-    const hasPermission = currentUser.role === 'Administrateur' || currentUser.role === 'Superviseur';
+    const hasPermission = currentUser.role === 'Administrateur' || currentUser.role === 'Superviseur' || currentUser.role === 'SuperAdmin';
 
-    const handleAction = (action: string, agentName: string) => {
-        alert(`Action (simulation): ${action} sur l'agent ${agentName}`);
-    };
-
-    const handleForceLogout = (agentName: string) => {
-        if (window.confirm(`Êtes-vous sûr de vouloir déconnecter de force l'agent ${agentName} ?`)) {
-            alert(`Action (simulation): Déconnexion forcée de l'agent ${agentName}`);
+    const handleSupervisorAction = async (action: string, agentId: string) => {
+        try {
+            await apiCall.post(`/supervisor/${action}`, { agentId });
+            alert(`Action '${action}' envoyée à l'agent ${agentId}`);
+        } catch (error: any) {
+            console.error(`Failed to perform action ${action} on agent ${agentId}:`, error);
+            alert(`Erreur: ${error.response?.data?.error || error.message}`);
         }
     };
+
+    const handleForceLogout = async (agentId: string, agentName: string) => {
+        if (window.confirm(`Êtes-vous sûr de vouloir déconnecter de force l'agent ${agentName} ?`)) {
+            await handleSupervisorAction('force-logout', agentId);
+        }
+    };
+    
+    // Filter to show only agents who are "connected" (i.e., their state is being tracked).
+    // An agent who has never logged in won't be in the live `agentStates` array.
+    const connectedAgents = agents.filter(agent => agent.status);
 
     return (
         <div className="overflow-x-auto">
@@ -60,7 +71,7 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser }) => {
                     </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-200 text-sm">
-                    {agents.map(agent => {
+                    {connectedAgents.map(agent => {
                         const agentFullName = `${agent.firstName} ${agent.lastName}`;
                         const canCoach = hasPermission && agent.status === 'En Appel';
                         const canForcePause = hasPermission && agent.status !== 'En Pause';
@@ -91,11 +102,11 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser }) => {
                             <td className="px-4 py-3 text-slate-600">{agent.callsHandledToday}</td>
                             <td className="px-4 py-3 text-slate-600 font-mono">{formatDuration(agent.averageHandlingTime)}</td>
                             <td className="px-4 py-3 text-center space-x-1">
-                                <button onClick={() => handleAction('Écoute', agentFullName)} disabled={!canCoach} title="Écouter (Whisper)" className="p-1 rounded-md text-slate-500 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed"><MicrophoneIcon className="w-4 h-4"/></button>
-                                <button onClick={() => handleAction('Intervention', agentFullName)} disabled={!canCoach} title="Intervenir (Barge)" className="p-1 rounded-md text-slate-500 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed"><PhoneArrowUpRightIcon className="w-4 h-4"/></button>
-                                <button onClick={() => handleAction('Coaching', agentFullName)} disabled={!canCoach} title="Coacher" className="p-1 rounded-md text-slate-500 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed"><AcademicCapIcon className="w-4 h-4"/></button>
-                                <button onClick={() => handleAction('Forcer Pause', agentFullName)} disabled={!canForcePause} title="Forcer la Pause" className="p-1 rounded-md text-slate-500 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed"><PauseIcon className="w-4 h-4"/></button>
-                                <button onClick={() => handleForceLogout(agentFullName)} disabled={!hasPermission} title="Forcer la Déconnexion" className="p-1 rounded-md text-red-500 hover:bg-red-100 disabled:text-red-200 disabled:cursor-not-allowed"><TrashIcon className="w-4 h-4"/></button>
+                                <button onClick={() => handleSupervisorAction('listen', agent.id)} disabled={!canCoach} title="Écouter (Whisper)" className="p-1 rounded-md text-slate-500 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed"><MicrophoneIcon className="w-4 h-4"/></button>
+                                <button onClick={() => handleSupervisorAction('barge', agent.id)} disabled={!canCoach} title="Intervenir (Barge)" className="p-1 rounded-md text-slate-500 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed"><PhoneArrowUpRightIcon className="w-4 h-4"/></button>
+                                <button onClick={() => handleSupervisorAction('coach', agent.id)} disabled={!canCoach} title="Coacher" className="p-1 rounded-md text-slate-500 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed"><AcademicCapIcon className="w-4 h-4"/></button>
+                                <button onClick={() => handleSupervisorAction('force-pause', agent.id)} disabled={!canForcePause} title="Forcer la Pause" className="p-1 rounded-md text-slate-500 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed"><PauseIcon className="w-4 h-4"/></button>
+                                <button onClick={() => handleForceLogout(agent.id, agentFullName)} disabled={!hasPermission} title="Forcer la Déconnexion" className="p-1 rounded-md text-red-500 hover:bg-red-100 disabled:text-red-200 disabled:cursor-not-allowed"><TrashIcon className="w-4 h-4"/></button>
                             </td>
                         </tr>
                         )
