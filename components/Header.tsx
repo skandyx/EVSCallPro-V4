@@ -14,28 +14,28 @@ interface Notification {
 
 interface NotificationPopoverProps {
     notifications: Notification[];
-    onClear: () => void;
-    onRespond: (agentId: string, message: string) => void;
+    onClearAll: () => void;
+    onRespond: (agentId: string, message: string, notificationId: number) => void;
     onClose: () => void;
 }
 
-const NotificationPopover: React.FC<NotificationPopoverProps> = ({ notifications, onClear, onRespond, onClose }) => {
+const NotificationPopover: React.FC<NotificationPopoverProps> = ({ notifications, onClearAll, onRespond, onClose }) => {
     const [responseText, setResponseText] = useState('');
-    const [targetAgentId, setTargetAgentId] = useState<string | null>(null);
+    // FIX: Target notifications by their unique ID instead of agentId to handle multiple requests from the same agent.
+    const [targetNotificationId, setTargetNotificationId] = useState<number | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const handleRespondClick = (agentId: string) => {
-        setTargetAgentId(agentId);
+    const handleRespondClick = (notificationId: number) => {
+        setTargetNotificationId(notificationId);
         setTimeout(() => inputRef.current?.focus(), 50);
     };
 
-    const handleSendResponse = (e: React.FormEvent) => {
+    const handleSendResponse = (e: React.FormEvent, notification: Notification) => {
         e.preventDefault();
-        if (responseText.trim() && targetAgentId) {
-            onRespond(targetAgentId, responseText);
+        if (responseText.trim()) {
+            onRespond(notification.agentId, responseText, notification.id);
             setResponseText('');
-            setTargetAgentId(null);
-            onClose(); // Ferme le popover après réponse
+            setTargetNotificationId(null);
         }
     };
 
@@ -43,7 +43,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({ notifications
         <div className="absolute right-0 mt-2 w-80 origin-top-right bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-20">
             <div className="p-3 border-b dark:border-slate-700 flex justify-between items-center">
                 <h3 className="font-semibold text-slate-800 dark:text-slate-200">Notifications</h3>
-                {notifications.length > 0 && <button onClick={onClear} className="text-xs font-medium text-indigo-600 hover:underline">Tout marquer comme lu</button>}
+                {notifications.length > 0 && <button onClick={onClearAll} className="text-xs font-medium text-indigo-600 hover:underline">Tout marquer comme lu</button>}
             </div>
             <div className="max-h-96 overflow-y-auto">
                 {notifications.length === 0 ? (
@@ -55,8 +55,8 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({ notifications
                                 <span className="font-bold">{notif.agentName}</span> ({notif.agentLoginId}) a besoin d'aide.
                             </p>
                             <p className="text-xs text-slate-400 mt-1">{new Date(notif.timestamp).toLocaleTimeString()}</p>
-                            {targetAgentId === notif.agentId ? (
-                                <form onSubmit={handleSendResponse} className="mt-2 flex gap-2">
+                            {targetNotificationId === notif.id ? (
+                                <form onSubmit={(e) => handleSendResponse(e, notif)} className="mt-2 flex gap-2">
                                     <input
                                         ref={inputRef}
                                         type="text"
@@ -68,7 +68,7 @@ const NotificationPopover: React.FC<NotificationPopoverProps> = ({ notifications
                                     <button type="submit" className="text-sm bg-indigo-600 text-white px-3 rounded-md hover:bg-indigo-700">Envoyer</button>
                                 </form>
                             ) : (
-                                <button onClick={() => handleRespondClick(notif.agentId)} className="mt-2 text-xs font-semibold text-indigo-600 hover:underline">Répondre</button>
+                                <button onClick={() => handleRespondClick(notif.id)} className="mt-2 text-xs font-semibold text-indigo-600 hover:underline">Répondre</button>
                             )}
                         </div>
                     ))
@@ -86,7 +86,7 @@ interface HeaderProps {
     setTheme: (theme: Theme) => void;
     notifications: Notification[];
     onClearNotifications: () => void;
-    onRespondToAgent: (agentId: string, message: string) => void;
+    onRespondToAgent: (agentId: string, message: string, notificationId: number) => void;
 }
 
 // --- Clock Component ---
@@ -233,7 +233,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, onViewChange, theme, setThe
                             </span>
                         )}
                     </button>
-                    {isNotifOpen && <NotificationPopover notifications={notifications} onClear={onClearNotifications} onRespond={onRespondToAgent} onClose={() => setIsNotifOpen(false)} />}
+                    {isNotifOpen && <NotificationPopover notifications={notifications} onClearAll={onClearNotifications} onRespond={onRespondToAgent} onClose={() => setIsNotifOpen(false)} />}
                 </div>
                 <ThemeSwitcher theme={theme} setTheme={setTheme} />
                 <LanguageSwitcher />

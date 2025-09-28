@@ -108,6 +108,21 @@ function initializeWebSocketServer(server) {
                         }
                     });
                 }
+                
+                // FIX: Added handler for agent responses to supervisors.
+                if (event.type === 'agentResponseToSupervisor') {
+                    handled = true;
+                    console.log(`[WS] Agent ${ws.user.id} responded to supervisor: ${event.payload.message}`);
+                    const broadcastEvent = {
+                        type: 'agentResponseMessage',
+                        payload: {
+                            agentId: ws.user.id,
+                            agentName: event.payload.agentName,
+                            message: event.payload.message
+                        }
+                    };
+                    broadcastToRoom('superviseur', broadcastEvent);
+                }
 
                 if (!handled) {
                     console.log(`[WS] Received unhandled message type '${event.type}' from user ${ws.user.id}`);

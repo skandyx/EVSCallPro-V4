@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { User, Campaign, Contact, Qualification, SavedScript, QualificationGroup, ContactNote, PersonalCallback, AgentStatus } from '../types.ts';
-import { PowerIcon, PhoneIcon, UserCircleIcon, PauseIcon, CalendarDaysIcon, ComputerDesktopIcon, SunIcon, MoonIcon, ChevronDownIcon, ArrowLeftIcon, ArrowRightIcon, HandRaisedIcon, XMarkIcon } from './Icons.tsx';
+import { PowerIcon, PhoneIcon, UserCircleIcon, PauseIcon, CalendarDaysIcon, ComputerDesktopIcon, SunIcon, MoonIcon, ChevronDownIcon, ArrowLeftIcon, ArrowRightIcon, HandRaisedIcon, XMarkIcon, BellAlertIcon } from './Icons.tsx';
 import AgentPreview from './AgentPreview.tsx';
 import UserProfileModal from './UserProfileModal.tsx';
 import apiClient from '../src/lib/axios.ts';
@@ -20,8 +20,14 @@ interface AgentData {
 
 type Theme = 'light' | 'dark' | 'system';
 
-// FIX: Define a more specific type for the statuses that the agent can set manually.
 type LocalAgentStatus = 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause';
+
+interface SupervisorNotification {
+    id: number;
+    from: string;
+    message: string;
+    timestamp: string;
+}
 
 interface AgentViewProps {
     currentUser: User;
@@ -33,7 +39,6 @@ interface AgentViewProps {
     theme: Theme;
     setTheme: (theme: Theme) => void;
     agentStatus: AgentStatus | undefined;
-    // FIX: Add a callback to notify the backend of status changes for real-time supervision.
     onStatusChange: (status: LocalAgentStatus) => void;
 }
 
@@ -131,15 +136,16 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const [isCallbackModalOpen, setIsCallbackModalOpen] = useState(false);
     const [callbacksDate, setCallbacksDate] = useState(new Date());
     const [activeDialingCampaignId, setActiveDialingCampaignId] = useState<string | null>(null);
-    const [supervisorMessage, setSupervisorMessage] = useState<{ from: string; message: string; key: number } | null>(null);
+    const [agentNotifications, setAgentNotifications] = useState<SupervisorNotification[]>([]);
+    const [isAgentNotifOpen, setIsAgentNotifOpen] = useState(false);
+    const [activeReplyId, setActiveReplyId] = useState<number | null>(null);
+    const [replyText, setReplyText] = useState('');
 
     
     const assignedCampaigns = useMemo(() => currentUser.campaignIds.map(id => data.campaigns.find(c => c.id === id)).filter((c): c is Campaign => !!c), [currentUser.campaignIds, data.campaigns]);
     
-    // FIX: Add effect to set the default active campaign based on the provided logic.
     useEffect(() => {
         if (assignedCampaigns.length > 0 && !activeDialingCampaignId) {
-            // Find the first campaign that is active on the admin side.
             const firstActive = assignedCampaigns.find(c => c.isActive);
             if (firstActive) {
                 setActiveDialingCampaignId(firstActive.id);
@@ -147,14 +153,11 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         }
     }, [assignedCampaigns, activeDialingCampaignId]);
 
-    // FIX: Add an effect to ensure the agent's selected campaign for dialing is always an active one.
-    // This prevents confusion if a supervisor deactivates a campaign while an agent has it selected.
     useEffect(() => {
         if (activeDialingCampaignId) {
             const campaign = data.campaigns.find(c => c.id === activeDialingCampaignId);
             if (!campaign || !campaign.isActive) {
-                setActiveDialingCampaignId(null); // Reset if the campaign is no longer active
-                // Optionally, automatically select the next available active campaign
+                setActiveDialingCampaignId(null);
                 const newActiveCampaign = assignedCampaigns.find(c => c.isActive);
                 if (newActiveCampaign) {
                     setActiveDialingCampaignId(newActiveCampaign.id);
@@ -168,33 +171,31 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         return () => clearInterval(interval);
     }, []);
 
-    // WebSocket listener for supervisor messages & connection management
     useEffect(() => {
-        // --- ESTABLISH WEBSOCKET CONNECTION ---
         const token = localStorage.getItem('authToken');
         if (token) {
             wsClient.connect(token);
         }
 
-        // --- DEFINE MESSAGE HANDLER ---
         const handleWebSocketMessage = (event: any) => {
             if (event.type === 'supervisorMessage') {
-                setSupervisorMessage({ ...event.payload, key: Date.now() });
-                // Optional: Auto-dismiss after some time
-                setTimeout(() => setSupervisorMessage(null), 15000);
+                const newNotif: SupervisorNotification = {
+                    id: Date.now(),
+                    from: event.payload.from,
+                    message: event.payload.message,
+                    timestamp: new Date().toISOString()
+                };
+                setAgentNotifications(prev => [newNotif, ...prev]);
             }
         };
 
-        // --- SUBSCRIBE & CLEANUP ---
         const unsubscribe = wsClient.onMessage(handleWebSocketMessage);
         return () => {
             unsubscribe();
-            // Disconnect when the agent view is unmounted (e.g., on logout)
             wsClient.disconnect();
         };
-    }, []); // Empty dependency array ensures this runs only once on mount and cleans up on unmount
+    }, []);
 
-    // FIX: Create a centralized function to change status, which also notifies the backend.
     const changeStatus = (newStatus: LocalAgentStatus) => {
         setStatus(newStatus);
         setStatusTimer(0);
@@ -217,7 +218,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         setIsLoadingNextContact(true);
         setFeedbackMessage(null);
         try {
-            // FIX: Pass the agent's selected active campaign ID to the backend.
             const response = await apiClient.post('/campaigns/next-contact', { agentId: currentUser.id, activeCampaignId: activeDialingCampaignId });
             const { contact, campaign } = response.data;
             if (contact && campaign) {
@@ -318,6 +318,20 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         setTimeout(() => setFeedbackMessage(null), 3000);
     }, [currentUser]);
 
+    const handleRespondToSupervisor = (notificationId: number) => {
+        if (!replyText.trim()) return;
+        wsClient.send({
+            type: 'agentResponseToSupervisor',
+            payload: {
+                agentName: `${currentUser.firstName} ${currentUser.lastName}`,
+                message: replyText
+            }
+        });
+        setReplyText('');
+        setActiveReplyId(null);
+        setAgentNotifications(prev => prev.filter(n => n.id !== notificationId));
+    };
+
     const qualificationsForCampaign = currentCampaign ? data.qualifications.filter(q => q.groupId === currentCampaign.qualificationGroupId || q.isStandard) : [];
     const contactNotesForCurrentContact = useMemo(() => currentContact ? data.contactNotes.filter(note => note.contactId === currentContact.id) : [], [currentContact, data.contactNotes]);
     const myPersonalCallbacks = useMemo(() => data.personalCallbacks.filter(cb => cb.agentId === currentUser.id && new Date(cb.scheduledTime).toDateString() === callbacksDate.toDateString()), [data.personalCallbacks, currentUser.id, callbacksDate]);
@@ -339,6 +353,45 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 </button>
                 <div className="flex items-center gap-4">
                     <Clock />
+                    <div className="relative">
+                        <button onClick={() => setIsAgentNotifOpen(p => !p)} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400">
+                            <BellAlertIcon className="w-6 h-6" />
+                            {agentNotifications.length > 0 && (
+                                <span className="absolute top-1 right-1 flex h-4 w-4">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-white text-xs items-center justify-center">{agentNotifications.length}</span>
+                                </span>
+                            )}
+                        </button>
+                        {isAgentNotifOpen && (
+                           <div className="absolute right-0 mt-2 w-80 origin-top-right bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-20">
+                                <div className="p-3 border-b dark:border-slate-700 flex justify-between items-center">
+                                    <h3 className="font-semibold text-slate-800 dark:text-slate-200">Messages</h3>
+                                    {agentNotifications.length > 0 && <button onClick={() => setAgentNotifications([])} className="text-xs font-medium text-indigo-600 hover:underline">Tout effacer</button>}
+                                </div>
+                                <div className="max-h-96 overflow-y-auto">
+                                    {agentNotifications.length === 0 ? (
+                                        <p className="text-sm text-slate-500 text-center p-8">Aucun nouveau message.</p>
+                                    ) : (
+                                        agentNotifications.map(notif => (
+                                            <div key={notif.id} className="p-3 border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700">
+                                                <p className="text-sm text-slate-700 dark:text-slate-200"><span className="font-bold">{notif.from}:</span> {notif.message}</p>
+                                                <p className="text-xs text-slate-400 mt-1">{new Date(notif.timestamp).toLocaleTimeString()}</p>
+                                                {activeReplyId === notif.id ? (
+                                                    <form onSubmit={(e) => { e.preventDefault(); handleRespondToSupervisor(notif.id); }} className="mt-2 flex gap-2">
+                                                        <input type="text" value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Votre réponse..." autoFocus className="w-full text-sm p-1.5 border rounded-md dark:bg-slate-900 dark:border-slate-600"/>
+                                                        <button type="submit" className="text-sm bg-indigo-600 text-white px-3 rounded-md hover:bg-indigo-700">Envoyer</button>
+                                                    </form>
+                                                ) : (
+                                                    <button onClick={() => setActiveReplyId(notif.id)} className="mt-2 text-xs font-semibold text-indigo-600 hover:underline">Répondre</button>
+                                                )}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                     <LanguageSwitcher />
                     <ThemeSwitcher theme={theme} setTheme={setTheme} />
                     <button onClick={onLogout} className="font-semibold py-2 px-4 rounded-lg inline-flex items-center bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"><PowerIcon className="w-5 h-5 mr-2" /> Déconnexion</button>
@@ -377,13 +430,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                     </div>
                 </div>
             </main>
-            {supervisorMessage && (
-                <div key={supervisorMessage.key} className="fixed bottom-4 left-1/2 -translate-x-1/2 max-w-lg w-full bg-indigo-100 dark:bg-indigo-900/80 backdrop-blur-sm border border-indigo-300 dark:border-indigo-700 text-indigo-800 dark:text-indigo-200 p-4 rounded-lg shadow-lg flex items-start gap-3 animate-fade-in-up">
-                    <div className="flex-shrink-0"><UserCircleIcon className="w-6 h-6 text-indigo-500 dark:text-indigo-400" /></div>
-                    <div className="flex-1"><p className="font-bold">Message du Superviseur</p><p className="text-sm">{supervisorMessage.message}</p></div>
-                    <button onClick={() => setSupervisorMessage(null)} className="p-1 rounded-full hover:bg-indigo-200 dark:hover:bg-indigo-800"><XMarkIcon className="w-5 h-5"/></button>
-                </div>
-            )}
         </div>
     );
 };

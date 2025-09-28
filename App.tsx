@@ -277,10 +277,6 @@ const AppContent: React.FC = () => {
                     }
                 }
 
-                // FIX: Added handler for 'agentRaisedHand' event. This was the missing piece
-                // to make supervisor notifications work. It receives the event broadcasted by the
-                // server and adds it to the local notifications state, which in turn triggers
-                // the UI update in the Header component.
                 if (event.type === 'agentRaisedHand') {
                      const newNotification: Notification = {
                         ...event.payload,
@@ -288,8 +284,12 @@ const AppContent: React.FC = () => {
                         timestamp: new Date().toISOString()
                     };
                     setNotifications(prev => [newNotification, ...prev]);
-                    // FIX: Re-added the toast notification for immediate feedback, as requested.
                     showAlert(`L'agent ${event.payload.agentName} demande de l'aide !`, 'info');
+                }
+
+                // FIX: Added handler for 'agentResponseMessage' to provide feedback when an agent replies.
+                if (event.type === 'agentResponseMessage') {
+                    showAlert(`Réponse de ${event.payload.agentName}: "${event.payload.message}"`, 'info');
                 }
             };
 
@@ -498,12 +498,13 @@ const AppContent: React.FC = () => {
         }
     }, [currentUser]);
 
-    const handleRespondToAgent = useCallback((agentId: string, message: string) => {
+    // FIX: Modified the handler to also remove the notification from the state, which makes the counter decrease.
+    const handleRespondToAgent = useCallback((agentId: string, message: string, notificationId: number) => {
         wsClient.send({
             type: 'supervisorResponseToAgent',
             payload: { agentId, message }
         });
-        showAlert(`Réponse envoyée à l'agent.`, 'success');
+        setNotifications(prev => prev.filter(n => n.id !== notificationId));
     }, []);
 
     const currentUserStatus: AgentStatus | undefined = useMemo(() => {
