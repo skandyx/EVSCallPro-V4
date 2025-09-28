@@ -168,8 +168,15 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         return () => clearInterval(interval);
     }, []);
 
-    // WebSocket listener for supervisor messages
+    // WebSocket listener for supervisor messages & connection management
     useEffect(() => {
+        // --- ESTABLISH WEBSOCKET CONNECTION ---
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            wsClient.connect(token);
+        }
+
+        // --- DEFINE MESSAGE HANDLER ---
         const handleWebSocketMessage = (event: any) => {
             if (event.type === 'supervisorMessage') {
                 setSupervisorMessage({ ...event.payload, key: Date.now() });
@@ -178,9 +185,14 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             }
         };
 
+        // --- SUBSCRIBE & CLEANUP ---
         const unsubscribe = wsClient.onMessage(handleWebSocketMessage);
-        return () => unsubscribe();
-    }, []);
+        return () => {
+            unsubscribe();
+            // Disconnect when the agent view is unmounted (e.g., on logout)
+            wsClient.disconnect();
+        };
+    }, []); // Empty dependency array ensures this runs only once on mount and cleans up on unmount
 
     // FIX: Create a centralized function to change status, which also notifies the backend.
     const changeStatus = (newStatus: LocalAgentStatus) => {
