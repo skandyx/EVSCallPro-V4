@@ -1,6 +1,8 @@
 const pool = require('./connection');
 const { keysToCamel } = require('./utils');
-const { broadcast } = require('../webSocketServer');
+const { broadcast, sendToUser } = require('../webSocketServer');
+const userQueries = require('./user.queries');
+
 
 // --- HELPER FUNCTIONS for Quotas & Filters ---
 
@@ -155,6 +157,10 @@ const getCampaigns = async () => {
 const saveCampaign = async (campaign, id) => {
     const { name, description, scriptId, qualificationGroupId, callerId, isActive, dialingMode, wrapUpTime, quotaRules, filterRules, priority, assignedUserIds } = campaign;
     const client = await pool.connect();
+    
+    let toAdd = [];
+    let toRemove = [];
+
     try {
         await client.query('BEGIN');
         
@@ -180,8 +186,8 @@ const saveCampaign = async (campaign, id) => {
         const currentAgentIds = new Set(currentAgents.map(a => a.user_id));
         const desiredAgentIds = new Set(assignedUserIds || []);
 
-        const toAdd = [...desiredAgentIds].filter(userId => !currentAgentIds.has(userId));
-        const toRemove = [...currentAgentIds].filter(userId => !desiredAgentIds.has(userId));
+        toAdd = [...desiredAgentIds].filter(userId => !currentAgentIds.has(userId));
+        toRemove = [...currentAgentIds].filter(userId => !desiredAgentIds.has(userId));
 
         if (toRemove.length > 0) {
             await client.query(`DELETE FROM campaign_agents WHERE campaign_id = $1 AND user_id = ANY($2::text[])`, [campaignId, toRemove]);
@@ -200,8 +206,21 @@ const saveCampaign = async (campaign, id) => {
         const contactsRes = await pool.query('SELECT * FROM contacts WHERE campaign_id = $1', [finalCampaign.id]);
         finalCampaign.contacts = contactsRes.rows.map(keysToCamel);
         
-        // Broadcast the update to all clients
+        // Broadcast the campaign update to all clients
         broadcast({ type: 'campaignUpdate', payload: finalCampaign });
+        
+        // Now, send targeted profile updates to affected agents
+        const affectedUserIds = [...toAdd, ...toRemove];
+        for (const userId of affectedUserIds) {
+            try {
+                const updatedUser = await userQueries.getUserById(userId);
+                if (updatedUser) {
+                    sendToUser(userId, { type: 'userProfileUpdate', payload: updatedUser });
+                }
+            } catch (userError) {
+                console.error(`Failed to fetch and notify user ${userId} after campaign update:`, userError);
+            }
+        }
         
         return finalCampaign;
 

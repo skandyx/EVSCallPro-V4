@@ -156,6 +156,8 @@ const AppContent: React.FC = () => {
         } catch (error) {
             console.error("Failed to fetch application data:", error);
             showAlert(t('alerts.appDataLoadError'), 'error');
+            // Propagate error to allow callers to handle it
+            throw error;
         }
     }, [showAlert, t]);
     
@@ -199,9 +201,10 @@ const AppContent: React.FC = () => {
             const token = localStorage.getItem('authToken');
             if (token) {
                 try {
+                    // Fetch data first, then user. This ensures all data is present before rendering authenticated views.
+                    await fetchApplicationData();
                     const meResponse = await apiClient.get('/auth/me');
                     setCurrentUser(meResponse.data.user);
-                    await fetchApplicationData(); // Fetches all protected data
                 } catch (error) {
                     console.error("Session check failed:", error);
                     // The refresh token logic in axios interceptor will handle this.
@@ -285,11 +288,19 @@ const AppContent: React.FC = () => {
     }, [allData.users, allData.campaigns]);
 
 
-    const handleLoginSuccess = ({ user, token }: { user: User, token: string }) => {
+    const handleLoginSuccess = async ({ user, token }: { user: User, token: string }) => {
         localStorage.setItem('authToken', token);
-        setCurrentUser(user);
         setIsLoading(true);
-        fetchApplicationData().finally(() => setIsLoading(false));
+        try {
+            await fetchApplicationData();
+            setCurrentUser(user);
+        } catch (error) {
+            // If fetching data fails, log the user out to prevent a broken state
+            localStorage.removeItem('authToken');
+            setCurrentUser(null);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleSaveOrUpdate = async (dataType: string, data: any, endpoint?: string) => {
@@ -472,10 +483,6 @@ const AppContent: React.FC = () => {
     }
 
     if (currentUser.role === 'Agent') {
-        // BUG FIX: Prevent rendering AgentView until essential data is loaded.
-        if (!allData.campaigns) {
-            return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">{t('common.loading')}...</div>;
-        }
         return <AgentView 
             currentUser={currentUser} 
             onLogout={handleLogout} 

@@ -4,7 +4,7 @@ import { LogoIcon } from './Icons.tsx';
 import apiClient from '../src/lib/axios.ts';
 
 interface LoginScreenProps {
-    onLoginSuccess: (data: { user: User, token: string }) => void;
+    onLoginSuccess: (data: { user: User, token: string }) => Promise<void>;
     appLogoUrl?: string;
     appName?: string;
 }
@@ -25,7 +25,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, appLogoUrl, a
             const data = response.data;
 
             if (data.user && data.user.isActive) {
-                onLoginSuccess({ user: data.user, token: data.accessToken });
+                await onLoginSuccess({ user: data.user, token: data.accessToken });
             } else {
                  setError("Ce compte utilisateur est désactivé.");
             }
