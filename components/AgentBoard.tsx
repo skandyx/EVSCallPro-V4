@@ -55,11 +55,9 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall })
         }
     };
     
-    // FIX: Removed filtering of disconnected agents. The supervisor dashboard should now
-    // display all agents and their real-time status, including 'Déconnecté', providing a
-    // complete and instantaneous overview of the team's state and resolving the perceived
-    // connection delay.
-    const connectedAgents = agents;
+    // FIX: Re-introduced the filter to hide disconnected agents as per user request,
+    // ensuring the dashboard only shows active participants for a cleaner real-time view.
+    const connectedAgents = agents.filter(agent => agent.status !== 'Déconnecté');
 
     return (
         <div className="overflow-x-auto">
@@ -75,7 +73,7 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall })
                     </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-200 text-sm">
-                    {connectedAgents.map(agent => {
+                    {connectedAgents.length > 0 ? connectedAgents.map(agent => {
                         const agentFullName = `${agent.firstName} ${agent.lastName}`;
                         const canCoach = hasPermission && agent.status === 'En Appel';
                         const canForcePause = hasPermission && agent.status !== 'En Pause';
@@ -114,7 +112,13 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall })
                             </td>
                         </tr>
                         )
-                    })}
+                    }) : (
+                        <tr>
+                            <td colSpan={6} className="text-center py-8 text-slate-500 italic">
+                                Aucun agent connecté pour le moment.
+                            </td>
+                        </tr>
+                    )}
                 </tbody>
             </table>
         </div>
