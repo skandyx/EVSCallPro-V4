@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useMemo } from 'react';
 import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact, CallHistoryRecord, Qualification } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ArrowUpTrayIcon } from './Icons.tsx';
@@ -9,6 +5,23 @@ import ImportContactsModal from './ImportContactsModal.tsx';
 // FIX: Corrected import path for CampaignDetailView
 import CampaignDetailView from './CampaignDetailView.tsx'; // Import the new detail view
 import { useI18n } from '../src/i18n/index.tsx';
+
+// --- Reusable ToggleSwitch Component ---
+const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void; }> = ({ enabled, onChange }) => (
+    <button
+        type="button"
+        onClick={() => onChange(!enabled)}
+        className={`${enabled ? 'bg-primary' : 'bg-slate-200'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`}
+        role="switch"
+        aria-checked={enabled}
+    >
+        <span
+            aria-hidden="true"
+            className={`${enabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+        />
+    </button>
+);
+
 
 // --- CampaignModal ---
 interface CampaignModalProps {
@@ -32,6 +45,14 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
         voicemailAction: 'HANGUP', recordingEnabled: true, recordingBeep: true, maxRingDuration: 25, wrapUpTime: 10,
         maxCallDuration: 3600, quotaRules: [], filterRules: [],
     });
+
+    // --- Validation Logic for LEDs ---
+    const isNameValid = !!formData.name.trim();
+    const isQualifGroupValid = !!formData.qualificationGroupId;
+    // FIX: Corrected a TypeScript error caused by operator precedence. The `!!` was incorrectly converting the string length to a boolean before the `> 0` comparison, leading to `boolean > number`. Removing `!!` ensures the length is correctly checked.
+    const isCallerIdValid = formData.callerId.trim().length > 0 && /^\d+$/.test(formData.callerId);
+    const isWrapUpTimeValid = formData.wrapUpTime >= 0 && formData.wrapUpTime <= 120;
+    const isFormValid = isNameValid && isQualifGroupValid && isCallerIdValid && isWrapUpTimeValid;
     
     const availableFields = useMemo(() => {
         const standard = [
@@ -48,9 +69,8 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
     }, [script]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value, type } = e.target;
-        if (type === 'checkbox') setFormData(prev => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
-        else if (name === 'scriptId') setFormData(prev => ({ ...prev, scriptId: value === '' ? null : value }));
+        const { name, value } = e.target;
+        if (name === 'scriptId') setFormData(prev => ({ ...prev, scriptId: value === '' ? null : value }));
         else if (e.target.getAttribute('type') === 'number') setFormData(prev => ({ ...prev, [name]: isNaN(parseInt(value, 10)) ? 0 : parseInt(value, 10) }));
         else setFormData(prev => ({ ...prev, [name]: value }));
     };
@@ -81,7 +101,12 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
         <div className="fixed inset-0 bg-slate-800 bg-opacity-75 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl h-[90vh] flex flex-col">
                 <form onSubmit={handleSubmit} className="flex flex-col h-full">
-                    <div className="p-6 border-b"><h3 className="text-lg font-medium text-slate-900">{campaign ? 'Modifier la Campagne' : 'Nouvelle Campagne'}</h3></div>
+                    <div className="p-6 border-b">
+                        <h3 className="text-lg font-medium text-slate-900 flex items-center">
+                            <span className={`w-3 h-3 rounded-full mr-3 flex-shrink-0 ${isFormValid ? 'bg-green-500' : 'bg-red-500'}`} title={isFormValid ? "Prêt à démarrer" : "Champs requis manquants"}></span>
+                            {campaign ? 'Modifier la Campagne' : 'Nouvelle Campagne'}
+                        </h3>
+                    </div>
                     <div className="border-b px-4"><nav className="-mb-px flex space-x-4">
                         {['general', 'quotas', 'filters'].map(tab => (
                             <button type="button" key={tab} onClick={() => setActiveTab(tab)} className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === tab ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
@@ -91,18 +116,24 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
                     </nav></div>
                     <div className="p-6 space-y-4 overflow-y-auto flex-1">
                         {activeTab === 'general' && <>
-                            <div><label className="block text-sm font-medium text-slate-700">Nom</label><input type="text" name="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full p-2 border border-slate-300 rounded-md" /></div>
+                            <div><label className="block text-sm font-medium text-slate-700 flex items-center">Nom <span className={`w-2 h-2 rounded-full inline-block ml-2 ${isNameValid ? 'bg-green-500' : 'bg-red-500'}`}></span></label><input type="text" name="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full p-2 border border-slate-300 rounded-md" /></div>
                             <div><label className="block text-sm font-medium text-slate-700">Description</label><textarea name="description" value={formData.description} onChange={handleChange} className="mt-1 block w-full p-2 border border-slate-300 rounded-md" rows={2} /></div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div><label className="block text-sm font-medium text-slate-700">Script d'agent</label><select name="scriptId" value={formData.scriptId || ''} onChange={handleChange} className="mt-1 block w-full p-2 border bg-white rounded-md"><option value="">Aucun script</option>{scripts.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-                                <div><label className="block text-sm font-medium text-slate-700">Groupe de qualifications</label><select name="qualificationGroupId" value={formData.qualificationGroupId || ''} onChange={handleChange} required className="mt-1 block w-full p-2 border bg-white rounded-md">{qualificationGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
+                                <div><label className="block text-sm font-medium text-slate-700 flex items-center">Groupe de qualifications <span className={`w-2 h-2 rounded-full inline-block ml-2 ${isQualifGroupValid ? 'bg-green-500' : 'bg-red-500'}`}></span></label><select name="qualificationGroupId" value={formData.qualificationGroupId || ''} onChange={handleChange} required className="mt-1 block w-full p-2 border bg-white rounded-md">{qualificationGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}</select></div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div><label className="block text-sm font-medium text-slate-700">Mode de numérotation</label><select name="dialingMode" value={formData.dialingMode} onChange={handleChange} className="mt-1 block w-full p-2 border bg-white rounded-md"><option value="PREDICTIVE">Prédictif</option><option value="PROGRESSIVE">Progressif</option><option value="MANUAL">Manuel</option></select></div>
-                                <div><label className="block text-sm font-medium text-slate-700">Numéro présenté (Caller ID)</label><input type="text" name="callerId" value={formData.callerId} onChange={handleChange} required className="mt-1 block w-full p-2 border border-slate-300 rounded-md" /></div>
+                                <div><label className="block text-sm font-medium text-slate-700 flex items-center">Numéro présenté (Caller ID) <span className={`w-2 h-2 rounded-full inline-block ml-2 ${isCallerIdValid ? 'bg-green-500' : 'bg-red-500'}`}></span></label><input type="text" name="callerId" value={formData.callerId} onChange={handleChange} required className="mt-1 block w-full p-2 border border-slate-300 rounded-md" /></div>
                             </div>
-                            <div><label className="block text-sm font-medium text-slate-700">Temps de Post-Appel (secondes)</label><input type="number" name="wrapUpTime" value={formData.wrapUpTime} onChange={handleChange} min="0" max="120" required className="mt-1 block w-full p-2 border rounded-md" /><p className="text-xs text-slate-500 mt-1">Durée max pour l'agent en état "Post-appel" (max 120s).</p></div>
-                            <div className="flex items-start"><div className="flex h-5 items-center"><input id="isActive" name="isActive" type="checkbox" checked={formData.isActive} onChange={handleChange} className="h-4 w-4 rounded border-slate-300 text-indigo-600"/></div><div className="ml-3 text-sm"><label htmlFor="isActive" className="font-medium text-slate-700">Campagne Active</label></div></div>
+                            <div><label className="block text-sm font-medium text-slate-700 flex items-center">Temps de Post-Appel (secondes) <span className={`w-2 h-2 rounded-full inline-block ml-2 ${isWrapUpTimeValid ? 'bg-green-500' : 'bg-red-500'}`}></span></label><input type="number" name="wrapUpTime" value={formData.wrapUpTime} onChange={handleChange} min="0" max="120" required className="mt-1 block w-full p-2 border rounded-md" /><p className="text-xs text-slate-500 mt-1">Durée max pour l'agent en état "Post-appel" (max 120s).</p></div>
+                            <div className="flex items-center justify-between pt-4 border-t">
+                                <label htmlFor="isActive" className="font-medium text-slate-700">Campagne Active</label>
+                                <ToggleSwitch 
+                                    enabled={formData.isActive}
+                                    onChange={isEnabled => setFormData(prev => ({ ...prev, isActive: isEnabled }))}
+                                />
+                            </div>
                         </>}
                         {activeTab === 'quotas' && <div className="space-y-3">
                             {formData.quotaRules.map((rule, index) => <div key={rule.id} className="grid grid-cols-12 gap-2 items-center">
