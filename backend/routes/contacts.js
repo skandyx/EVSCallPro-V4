@@ -86,4 +86,44 @@ router.post('/:id/notes', async (req, res) => {
     }
 });
 
+/**
+ * @openapi
+ * /contacts/{id}/schedule-callback:
+ *   post:
+ *     summary: Planifie un rappel personnel pour un contact.
+ *     tags: [Contacts]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               agentId: { type: string }
+ *               campaignId: { type: string }
+ *               contactName: { type: string }
+ *               contactNumber: { type: string }
+ *               scheduledTime: { type: string, format: "date-time" }
+ *               notes: { type: string }
+ *     responses:
+ *       '201':
+ *         description: "Rappel créé."
+ */
+router.post('/:id/schedule-callback', async (req, res) => {
+    try {
+        const callbackData = { contactId: req.params.id, ...req.body };
+        const newCallback = await db.createPersonalCallback(callbackData);
+        res.status(201).json(newCallback);
+    } catch (error) {
+        console.error('Error creating personal callback:', error);
+        res.status(500).json({ error: 'Failed to create personal callback' });
+    }
+});
+
 module.exports = router;

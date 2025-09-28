@@ -277,6 +277,8 @@ CREATE TABLE personal_callbacks (
     agent_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     contact_id TEXT NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
     campaign_id TEXT NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+    contact_name TEXT,
+    contact_number TEXT,
     scheduled_time TIMESTAMPTZ NOT NULL,
     notes TEXT,
     status TEXT NOT NULL DEFAULT 'pending', -- ex: pending, completed, cancelled
