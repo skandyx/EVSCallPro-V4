@@ -19,7 +19,7 @@ interface AgentViewProps {
     currentUser: User;
     onLogout: () => void;
     data: AgentData;
-    refreshData: () => void;
+    refreshData: () => Promise<void>;
     onUpdatePassword: (passwordData: any) => Promise<void>;
     onUpdateProfilePicture: (base64DataUrl: string) => Promise<void>;
 }
@@ -207,7 +207,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 note: newNote,
             });
             setNewNote('');
-            refreshData(); // Refresh to get the latest notes
+            await refreshData(); // Refresh to get the latest notes
         } catch (error) {
             console.error("Failed to save note:", error);
             alert("Erreur lors de la sauvegarde de la note.");
