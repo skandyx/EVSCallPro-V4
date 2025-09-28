@@ -1,3 +1,4 @@
+// backend/services/webSocketServer.js
 const WebSocket = require('ws');
 const jwt = require('jsonwebtoken');
 const url = require('url');
@@ -43,6 +44,19 @@ function initializeWebSocketServer(server) {
     wss.on('connection', (ws) => {
         console.log(`[WS] Client connected: User ID ${ws.user.id}, Role ${ws.user.role}`);
         clients.set(ws, { id: ws.user.id, role: ws.user.role });
+
+        // FIX: When an agent connects, immediately broadcast their 'En Attente' status
+        // to supervisors so they appear on the real-time dashboard right away.
+        if (ws.user.role === 'Agent') {
+            const connectEvent = {
+                type: 'agentStatusUpdate',
+                payload: {
+                    agentId: ws.user.id,
+                    status: 'En Attente'
+                }
+            };
+            broadcastToRoom('superviseur', connectEvent);
+        }
 
         ws.on('close', () => {
             console.log(`[WS] Client disconnected: User ID ${ws.user.id}`);

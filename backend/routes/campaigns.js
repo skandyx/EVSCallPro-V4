@@ -159,14 +159,16 @@ router.post('/:id/contacts', async (req, res) => {
  *             properties:
  *               agentId:
  *                 type: string
+ *               activeCampaignId:
+ *                 type: string
  *     responses:
  *       '200':
  *         description: "Contact et campagne retournés."
  */
 router.post('/next-contact', async (req, res) => {
     try {
-        const { agentId } = req.body;
-        const result = await db.getNextContactForCampaign(agentId);
+        const { agentId, activeCampaignId } = req.body;
+        const result = await db.getNextContactForCampaign(agentId, activeCampaignId);
         res.json(result);
     } catch (error) {
         console.error('Error getting next contact:', error);

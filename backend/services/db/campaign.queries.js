@@ -303,18 +303,22 @@ const importContacts = async (campaignId, contactsToValidate, deduplicationConfi
     }
 };
 
-const getNextContactForCampaign = async (agentId) => {
+const getNextContactForCampaign = async (agentId, activeCampaignId = null) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-
-        const assignedCampaignsRes = await client.query(
-            `SELECT * FROM campaigns c
-             JOIN campaign_agents ca ON c.id = ca.campaign_id
-             WHERE ca.user_id = $1 AND c.is_active = TRUE
-             ORDER BY c.priority DESC, c.name`,
-            [agentId]
-        );
+        
+        // FIX: The query now conditionally filters by the agent's chosen active campaign ID.
+        // If a specific campaign is requested, it is moved to the top of the priority list.
+        const campaignQuery = `
+            SELECT * FROM campaigns c
+            JOIN campaign_agents ca ON c.id = ca.campaign_id
+            WHERE ca.user_id = $1 AND c.is_active = TRUE
+            ORDER BY 
+                CASE WHEN c.id = $2 THEN 0 ELSE 1 END, 
+                c.priority DESC, c.name
+        `;
+        const assignedCampaignsRes = await client.query(campaignQuery, [agentId, activeCampaignId]);
 
         if (assignedCampaignsRes.rows.length === 0) {
             await client.query('COMMIT');

@@ -68,8 +68,8 @@ const LanguageSwitcher: React.FC = () => {
     return <div className="relative"><button onClick={(e) => { e.stopPropagation(); toggleDropdown(); }} className="flex items-center p-1 space-x-2 bg-slate-100 dark:bg-slate-700 rounded-full text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600"><span className="w-6 h-6 rounded-full overflow-hidden"><img src={getFlagSrc(language)} alt={language} className="w-full h-full object-cover" /></span><span className="hidden sm:inline">{language.toUpperCase()}</span><ChevronDownIcon className="w-4 h-4 text-slate-500 dark:text-slate-400 mr-1" /></button>{isOpen && <div className="absolute right-0 mt-2 w-36 origin-top-right bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-20"><div className="py-1">{languages.map(lang => <button key={lang.code} onClick={() => { setLanguage(lang.code); setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"><img src={getFlagSrc(lang.code)} alt={lang.name} className="w-5 h-auto rounded-sm" />{lang.name}</button>)}</div></div>}</div>;
 }
 
-const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void; }> = ({ enabled, onChange }) => (
-    <button type="button" onClick={() => onChange(!enabled)} className={`${enabled ? 'bg-primary' : 'bg-slate-200'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`} role="switch" aria-checked={enabled}>
+const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void; disabled?: boolean }> = ({ enabled, onChange, disabled = false }) => (
+    <button type="button" onClick={() => !disabled && onChange(!enabled)} className={`${enabled ? 'bg-primary' : 'bg-slate-200'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`} role="switch" aria-checked={enabled} disabled={disabled}>
         <span aria-hidden="true" className={`${enabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`} />
     </button>
 );
@@ -126,6 +126,20 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const [isCallbackModalOpen, setIsCallbackModalOpen] = useState(false);
     const [callbacksDate, setCallbacksDate] = useState(new Date());
     const [activeDialingCampaignId, setActiveDialingCampaignId] = useState<string | null>(null);
+    
+    const assignedCampaigns = useMemo(() => currentUser.campaignIds.map(id => data.campaigns.find(c => c.id === id)).filter((c): c is Campaign => !!c), [currentUser.campaignIds, data.campaigns]);
+    
+    // FIX: Add effect to set the default active campaign based on the provided logic.
+    useEffect(() => {
+        if (assignedCampaigns.length > 0 && !activeDialingCampaignId) {
+            // Find the first campaign that is active on the admin side.
+            const firstActive = assignedCampaigns.find(c => c.isActive);
+            if (firstActive) {
+                setActiveDialingCampaignId(firstActive.id);
+            }
+        }
+    }, [assignedCampaigns, activeDialingCampaignId]);
+
 
     useEffect(() => {
         const interval = setInterval(() => setStatusTimer(prev => prev + 1), 1000);
@@ -140,18 +154,18 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
 
     const requestNextContact = useCallback(async () => {
         if (isLoadingNextContact || status !== 'En Attente') return;
+        if (!activeDialingCampaignId) {
+            setFeedbackMessage("Veuillez activer une campagne pour commencer à appeler.");
+            setTimeout(() => setFeedbackMessage(null), 3000);
+            return;
+        }
         setIsLoadingNextContact(true);
         setFeedbackMessage(null);
         try {
-            const response = await apiClient.post('/campaigns/next-contact', { agentId: currentUser.id });
+            // FIX: Pass the agent's selected active campaign ID to the backend.
+            const response = await apiClient.post('/campaigns/next-contact', { agentId: currentUser.id, activeCampaignId: activeDialingCampaignId });
             const { contact, campaign } = response.data;
             if (contact && campaign) {
-                if (activeDialingCampaignId && campaign.id !== activeDialingCampaignId) {
-                    const selectedCampaignName = data.campaigns.find(c => c.id === activeDialingCampaignId)?.name || 'la campagne sélectionnée';
-                    setFeedbackMessage(`Aucun contact disponible pour ${selectedCampaignName}.`);
-                    setTimeout(() => setFeedbackMessage(null), 3000);
-                    return;
-                }
                 setCurrentContact(contact);
                 setCurrentCampaign(campaign);
                 const script = data.savedScripts.find(s => s.id === campaign.scriptId);
@@ -159,7 +173,8 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 setStatus('En Appel');
                 setStatusTimer(0);
             } else {
-                 setFeedbackMessage("Aucun contact disponible pour le moment. Veuillez réessayer plus tard.");
+                 const selectedCampaignName = data.campaigns.find(c => c.id === activeDialingCampaignId)?.name || 'la campagne sélectionnée';
+                 setFeedbackMessage(`Aucun contact disponible pour ${selectedCampaignName}.`);
                  setTimeout(() => setFeedbackMessage(null), 3000);
             }
         } catch (error) {
@@ -169,7 +184,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         } finally {
             setIsLoadingNextContact(false);
         }
-    }, [currentUser.id, data.savedScripts, isLoadingNextContact, status, activeDialingCampaignId, data.campaigns]);
+    }, [currentUser.id, data.savedScripts, data.campaigns, isLoadingNextContact, status, activeDialingCampaignId]);
 
     const handleEndCall = async () => {
         if (!selectedQual || !currentContact || !currentCampaign) {
@@ -242,8 +257,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const qualificationsForCampaign = currentCampaign ? data.qualifications.filter(q => q.groupId === currentCampaign.qualificationGroupId || q.isStandard) : [];
     const contactNotesForCurrentContact = useMemo(() => currentContact ? data.contactNotes.filter(note => note.contactId === currentContact.id) : [], [currentContact, data.contactNotes]);
     const myPersonalCallbacks = useMemo(() => data.personalCallbacks.filter(cb => cb.agentId === currentUser.id && new Date(cb.scheduledTime).toDateString() === callbacksDate.toDateString()), [data.personalCallbacks, currentUser.id, callbacksDate]);
-    const assignedCampaigns = useMemo(() => currentUser.campaignIds.map(id => data.campaigns.find(c => c.id === id)).filter((c): c is Campaign => !!c), [currentUser.campaignIds, data.campaigns]);
-
+    
     return (
         <div className="h-screen w-screen flex flex-col font-sans bg-slate-100 text-lg dark:bg-slate-900 dark:text-slate-200">
              {isProfileModalOpen && <UserProfileModal user={currentUser} onClose={() => setIsProfileModalOpen(false)} onSavePassword={onUpdatePassword} onSaveProfilePicture={onUpdateProfilePicture} />}
@@ -286,7 +300,11 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                                 {assignedCampaigns.length > 0 ? assignedCampaigns.map(c => (
                                     <div key={c.id} className="flex items-center justify-between p-3 rounded-md border bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
                                         <span className="font-medium text-slate-800 dark:text-slate-200">{c.name}</span>
-                                        <ToggleSwitch enabled={activeDialingCampaignId === c.id} onChange={() => handleCampaignToggle(c.id)} />
+                                        <ToggleSwitch 
+                                            enabled={activeDialingCampaignId === c.id} 
+                                            onChange={() => handleCampaignToggle(c.id)}
+                                            disabled={!c.isActive}
+                                        />
                                     </div>
                                 )) : <p className="text-sm text-slate-500 italic text-center">Aucune campagne assignée.</p>}
                             </div>
