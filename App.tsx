@@ -464,6 +464,16 @@ const AppContent: React.FC = () => {
         }
     };
 
+    // FIX: Added callback to send agent-initiated status changes to the backend for real-time supervision.
+    const handleAgentStatusChange = useCallback((status: 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause') => {
+        if (currentUser && currentUser.role === 'Agent') {
+            wsClient.send({
+                type: 'agentStatusChange',
+                payload: { agentId: currentUser.id, status }
+            });
+        }
+    }, [currentUser]);
+
     const currentUserStatus: AgentStatus | undefined = useMemo(() => {
         if (!currentUser) return undefined;
         const agentState = liveState.agentStates.find(a => a.id === currentUser.id);
@@ -501,6 +511,7 @@ const AppContent: React.FC = () => {
             theme={theme}
             setTheme={setTheme}
             agentStatus={currentUserStatus}
+            onStatusChange={handleAgentStatusChange}
         />;
     }
 

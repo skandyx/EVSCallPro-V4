@@ -19,6 +19,9 @@ interface AgentData {
 
 type Theme = 'light' | 'dark' | 'system';
 
+// FIX: Define a more specific type for the statuses that the agent can set manually.
+type LocalAgentStatus = 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause';
+
 interface AgentViewProps {
     currentUser: User;
     onLogout: () => void;
@@ -29,9 +32,10 @@ interface AgentViewProps {
     theme: Theme;
     setTheme: (theme: Theme) => void;
     agentStatus: AgentStatus | undefined;
+    // FIX: Add a callback to notify the backend of status changes for real-time supervision.
+    onStatusChange: (status: LocalAgentStatus) => void;
 }
 
-type LocalAgentStatus = 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause';
 
 // --- Reusable Components (copied from Header.tsx for localization) ---
 const Clock: React.FC = () => {
@@ -112,7 +116,7 @@ const CallbackSchedulerModal: React.FC<{ isOpen: boolean; onClose: () => void; o
     );
 };
 
-const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refreshData, onUpdatePassword, onUpdateProfilePicture, theme, setTheme, agentStatus }) => {
+const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refreshData, onUpdatePassword, onUpdateProfilePicture, theme, setTheme, agentStatus, onStatusChange }) => {
     const [status, setStatus] = useState<LocalAgentStatus>('En Attente');
     const [statusTimer, setStatusTimer] = useState(0);
     const [currentContact, setCurrentContact] = useState<Contact | null>(null);
@@ -140,11 +144,33 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         }
     }, [assignedCampaigns, activeDialingCampaignId]);
 
+    // FIX: Add an effect to ensure the agent's selected campaign for dialing is always an active one.
+    // This prevents confusion if a supervisor deactivates a campaign while an agent has it selected.
+    useEffect(() => {
+        if (activeDialingCampaignId) {
+            const campaign = data.campaigns.find(c => c.id === activeDialingCampaignId);
+            if (!campaign || !campaign.isActive) {
+                setActiveDialingCampaignId(null); // Reset if the campaign is no longer active
+                // Optionally, automatically select the next available active campaign
+                const newActiveCampaign = assignedCampaigns.find(c => c.isActive);
+                if (newActiveCampaign) {
+                    setActiveDialingCampaignId(newActiveCampaign.id);
+                }
+            }
+        }
+    }, [data.campaigns, activeDialingCampaignId, assignedCampaigns]);
 
     useEffect(() => {
         const interval = setInterval(() => setStatusTimer(prev => prev + 1), 1000);
         return () => clearInterval(interval);
     }, []);
+
+    // FIX: Create a centralized function to change status, which also notifies the backend.
+    const changeStatus = (newStatus: LocalAgentStatus) => {
+        setStatus(newStatus);
+        setStatusTimer(0);
+        onStatusChange(newStatus);
+    };
 
     const formatTimer = (seconds: number) => {
         const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -170,8 +196,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 setCurrentCampaign(campaign);
                 const script = data.savedScripts.find(s => s.id === campaign.scriptId);
                 setActiveScript(script || null);
-                setStatus('En Appel');
-                setStatusTimer(0);
+                changeStatus('En Appel');
             } else {
                  const selectedCampaignName = data.campaigns.find(c => c.id === activeDialingCampaignId)?.name || 'la campagne sélectionnée';
                  setFeedbackMessage(`Aucun contact disponible pour ${selectedCampaignName}.`);
@@ -197,8 +222,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         }
         try {
             await apiClient.post(`/contacts/${currentContact.id}/qualify`, { qualificationId: selectedQual, campaignId: currentCampaign.id, agentId: currentUser.id });
-            setStatus('En Post-Appel');
-            setStatusTimer(0);
+            changeStatus('En Post-Appel');
         } catch (error) {
             console.error("Failed to qualify contact:", error);
             alert("Erreur lors de la qualification.");
@@ -212,8 +236,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             await apiClient.post(`/contacts/${currentContact.id}/qualify`, { qualificationId: selectedQual, campaignId: currentCampaign.id, agentId: currentUser.id });
             setIsCallbackModalOpen(false);
             refreshData();
-            setStatus('En Post-Appel');
-            setStatusTimer(0);
+            changeStatus('En Post-Appel');
         } catch (error) {
             console.error("Failed to schedule callback and qualify contact:", error);
             alert("Une erreur est survenue lors de la planification du rappel.");
@@ -226,8 +249,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         setActiveScript(null);
         setSelectedQual(null);
         setNewNote('');
-        setStatus('En Attente');
-        setStatusTimer(0);
+        changeStatus('En Attente');
     };
     
     const handleSaveNote = async () => {
@@ -284,7 +306,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             <main className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden">
                 <div className="col-span-3 flex flex-col gap-4">
                      <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4">Informations Fiche</h2>{currentContact ? <div className="space-y-2 text-base"><p><span className="font-semibold">Campagne:</span> {currentCampaign?.name}</p><p><span className="font-semibold">Nom:</span> {currentContact.firstName} {currentContact.lastName}</p><p><span className="font-semibold">Téléphone:</span> {currentContact.phoneNumber}</p><p><span className="font-semibold">Code Postal:</span> {currentContact.postalCode}</p></div> : <div className="h-full flex flex-col items-center justify-center text-center">{feedbackMessage ? <p className="text-amber-600 font-semibold">{feedbackMessage}</p> : <p className="text-slate-500 dark:text-slate-400">En attente d'un appel...</p>}{status === 'En Attente' && <button onClick={requestNextContact} disabled={isLoadingNextContact} className="mt-4 bg-primary text-primary-text font-bold py-2 px-4 rounded-lg shadow-md hover:bg-primary-hover disabled:opacity-50">{isLoadingNextContact ? 'Recherche...' : 'Prochain Appel'}</button>}</div>}</div>
-                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4">État de l'Agent</h2><div className="text-center my-auto"><p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">{status}</p><p className="text-6xl font-mono text-slate-700 dark:text-slate-300 mt-2">{formatTimer(statusTimer)}</p></div><div className="mt-auto grid grid-cols-2 gap-2"><button className="p-3 bg-slate-200 rounded-lg font-semibold hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600" disabled={status === 'En Pause'} onClick={() => {setStatus('En Pause'); setStatusTimer(0);}}><PauseIcon className="w-5 h-5 mx-auto mb-1" />Pause</button><button className="p-3 bg-green-100 text-green-800 rounded-lg font-semibold hover:bg-green-200 disabled:opacity-50 dark:bg-green-900/50 dark:text-green-200 dark:hover:bg-green-900/80" disabled={status !== 'En Pause'} onClick={() => { setStatus('En Attente'); setStatusTimer(0); }}><PhoneIcon className="w-5 h-5 mx-auto mb-1" />Prêt</button></div></div>
+                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4">État de l'Agent</h2><div className="text-center my-auto"><p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">{status}</p><p className="text-6xl font-mono text-slate-700 dark:text-slate-300 mt-2">{formatTimer(statusTimer)}</p></div><div className="mt-auto grid grid-cols-2 gap-2"><button className="p-3 bg-slate-200 rounded-lg font-semibold hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600" disabled={status === 'En Pause'} onClick={() => changeStatus('En Pause')}><PauseIcon className="w-5 h-5 mx-auto mb-1" />Pause</button><button className="p-3 bg-green-100 text-green-800 rounded-lg font-semibold hover:bg-green-200 disabled:opacity-50 dark:bg-green-900/50 dark:text-green-200 dark:hover:bg-green-900/80" disabled={status !== 'En Pause'} onClick={() => changeStatus('En Attente')}><PhoneIcon className="w-5 h-5 mx-auto mb-1" />Prêt</button></div></div>
                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col"><div className="border-b dark:border-slate-600 pb-2 mb-2 flex items-center justify-between"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2"><CalendarDaysIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400"/>Mes Rappels Personnels</h2><div className="flex items-center gap-1"><button onClick={() => handleCallbackDateChange(-1)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowLeftIcon className="w-5 h-5"/></button><span className="text-sm font-semibold w-24 text-center">{callbacksDate.toLocaleDateString('fr-FR', {day: '2-digit', month: 'short'})}</span><button onClick={() => handleCallbackDateChange(1)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowRightIcon className="w-5 h-5"/></button></div></div><div className="flex-1 overflow-y-auto pr-2 space-y-2 text-base">{myPersonalCallbacks.length > 0 ? myPersonalCallbacks.map(cb => (<div key={cb.id} className="p-2 rounded-md bg-slate-50 border dark:bg-slate-700 dark:border-slate-600"><p className="font-semibold text-slate-800 dark:text-slate-200">{cb.contactName}</p><p className="text-sm text-slate-600 dark:text-slate-400 font-mono">{cb.contactNumber}</p><p className="text-sm font-bold text-indigo-700 dark:text-indigo-400 mt-1">{new Date(cb.scheduledTime).toLocaleString('fr-FR')}</p></div>)) : (<p className="text-sm text-slate-500 dark:text-slate-400 text-center pt-8 italic">Aucun rappel pour ce jour.</p>)}</div></div>
                 </div>
                 <div className="col-span-6 bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700">{activeScript && currentContact ? <AgentPreview script={activeScript} onClose={() => {}} embedded={true} contact={currentContact} contactNotes={contactNotesForCurrentContact} users={data.users} newNote={newNote} setNewNote={setNewNote} onSaveNote={handleSaveNote} campaign={currentCampaign} /> : <div className="h-full flex items-center justify-center text-slate-500 dark:text-slate-400"><p>{currentContact ? "Cette campagne n'a pas de script associé." : "Le script s'affichera ici."}</p></div>}</div>

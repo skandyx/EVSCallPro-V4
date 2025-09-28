@@ -98,14 +98,15 @@ function handleAmiEvent(evt) {
 function mapAgentStatus(amiStatus) {
     switch(amiStatus) {
         case 'AGENT_IDLE':
-        case 'AGENT_LOGGEDOFF':
             return 'En Attente';
         case 'AGENT_ONCALL':
             return 'En Appel';
         case 'AGENT_RINGING':
-            return 'En Appel'; // Simplification
+            return 'Ringing';
         case 'AGENT_UNAVAILABLE':
             return 'En Pause';
+        case 'AGENT_LOGGEDOFF':
+            return 'Déconnecté';
         default:
             return 'Inconnu';
     }

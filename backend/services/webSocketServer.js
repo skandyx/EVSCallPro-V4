@@ -58,6 +58,26 @@ function initializeWebSocketServer(server) {
             broadcastToRoom('superviseur', connectEvent);
         }
 
+        ws.on('message', (message) => {
+            try {
+                const event = JSON.parse(message.toString());
+                // Handle agent-initiated status changes and broadcast to supervisors
+                if (event.type === 'agentStatusChange' && ws.user.role === 'Agent') {
+                    console.log(`[WS] Received agentStatusChange from ${ws.user.id}: ${event.payload.status}`);
+                    const broadcastEvent = {
+                        type: 'agentStatusUpdate', // The event supervisors listen for
+                        payload: {
+                            agentId: ws.user.id,
+                            status: event.payload.status
+                        }
+                    };
+                    broadcastToRoom('superviseur', broadcastEvent);
+                }
+            } catch (e) {
+                console.error('[WS] Error processing message:', e);
+            }
+        });
+
         ws.on('close', () => {
             console.log(`[WS] Client disconnected: User ID ${ws.user.id}`);
             // FIX: When an agent disconnects, broadcast this to supervisors so they disappear
