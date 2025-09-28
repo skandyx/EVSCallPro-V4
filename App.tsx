@@ -290,16 +290,15 @@ const AppContent: React.FC = () => {
 
     const handleLoginSuccess = async ({ user, token }: { user: User, token: string }) => {
         localStorage.setItem('authToken', token);
-        setIsLoading(true);
         try {
+            // Fetch data first...
             await fetchApplicationData();
+            // ...then set the user to trigger the render.
             setCurrentUser(user);
         } catch (error) {
             // If fetching data fails, log the user out to prevent a broken state
             localStorage.removeItem('authToken');
             setCurrentUser(null);
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -483,6 +482,13 @@ const AppContent: React.FC = () => {
     }
 
     if (currentUser.role === 'Agent') {
+        // FIX: The root cause of the blank screen bug is rendering AgentView before its `data` prop is populated.
+        // This guard ensures that we show a loading screen until the necessary data is available,
+        // providing a robust solution to the race condition. `allData.campaigns` is used as a proxy
+        // to check if the main data fetch is complete.
+        if (!allData.campaigns) {
+             return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">Chargement de l'interface agent...</div>;
+        }
         return <AgentView 
             currentUser={currentUser} 
             onLogout={handleLogout} 
