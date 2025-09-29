@@ -1,5 +1,8 @@
 const keysToCamel = (obj) => {
-    if (obj === null || typeof obj !== 'object' || Array.isArray(obj)) {
+    if (Array.isArray(obj)) {
+        return obj.map(v => keysToCamel(v));
+    }
+    if (obj === null || typeof obj !== 'object') {
         return obj;
     }
     if (obj.constructor.name !== 'Object') {
