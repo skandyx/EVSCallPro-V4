@@ -71,6 +71,8 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
     const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
     const [propertiesTab, setPropertiesTab] = useState<'content' | 'style'>('content');
     const [tempBlockName, setTempBlockName] = useState('');
+    // FIX: Added temporary state for text content to improve responsiveness of the properties panel textarea.
+    const [tempContentText, setTempContentText] = useState('');
     const canvasRef = useRef<HTMLDivElement>(null);
     const dragInfo = useRef<any>(null);
     const [viewTransform, setViewTransform] = useState({ x: 0, y: 0, zoom: 1 });
@@ -84,6 +86,12 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
     useEffect(() => {
         if (selectedBlock) {
             setTempBlockName(selectedBlock.name);
+            // FIX: Populate the temporary content state when a block is selected.
+            if (selectedBlock.content && typeof selectedBlock.content.text === 'string') {
+                setTempContentText(selectedBlock.content.text);
+            } else {
+                setTempContentText('');
+            }
         }
     }, [selectedBlock]);
 
@@ -408,7 +416,8 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                                     />
                                 </div>
                            )}
-                           { (selectedBlock.type === 'label' || selectedBlock.type === 'text') && <textarea value={selectedBlock.content.text} onChange={(e) => handleBlockContentUpdate(selectedBlockId!, { text: e.target.value })} className="w-full p-2 border rounded-md" rows={4}/> }
+                           {/* FIX: The textarea for editing block content now uses a temporary state ('tempContentText') and updates on blur. This prevents the input from feeling "locked" or unresponsive due to re-renders on every keystroke. */}
+                           { (selectedBlock.type === 'label' || selectedBlock.type === 'text') && <textarea value={tempContentText} onChange={(e) => setTempContentText(e.target.value)} onBlur={(e) => handleBlockContentUpdate(selectedBlockId!, { text: e.target.value })} className="w-full p-2 border rounded-md" rows={4}/> }
                            { (selectedBlock.type === 'input' || selectedBlock.type === 'email' || selectedBlock.type === 'phone' || selectedBlock.type === 'textarea') && <div className="space-y-4"><div><label className="font-medium">Placeholder</label><input type="text" value={selectedBlock.content.placeholder} onChange={e=>handleBlockContentUpdate(selectedBlockId!, {placeholder: e.target.value})} className="w-full mt-1 p-2 border rounded-md"/></div> {selectedBlock.type === 'input' && <div><label className="font-medium">Format</label><select value={selectedBlock.content.format} onChange={e => handleBlockContentUpdate(selectedBlockId!, { format: e.target.value })} className="w-full mt-1 p-2 border rounded-md bg-white"><option value="text">Texte</option><option value="number">Nombre</option><option value="password">Mot de passe</option></select></div>}</div>}
                            { (selectedBlock.type === 'button') && <><div><label className="font-medium">Texte du bouton</label><input type="text" value={selectedBlock.content.text} onChange={e=>handleBlockContentUpdate(selectedBlockId!, {text: e.target.value})} className="w-full mt-1 p-2 border rounded-md"/></div></> }
                            { (selectedBlock.type === 'radio' || selectedBlock.type === 'checkbox') && (
@@ -609,7 +618,8 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
         const renderContent = () => {
              switch(block.type) {
                 case 'group': return null;
-                case 'label': return <div className="h-full flex flex-col justify-center"><p className="font-bold text-lg whitespace-pre-wrap break-words">{block.content.text}</p></div>;
+                // FIX: Removed hardcoded `text-lg` class to ensure the font size is controlled by the style properties, making the editor WYSIWYG.
+                case 'label': return <div className="h-full flex flex-col justify-center"><p className="font-bold whitespace-pre-wrap break-words">{block.content.text}</p></div>;
                 case 'text': return <div className="h-full flex flex-col justify-center"><p className="whitespace-pre-wrap break-words">{block.content.text}</p></div>;
                 case 'input': case 'email': case 'phone': return <div><label className="block font-semibold mb-1">{block.name}</label><input type="text" placeholder={block.content.placeholder} disabled className="w-full p-2 border rounded-md bg-slate-100"/></div>
                 case 'textarea': return <div className="h-full flex flex-col"><label className="block font-semibold mb-1 flex-shrink-0">{block.name}</label><textarea placeholder={block.content.placeholder} disabled className="w-full p-2 border rounded-md bg-slate-100 flex-1 resize-none"/></div>

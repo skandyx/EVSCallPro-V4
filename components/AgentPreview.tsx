@@ -133,8 +133,9 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
     };
 
     switch (block.type) {
+        // FIX: Removed hardcoded `text-lg` class to respect the dynamic `fontSize` property for true WYSIWYG between editor and preview.
         case 'label':
-            return <div {...commonContainerProps}><p className="font-bold text-lg whitespace-pre-wrap break-words">{block.content.text}</p></div>;
+            return <div {...commonContainerProps}><p className="font-bold whitespace-pre-wrap break-words">{block.content.text}</p></div>;
         case 'text':
             return <div {...commonContainerProps}><p className="whitespace-pre-wrap break-words">{block.content.text}</p></div>;
         case 'input':
