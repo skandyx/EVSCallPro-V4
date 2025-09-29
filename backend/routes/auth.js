@@ -6,7 +6,7 @@ const authMiddleware = require('../middleware/auth.middleware');
 
 const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET;
-const ACCESS_TOKEN_EXPIRATION = '15m';
+const ACCESS_TOKEN_EXPIRATION = '10h';
 const REFRESH_TOKEN_EXPIRATION = '7d';
 
 /**

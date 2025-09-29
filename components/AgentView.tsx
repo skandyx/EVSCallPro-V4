@@ -102,9 +102,13 @@ const getStatusColor = (status: AgentStatus | undefined): string => {
 // --- Callback Scheduler Modal ---
 const CallbackSchedulerModal: React.FC<{ isOpen: boolean; onClose: () => void; onSchedule: (scheduledTime: string, notes: string) => void; }> = ({ isOpen, onClose, onSchedule }) => {
     const now = new Date();
+    // Add a minute to ensure the minimum time is slightly in the future
+    now.setMinutes(now.getMinutes() + 1); 
+    // Adjust for timezone offset to get local time in ISO format for the input
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    const defaultDateTime = now.toISOString().slice(0, 16);
-    const [scheduledTime, setScheduledTime] = useState(defaultDateTime);
+    const minDateTime = now.toISOString().slice(0, 16);
+    
+    const [scheduledTime, setScheduledTime] = useState(minDateTime);
     const [notes, setNotes] = useState('');
 
     if (!isOpen) return null;
@@ -117,7 +121,7 @@ const CallbackSchedulerModal: React.FC<{ isOpen: boolean; onClose: () => void; o
     return (
         <div className="fixed inset-0 bg-slate-800 bg-opacity-75 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-                <div className="p-6"><h3 className="text-lg font-medium text-slate-900">Planifier un Rappel Personnel</h3><div className="mt-4 space-y-4"><div><label className="text-sm font-medium text-slate-700">Date et Heure du Rappel</label><input type="datetime-local" value={scheduledTime} onChange={e => setScheduledTime(e.target.value)} className="mt-1 w-full p-2 border rounded-md"/></div><div><label className="text-sm font-medium text-slate-700">Notes (Optionnel)</label><textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="mt-1 w-full p-2 border rounded-md"/></div></div></div>
+                <div className="p-6"><h3 className="text-lg font-medium text-slate-900">Planifier un Rappel Personnel</h3><div className="mt-4 space-y-4"><div><label className="text-sm font-medium text-slate-700">Date et Heure du Rappel</label><input type="datetime-local" value={scheduledTime} onChange={e => setScheduledTime(e.target.value)} min={minDateTime} className="mt-1 w-full p-2 border rounded-md"/></div><div><label className="text-sm font-medium text-slate-700">Notes (Optionnel)</label><textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="mt-1 w-full p-2 border rounded-md"/></div></div></div>
                 <div className="bg-slate-50 p-3 flex justify-end gap-2"><button onClick={onClose} className="bg-white border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50">Annuler</button><button onClick={handleSubmit} className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">Planifier et Finaliser</button></div>
             </div>
         </div>
@@ -227,7 +231,12 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 setCurrentCampaign(campaign);
                 const script = data.savedScripts.find(s => s.id === campaign.scriptId);
                 setActiveScript(script || null);
-                changeStatus('En Appel');
+                
+                // Ne lance l'appel automatiquement que pour les modes non-manuels
+                if (campaign.dialingMode !== 'MANUAL') {
+                    // La logique de dial réelle serait ici, pour l'instant on simule en changeant l'état
+                    changeStatus('En Appel');
+                }
             } else {
                  const selectedCampaignName = data.campaigns.find(c => c.id === activeDialingCampaignId)?.name || 'la campagne sélectionnée';
                  setFeedbackMessage(`Aucun contact disponible pour ${selectedCampaignName}.`);
@@ -241,13 +250,30 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             setIsLoadingNextContact(false);
         }
     }, [currentUser.id, data.savedScripts, data.campaigns, isLoadingNextContact, status, activeDialingCampaignId]);
+    
+    const handleDial = async (destination: string) => {
+        if (!currentContact || !currentCampaign || !destination) return;
+        try {
+            await apiClient.post('/call/originate', {
+                agentId: currentUser.id,
+                destination,
+                campaignId: currentCampaign.id,
+            });
+            changeStatus('En Appel');
+        } catch (error) {
+            console.error("Originate call failed:", error);
+            setFeedbackMessage("Échec du lancement de l'appel.");
+            setTimeout(() => setFeedbackMessage(null), 3000);
+        }
+    };
+
 
     const handleEndCall = async () => {
         if (!selectedQual || !currentContact || !currentCampaign) {
-            alert("Veuillez sélectionner une qualification avant de terminer l'appel.");
+            alert("Veuillez sélectionner une qualification avant de finaliser.");
             return;
         }
-        if (selectedQual === 'std-94') {
+        if (selectedQual === 'std-94') { // Code for "Rappel personnel"
             setIsCallbackModalOpen(true);
             return;
         }
@@ -338,6 +364,19 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const contactNotesForCurrentContact = useMemo(() => currentContact ? data.contactNotes.filter(note => note.contactId === currentContact.id) : [], [currentContact, data.contactNotes]);
     const myPersonalCallbacks = useMemo(() => data.personalCallbacks.filter(cb => cb.agentId === currentUser.id && new Date(cb.scheduledTime).toDateString() === callbacksDate.toDateString()), [data.personalCallbacks, currentUser.id, callbacksDate]);
     
+    const allPhoneNumbers = useMemo(() => {
+        if (!currentContact || !activeScript) return [];
+        const phoneBlocks = activeScript.pages.flatMap(p => p.blocks).filter(b => b.type === 'phone' && b.isVisible !== false);
+        return phoneBlocks.map(block => {
+            let number = '';
+            if (block.fieldName === 'phone_number') number = currentContact.phoneNumber;
+            else if (currentContact.customFields && currentContact.customFields[block.fieldName]) number = currentContact.customFields[block.fieldName];
+            return { name: block.name, number };
+        }).filter(p => p.number);
+    }, [currentContact, activeScript]);
+
+    const endCallButtonText = status === 'En Appel' ? "Terminer l'Appel" : "Qualifier la Fiche";
+
     return (
         <div className="h-screen w-screen flex flex-col font-sans bg-slate-100 text-lg dark:bg-slate-900 dark:text-slate-200">
              {isProfileModalOpen && <UserProfileModal user={currentUser} onClose={() => setIsProfileModalOpen(false)} onSavePassword={onUpdatePassword} onSaveProfilePicture={onUpdateProfilePicture} />}
@@ -402,17 +441,17 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             
             <main className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden">
                 <div className="col-span-3 flex flex-col gap-4">
-                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4">Informations Fiche</h2>{currentContact ? <div className="space-y-2 text-base"><p><span className="font-semibold">Campagne:</span> {currentCampaign?.name}</p><p><span className="font-semibold">Nom:</span> {currentContact.firstName} {currentContact.lastName}</p><p><span className="font-semibold">Téléphone:</span> {currentContact.phoneNumber}</p><p><span className="font-semibold">Code Postal:</span> {currentContact.postalCode}</p></div> : <div className="h-full flex flex-col items-center justify-center text-center">{feedbackMessage ? <p className="text-amber-600 font-semibold">{feedbackMessage}</p> : <p className="text-slate-500 dark:text-slate-400">En attente d'un appel...</p>}{status === 'En Attente' && <button onClick={requestNextContact} disabled={isLoadingNextContact} className="mt-4 bg-primary text-primary-text font-bold py-2 px-4 rounded-lg shadow-md hover:bg-primary-hover disabled:opacity-50">{isLoadingNextContact ? 'Recherche...' : 'Prochain Appel'}</button>}</div>}</div>
+                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4">Informations Fiche</h2>{currentContact ? <div className="space-y-2 text-base"><p><span className="font-semibold">Campagne:</span> {currentCampaign?.name}</p><p><span className="font-semibold">Nom:</span> {currentContact.firstName} {currentContact.lastName}</p><p><span className="font-semibold">Code Postal:</span> {currentContact.postalCode}</p> {allPhoneNumbers.map(({name, number}) => (<div key={name} className="flex items-center justify-between"><p><span className="font-semibold">{name}:</span><span className="font-mono ml-2">{number}</span></p>{status === 'En Attente' && <button onClick={() => handleDial(number)} className="bg-green-100 text-green-700 font-semibold py-1 px-3 rounded-md text-sm hover:bg-green-200">Appeler</button>}</div>))} </div> : <div className="h-full flex flex-col items-center justify-center text-center">{feedbackMessage ? <p className="text-amber-600 font-semibold">{feedbackMessage}</p> : <p className="text-slate-500 dark:text-slate-400">En attente d'un appel...</p>}{status === 'En Attente' && <button onClick={requestNextContact} disabled={isLoadingNextContact} className="mt-4 bg-primary text-primary-text font-bold py-2 px-4 rounded-lg shadow-md hover:bg-primary-hover disabled:opacity-50">{isLoadingNextContact ? 'Recherche...' : 'Prochain Contact'}</button>}</div>}</div>
                      <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4">État de l'Agent</h2><div className="text-center my-auto"><p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">{status}</p><p className="text-6xl font-mono text-slate-700 dark:text-slate-300 mt-2">{formatTimer(statusTimer)}</p></div><div className="mt-auto grid grid-cols-2 gap-2"><button className="p-3 bg-slate-200 rounded-lg font-semibold hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600" disabled={status === 'En Pause'} onClick={() => changeStatus('En Pause')}><PauseIcon className="w-5 h-5 mx-auto mb-1" />Pause</button><button className="p-3 bg-green-100 text-green-800 rounded-lg font-semibold hover:bg-green-200 disabled:opacity-50 dark:bg-green-900/50 dark:text-green-200 dark:hover:bg-green-900/80" disabled={status !== 'En Pause'} onClick={() => changeStatus('En Attente')}><PhoneIcon className="w-5 h-5 mx-auto mb-1" />Prêt</button></div></div>
                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col"><div className="border-b dark:border-slate-600 pb-2 mb-2 flex items-center justify-between"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2"><CalendarDaysIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400"/>Mes Rappels Personnels</h2><div className="flex items-center gap-1"><button onClick={() => handleCallbackDateChange(-1)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowLeftIcon className="w-5 h-5"/></button><span className="text-sm font-semibold w-24 text-center">{callbacksDate.toLocaleDateString('fr-FR', {day: '2-digit', month: 'short'})}</span><button onClick={() => handleCallbackDateChange(1)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowRightIcon className="w-5 h-5"/></button></div></div><div className="flex-1 overflow-y-auto pr-2 space-y-2 text-base">{myPersonalCallbacks.length > 0 ? myPersonalCallbacks.map(cb => (<div key={cb.id} className="p-2 rounded-md bg-slate-50 border dark:bg-slate-700 dark:border-slate-600"><p className="font-semibold text-slate-800 dark:text-slate-200">{cb.contactName}</p><p className="text-sm text-slate-600 dark:text-slate-400 font-mono">{cb.contactNumber}</p><p className="text-sm font-bold text-indigo-700 dark:text-indigo-400 mt-1">{new Date(cb.scheduledTime).toLocaleString('fr-FR')}</p></div>)) : (<p className="text-sm text-slate-500 dark:text-slate-400 text-center pt-8 italic">Aucun rappel pour ce jour.</p>)}</div></div>
                 </div>
-                <div className="col-span-6 bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700">{activeScript && currentContact ? <AgentPreview script={activeScript} onClose={() => {}} embedded={true} contact={currentContact} contactNotes={contactNotesForCurrentContact} users={data.users} newNote={newNote} setNewNote={setNewNote} onSaveNote={handleSaveNote} campaign={currentCampaign} /> : <div className="h-full flex items-center justify-center text-slate-500 dark:text-slate-400"><p>{currentContact ? "Cette campagne n'a pas de script associé." : "Le script s'affichera ici."}</p></div>}</div>
+                <div className="col-span-6 bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700">{activeScript && currentContact ? <AgentPreview script={activeScript} onClose={() => {}} embedded={true} contact={currentContact} contactNotes={contactNotesForCurrentContact} users={data.users} newNote={newNote} setNewNote={setNewNote} onSaveNote={handleSaveNote} campaign={currentCampaign} onInsertContact={async () => {}} /> : <div className="h-full flex items-center justify-center text-slate-500 dark:text-slate-400"><p>{currentContact ? "Cette campagne n'a pas de script associé." : "Le script s'affichera ici."}</p></div>}</div>
                 <div className="col-span-3 flex flex-col gap-4">
-                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4">Contrôles d'Appel</h2><div className="space-y-2"><button className="w-full p-3 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 disabled:opacity-50" disabled={status !== 'En Appel'} onClick={handleEndCall}>Terminer l'Appel</button><button className="w-full p-3 bg-slate-200 font-semibold rounded-lg hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600" disabled={status !== 'En Appel'}>Mettre en attente</button><button className="w-full p-3 bg-slate-200 font-semibold rounded-lg hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600" disabled={status !== 'En Appel'}>Transférer</button><button onClick={handleRaiseHand} disabled={status === 'En Pause'} className="w-full p-3 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 disabled:opacity-50 inline-flex items-center justify-center gap-2"><HandRaisedIcon className="w-5 h-5"/>Demander de l'aide</button></div></div>
+                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4">Contrôles d'Appel</h2><div className="space-y-2"><button className="w-full p-3 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 disabled:opacity-50" disabled={!currentContact || !selectedQual} onClick={handleEndCall}>{endCallButtonText}</button><button className="w-full p-3 bg-slate-200 font-semibold rounded-lg hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600" disabled={status !== 'En Appel'}>Mettre en attente</button><button className="w-full p-3 bg-slate-200 font-semibold rounded-lg hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600" disabled={status !== 'En Appel'}>Transférer</button><button onClick={handleRaiseHand} disabled={status === 'En Pause'} className="w-full p-3 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 disabled:opacity-50 inline-flex items-center justify-center gap-2"><HandRaisedIcon className="w-5 h-5"/>Demander de l'aide</button></div></div>
                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col">
                         <div className="flex-1 flex flex-col min-h-0">
                             <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4 flex-shrink-0">Qualifications</h2>
-                            <select value={selectedQual || ''} onChange={e => setSelectedQual(e.target.value)} disabled={status === 'En Attente'} className="w-full p-3 rounded-md border bg-white border-slate-300 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-600"><option value="">Sélectionner une qualification...</option>{qualificationsForCampaign.map(q => <option key={q.id} value={q.id}>[{q.code}] {q.description}</option>)}</select>
+                            <select value={selectedQual || ''} onChange={e => setSelectedQual(e.target.value)} disabled={!currentContact} className="w-full p-3 rounded-md border bg-white border-slate-300 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed dark:bg-slate-900 dark:border-slate-600"><option value="">Sélectionner une qualification...</option>{qualificationsForCampaign.map(q => <option key={q.id} value={q.id}>[{q.code}] {q.description}</option>)}</select>
                             
                             <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 my-4 flex-shrink-0">Campagnes Actives</h2>
                             <div className="flex-1 overflow-y-auto pr-2 space-y-2">
