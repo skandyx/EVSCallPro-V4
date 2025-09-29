@@ -244,6 +244,20 @@
       "agentsOnWrapup": "Agents on Wrap-up",
       "agentsOnPause": "Agents on Pause",
       "activeCalls": "Active Calls"
+    },
+    "agentBoard": {
+      "headers": {
+        "agent": "Agent",
+        "status": "Status",
+        "duration": "Duration",
+        "calls": "Calls",
+        "avgHandleTime": "AHT",
+        "actions": "Actions"
+      },
+      "actions": {
+        "contact": "Message for {agentName}:"
+      },
+      "noAgents": "No agents connected at the moment."
     }
   },
   "systemSettings": {

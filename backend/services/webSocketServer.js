@@ -97,13 +97,15 @@ function initializeWebSocketServer(server) {
                     broadcastToRoom('superviseur', broadcastEvent);
                 }
                 
+                // FIX: The handler now includes the sender's name in the payload sent to the agent.
                 if (event.type === 'supervisorResponseToAgent') {
                     handled = true;
-                    console.log(`[WS] Supervisor ${ws.user.id} responding to agent ${event.payload.agentId}`);
+                    const from = event.payload.from || 'Superviseur'; // Add fallback for existing "raise hand" response
+                    console.log(`[WS] Supervisor ${from} (${ws.user.id}) sending message to agent ${event.payload.agentId}`);
                     sendToUser(event.payload.agentId, {
                         type: 'supervisorMessage',
                         payload: {
-                            from: 'Superviseur',
+                            from: from,
                             message: event.payload.message
                         }
                     });

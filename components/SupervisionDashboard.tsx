@@ -15,6 +15,7 @@ interface SupervisionDashboardProps {
     activeCalls: ActiveCall[];
     campaignStates: CampaignState[];
     apiCall: any; // AxiosInstance for actions
+    onContactAgent: (agentId: string, agentName: string, message: string) => void;
 }
 
 type Tab = 'live' | 'agents' | 'calls' | 'campaigns';
@@ -33,7 +34,7 @@ const KpiCard: React.FC<{ title: string; value: string | number; icon: React.FC<
     </div>
 );
 
-const SupervisionDashboard: React.FC<SupervisionDashboardProps> = ({ feature, users, campaigns, currentUser, agentStates, activeCalls, campaignStates, apiCall }) => {
+const SupervisionDashboard: React.FC<SupervisionDashboardProps> = ({ feature, users, campaigns, currentUser, agentStates, activeCalls, campaignStates, apiCall, onContactAgent }) => {
     const [activeTab, setActiveTab] = useState<Tab>('agents');
     const { t } = useI18n();
 
@@ -59,7 +60,7 @@ const SupervisionDashboard: React.FC<SupervisionDashboardProps> = ({ feature, us
                     </div>
                 );
             case 'agents':
-                return <AgentBoard agents={agentStates} currentUser={currentUser} apiCall={apiCall} />;
+                return <AgentBoard agents={agentStates} currentUser={currentUser} apiCall={apiCall} onContactAgent={onContactAgent} />;
             case 'calls':
                 return <CallBoard calls={activeCalls} agents={users} campaigns={campaigns} />;
             case 'campaigns':

@@ -1,11 +1,13 @@
 import React from 'react';
 import type { AgentState, User, AgentStatus } from '../types.ts';
-import { MicrophoneIcon, PhoneArrowUpRightIcon, AcademicCapIcon, PauseIcon, TrashIcon, UserCircleIcon } from './Icons.tsx';
+import { MicrophoneIcon, PhoneArrowUpRightIcon, AcademicCapIcon, PauseIcon, TrashIcon, UserCircleIcon, EnvelopeIcon } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface AgentBoardProps {
     agents: AgentState[];
     currentUser: User;
     apiCall: any; // Axios instance
+    onContactAgent: (agentId: string, agentName: string, message: string) => void;
 }
 
 const STATUS_CONFIG: { [key in AgentStatus]: { label: string; color: string } } = {
@@ -37,8 +39,8 @@ const formatDuration = (seconds: number) => {
     return `${m}:${s}`;
 };
 
-const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall }) => {
-    
+const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall, onContactAgent }) => {
+    const { t } = useI18n();
     const hasPermission = currentUser.role === 'Administrateur' || currentUser.role === 'Superviseur' || currentUser.role === 'SuperAdmin';
 
     const handleSupervisorAction = async (action: string, agentId: string) => {
@@ -57,6 +59,13 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall })
         }
     };
     
+    const handleContactAgent = (agentId: string, agentName: string) => {
+        const message = prompt(t('supervision.agentBoard.actions.contact', { agentName }));
+        if (message && message.trim()) {
+            onContactAgent(agentId, agentName, message.trim());
+        }
+    };
+    
     // FIX: Re-introduced the filter to hide disconnected agents as per user request,
     // ensuring the dashboard only shows active participants for a cleaner real-time view.
     const connectedAgents = agents.filter(agent => agent.status !== 'Déconnecté');
@@ -66,12 +75,12 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall })
             <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                     <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Agent</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Statut</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Appels</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">TMC</th>
-                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-500 uppercase">Actions</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('supervision.agentBoard.headers.agent')}</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('supervision.agentBoard.headers.status')}</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('supervision.agentBoard.headers.duration')}</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('supervision.agentBoard.headers.calls')}</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('supervision.agentBoard.headers.avgHandleTime')}</th>
+                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-500 uppercase">{t('supervision.agentBoard.headers.actions')}</th>
                     </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-200 text-sm">
@@ -106,6 +115,7 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall })
                             <td className="px-4 py-3 text-slate-600">{agent.callsHandledToday}</td>
                             <td className="px-4 py-3 text-slate-600 font-mono">{formatDuration(agent.averageHandlingTime)}</td>
                             <td className="px-4 py-3 text-center space-x-1">
+                                <button onClick={() => handleContactAgent(agent.id, agentFullName)} disabled={!hasPermission} title={t('supervision.agentBoard.actions.contact', { agentName: agentFullName })} className="p-1 rounded-md text-slate-500 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed"><EnvelopeIcon className="w-4 h-4"/></button>
                                 <button onClick={() => handleSupervisorAction('listen', agent.id)} disabled={!canCoach} title="Écouter (Whisper)" className="p-1 rounded-md text-slate-500 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed"><MicrophoneIcon className="w-4 h-4"/></button>
                                 <button onClick={() => handleSupervisorAction('barge', agent.id)} disabled={!canCoach} title="Intervenir (Barge)" className="p-1 rounded-md text-slate-500 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed"><PhoneArrowUpRightIcon className="w-4 h-4"/></button>
                                 <button onClick={() => handleSupervisorAction('coach', agent.id)} disabled={!canCoach} title="Coacher" className="p-1 rounded-md text-slate-500 hover:bg-slate-100 disabled:text-slate-300 disabled:cursor-not-allowed"><AcademicCapIcon className="w-4 h-4"/></button>
@@ -117,7 +127,7 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall })
                     }) : (
                         <tr>
                             <td colSpan={6} className="text-center py-8 text-slate-500 italic">
-                                Aucun agent connecté pour le moment.
+                                {t('supervision.agentBoard.noAgents')}
                             </td>
                         </tr>
                     )}

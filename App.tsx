@@ -509,12 +509,33 @@ const AppContent: React.FC = () => {
 
     // FIX: Modified the handler to also remove the notification from the state, which makes the counter decrease.
     const handleRespondToAgent = useCallback((agentId: string, message: string, notificationId: number) => {
-        wsClient.send({
-            type: 'supervisorResponseToAgent',
-            payload: { agentId, message }
-        });
-        setNotifications(prev => prev.filter(n => n.id !== notificationId));
-    }, []);
+        if (currentUser) {
+            wsClient.send({
+                type: 'supervisorResponseToAgent',
+                payload: { 
+                    agentId, 
+                    message, 
+                    from: `${currentUser.firstName} ${currentUser.lastName}`
+                }
+            });
+            setNotifications(prev => prev.filter(n => n.id !== notificationId));
+        }
+    }, [currentUser]);
+
+    // FIX: Added a new handler for direct contact, separate from 'raise hand' responses.
+    const handleContactAgent = useCallback((agentId: string, agentName: string, message: string) => {
+        if (currentUser) {
+            wsClient.send({
+                type: 'supervisorResponseToAgent',
+                payload: {
+                    agentId,
+                    message,
+                    from: `${currentUser.firstName} ${currentUser.lastName}`
+                }
+            });
+            showAlert(`Message envoyé à ${agentName}`, 'info');
+        }
+    }, [currentUser, showAlert]);
 
     const currentUserStatus: AgentStatus | undefined = useMemo(() => {
         if (!currentUser) return undefined;
@@ -603,6 +624,7 @@ const AppContent: React.FC = () => {
             onSaveVisibilitySettings: handleSaveVisibilitySettings,
             onSaveSmtpSettings: handleSaveSmtpSettings,
             onSaveAppSettings: handleSaveAppSettings,
+            onContactAgent: handleContactAgent,
             apiCall: apiClient, // Passe l'instance axios configurée
         };
         

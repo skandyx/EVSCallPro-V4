@@ -164,9 +164,6 @@
         "noAgents": "Aucun agent actif disponible."
     }
   },
-  "agentView": {
-      "noCampaigns": "Aucune campagne assignée."
-  },
   "outboundCampaignsManager": {
     "title": "Campagnes",
     "createCampaign": "Créer une campagne",
@@ -252,6 +249,20 @@
       "agentsOnWrapup": "Agents en Post-Appel",
       "agentsOnPause": "Agents en Pause",
       "activeCalls": "Appels Actifs"
+    },
+    "agentBoard": {
+      "headers": {
+        "agent": "Agent",
+        "status": "Statut",
+        "duration": "Durée",
+        "calls": "Appels",
+        "avgHandleTime": "TMC",
+        "actions": "Actions"
+      },
+      "actions": {
+        "contact": "Message pour {agentName} :"
+      },
+      "noAgents": "Aucun agent connecté pour le moment."
     }
   },
   "systemSettings": {
