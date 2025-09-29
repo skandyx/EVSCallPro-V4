@@ -214,30 +214,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         const s = (seconds % 60).toString().padStart(2, '0');
         return `${m}:${s}`;
     };
-
-    const handleWrapUp = useCallback(() => {
-        setCurrentContact(null);
-        setCurrentCampaign(null);
-        setActiveScript(null);
-        setSelectedQual(null);
-        setNewNote('');
-        changeStatus('En Attente');
-    }, [changeStatus]);
-
-    useEffect(() => {
-        let wrapUpTimerId: ReturnType<typeof setTimeout>;
-
-        if (status === 'En Post-Appel' && currentCampaign && currentCampaign.wrapUpTime > 0) {
-            wrapUpTimerId = setTimeout(() => {
-                handleWrapUp();
-            }, currentCampaign.wrapUpTime * 1000);
-        }
-
-        return () => {
-            clearTimeout(wrapUpTimerId);
-        };
-    }, [status, currentCampaign, handleWrapUp]);
-
+    
     const requestNextContact = useCallback(async () => {
         if (isLoadingNextContact || status !== 'En Attente') return;
         if (!activeDialingCampaignId) {
@@ -274,7 +251,40 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             setIsLoadingNextContact(false);
         }
     }, [currentUser.id, data.savedScripts, data.campaigns, isLoadingNextContact, status, activeDialingCampaignId, changeStatus]);
-    
+
+    const handleWrapUp = useCallback(() => {
+        const lastCampaignMode = currentCampaign?.dialingMode; // Capture mode before clearing state
+
+        setCurrentContact(null);
+        setCurrentCampaign(null);
+        setActiveScript(null);
+        setSelectedQual(null);
+        setNewNote('');
+        changeStatus('En Attente');
+        
+        // Automatically request next contact for non-manual modes
+        if (lastCampaignMode && lastCampaignMode !== 'MANUAL') {
+            // Use a short timeout to allow the state update to render before fetching.
+            setTimeout(() => {
+                requestNextContact();
+            }, 100);
+        }
+    }, [changeStatus, currentCampaign, requestNextContact]);
+
+    useEffect(() => {
+        let wrapUpTimerId: ReturnType<typeof setTimeout>;
+
+        if (status === 'En Post-Appel' && currentCampaign && currentCampaign.wrapUpTime > 0) {
+            wrapUpTimerId = setTimeout(() => {
+                handleWrapUp();
+            }, currentCampaign.wrapUpTime * 1000);
+        }
+
+        return () => {
+            clearTimeout(wrapUpTimerId);
+        };
+    }, [status, currentCampaign, handleWrapUp]);
+
     const handleDial = async (destination: string) => {
         if (!currentContact || !currentCampaign || !destination) return;
         try {
@@ -303,7 +313,14 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         }
         try {
             await apiClient.post(`/contacts/${currentContact.id}/qualify`, { qualificationId: selectedQual, campaignId: currentCampaign.id, agentId: currentUser.id });
-            changeStatus('En Post-Appel');
+            
+            // If wrap-up is 0, immediately become available and trigger next contact if applicable.
+            if (currentCampaign.wrapUpTime === 0) {
+                handleWrapUp();
+            } else {
+                // Otherwise, go into post-call state and let the timer handle it.
+                changeStatus('En Post-Appel');
+            }
         } catch (error) {
             console.error("Failed to qualify contact:", error);
             alert("Erreur lors de la qualification.");
