@@ -5,6 +5,42 @@ const db = require('../services/db');
 
 /**
  * @openapi
+ * /contacts/{id}:
+ *   put:
+ *     summary: Met à jour une fiche contact.
+ *     tags: [Contacts]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             description: "Un objet contenant les champs à mettre à jour."
+ *     responses:
+ *       '200':
+ *         description: "Contact mis à jour avec succès."
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Contact'
+ */
+router.put('/:id', async (req, res) => {
+    try {
+        const updatedContact = await db.updateContact(req.params.id, req.body);
+        res.json(updatedContact);
+    } catch (error) {
+        console.error('Error updating contact:', error);
+        res.status(500).json({ error: 'Failed to update contact' });
+    }
+});
+
+/**
+ * @openapi
  * /contacts/{id}/qualify:
  *   post:
  *     summary: Qualifie un contact après un appel.

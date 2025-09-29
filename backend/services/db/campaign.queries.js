@@ -1,3 +1,4 @@
+// backend/services/db/campaign.queries.js
 const pool = require('./connection');
 const { keysToCamel } = require('./utils');
 const { broadcast, sendToUser } = require('../webSocketServer');
@@ -31,9 +32,19 @@ const getContactValue = (contact, fieldId) => {
         postalCode: contact.postalCode,
         phoneNumber: contact.phoneNumber,
         lastName: contact.lastName,
+        firstName: contact.firstName,
     };
-    if (fieldId in standardFields) {
-        return standardFields[fieldId];
+    // Map script field_names to contact camelCase properties
+    const fieldNameMap: Record<string, keyof typeof standardFields> = {
+        'first_name': 'firstName',
+        'last_name': 'lastName',
+        'phone_number': 'phoneNumber',
+        'postal_code': 'postalCode',
+    }
+    const camelCaseField = fieldNameMap[fieldId as keyof typeof fieldNameMap] || fieldId;
+
+    if (camelCaseField in standardFields) {
+        return standardFields[camelCaseField as keyof typeof standardFields];
     }
     return contact.customFields ? contact.customFields[fieldId] : undefined;
 };
@@ -411,6 +422,54 @@ const qualifyContact = async (contactId, { qualificationId, campaignId, agentId 
     // Here you would also create a new entry in call_history
 };
 
+const updateContact = async (contactId, data) => {
+    const standardFieldMap: Record<string, string> = {
+        first_name: 'first_name',
+        last_name: 'last_name',
+        phone_number: 'phone_number',
+        postal_code: 'postal_code',
+    };
+
+    const standardFieldsToUpdate: Record<string, any> = {};
+    const customFieldsToUpdate: Record<string, any> = {};
+
+    for (const key in data) {
+        if (standardFieldMap[key]) {
+            standardFieldsToUpdate[standardFieldMap[key]] = data[key];
+        } else {
+            customFieldsToUpdate[key] = data[key];
+        }
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        if (Object.keys(standardFieldsToUpdate).length > 0) {
+            const setClauses = Object.keys(standardFieldsToUpdate).map((key, i) => `${key} = $${i + 2}`);
+            const query = `UPDATE contacts SET ${setClauses.join(', ')}, updated_at = NOW() WHERE id = $1`;
+            await client.query(query, [contactId, ...Object.values(standardFieldsToUpdate)]);
+        }
+
+        if (Object.keys(customFieldsToUpdate).length > 0) {
+            const query = `UPDATE contacts SET custom_fields = custom_fields || $2::jsonb, updated_at = NOW() WHERE id = $1`;
+            await client.query(query, [contactId, customFieldsToUpdate]);
+        }
+        
+        await client.query('COMMIT');
+
+        const updatedContactRes = await client.query('SELECT * FROM contacts WHERE id = $1', [contactId]);
+        return keysToCamel(updatedContactRes.rows[0]);
+
+    } catch(e) {
+        await client.query('ROLLBACK');
+        console.error("Error updating contact:", e);
+        throw e;
+    } finally {
+        client.release();
+    }
+};
+
 module.exports = {
     getCampaigns,
     saveCampaign,
@@ -418,4 +477,6 @@ module.exports = {
     importContacts,
     getNextContactForCampaign,
     qualifyContact,
+    updateContact,
+    matchRule, // Export for use in AgentView
 };

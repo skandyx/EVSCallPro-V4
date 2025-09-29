@@ -342,17 +342,22 @@ const AppContent: React.FC = () => {
                 'users': 'users', 'user-groups': 'userGroups', 'scripts': 'savedScripts',
                 'campaigns': 'campaigns', 'qualifications': 'qualifications', 'qualification-groups': 'qualificationGroups',
                 'ivr-flows': 'ivrFlows', 'audio-files': 'audioFiles', 'trunks': 'trunks',
-                'dids': 'dids', 'sites': 'sites', 'planning-events': 'planningEvents'
+                'dids': 'dids', 'sites': 'sites', 'planning-events': 'planningEvents',
+                'contacts': 'contacts' // Ajout pour la sauvegarde des fiches
             };
 
             const collectionKey = dataTypeToStateKey[dataType];
             const collection = collectionKey ? allData[collectionKey] : [];
-            const itemExistsInState = Array.isArray(collection) ? collection.some((item: any) => item.id === data.id) : false;
             
-            // CORRECTED LOGIC: The sole source of truth to determine if an item is new
-            // is its absence from the current application state. The format of the ID is irrelevant.
+            // For contacts, they are nested within campaigns, so the logic is different
+            let itemExistsInState = false;
+            if (dataType === 'contacts') {
+                 itemExistsInState = allData.campaigns.some((c: Campaign) => c.contacts.some(contact => contact.id === data.id));
+            } else {
+                 itemExistsInState = Array.isArray(collection) ? collection.some((item: any) => item.id === data.id) : false;
+            }
+            
             const isNew = !itemExistsInState;
-
             const url = endpoint || `/${dataType.toLowerCase()}`;
             
             const response = isNew
@@ -471,6 +476,12 @@ const AppContent: React.FC = () => {
         }
     };
 
+    const handleUpdateContact = async (contact: Contact) => {
+        // This is a new handler for AgentView to save contact modifications.
+        // It's simpler as it doesn't need to return anything to a modal.
+        await handleSaveOrUpdate('contacts', contact);
+    };
+
     const handleUpdatePassword = async (passwordData: any) => {
         try {
             await apiClient.put('/users/me/password', passwordData);
@@ -537,10 +548,9 @@ const AppContent: React.FC = () => {
         }
     }, [currentUser, showAlert]);
 
-    const currentUserStatus: AgentStatus | undefined = useMemo(() => {
+    const currentUserAgentState: AgentState | undefined = useMemo(() => {
         if (!currentUser) return undefined;
-        const agentState = liveState.agentStates.find(a => a.id === currentUser.id);
-        return agentState?.status;
+        return liveState.agentStates.find(a => a.id === currentUser.id);
     }, [currentUser, liveState.agentStates]);
 
 
@@ -571,9 +581,10 @@ const AppContent: React.FC = () => {
             refreshData={fetchApplicationData}
             onUpdatePassword={handleUpdatePassword}
             onUpdateProfilePicture={handleUpdateProfilePicture}
+            onUpdateContact={handleUpdateContact}
             theme={theme}
             setTheme={setTheme}
-            agentStatus={currentUserStatus}
+            agentState={currentUserAgentState}
             onStatusChange={handleAgentStatusChange}
         />;
     }
@@ -664,7 +675,7 @@ const AppContent: React.FC = () => {
                         currentUser={currentUser}
                         onLogout={handleLogout}
                         moduleVisibility={allData.moduleVisibility || { categories: {}, features: {} }}
-                        agentStatus={currentUserStatus}
+                        agentStatus={currentUserAgentState?.status}
                         onOpenProfile={() => setIsProfileModalOpen(true)}
                         appLogoUrl={allData.appSettings?.appLogoUrl}
                         appName={allData.appSettings?.appName}

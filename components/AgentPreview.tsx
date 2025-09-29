@@ -13,6 +13,8 @@ interface AgentPreviewProps {
   onSaveNote?: () => void;
   campaign?: Campaign | null;
   onInsertContact?: (campaignId: string, contactData: Record<string, any>, phoneNumber: string) => Promise<void>;
+  onUpdateContact?: (contact: Contact) => Promise<void>;
+  onClearContact?: () => void;
 }
 
 const checkCondition = (condition: DisplayCondition | null, values: Record<string, any>): boolean => {
@@ -27,7 +29,7 @@ const checkCondition = (condition: DisplayCondition | null, values: Record<strin
 const AgentPreview: React.FC<AgentPreviewProps> = ({ 
     script, onClose, embedded = false, contact = null, 
     contactNotes = [], users = [], newNote = '', setNewNote = () => {}, onSaveNote = () => {},
-    campaign = null, onInsertContact = async () => {}
+    campaign = null, onInsertContact = async () => {}, onUpdateContact = async () => {}, onClearContact = () => {}
 }) => {
   const [formValues, setFormValues] = useState<Record<string, any>>({});
   const [currentPageId, setCurrentPageId] = useState<string>(script.startPageId);
@@ -68,30 +70,58 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
         }
     });
   };
+  
+  const getSanitizedFormValues = () => {
+    const data: Record<string, any> = {};
+    const allBlocks = script.pages.flatMap(p => p.blocks);
+    for (const fieldName in formValues) {
+        if(allBlocks.some(b => b.fieldName === fieldName)) {
+            data[fieldName] = formValues[fieldName];
+        }
+    }
+    return data;
+  }
 
-  const handleButtonClick = (action: ButtonAction) => {
+  const handleButtonClick = async (action: ButtonAction) => {
     switch(action.type) {
-        case 'save':
-            alert('Données enregistrées (simulation):\n' + JSON.stringify(formValues, null, 2));
-            break;
-        case 'insert_contact':
-            if (onInsertContact && campaign) {
-                const phoneBlock = script.pages.flatMap(p => p.blocks).find(b => b.type === 'phone');
-                const phoneNumber = phoneBlock ? formValues[phoneBlock.fieldName] : '';
+        case 'save': {
+            const dataToSave = getSanitizedFormValues();
+            if (contact && onUpdateContact) {
+                // This is an existing contact, so we update it.
+                // We merge existing contact data with form data to create the updated object.
+                const standardFieldMap: Record<string, keyof Contact> = {
+                    first_name: 'firstName',
+                    last_name: 'lastName',
+                    phone_number: 'phoneNumber',
+                    postal_code: 'postalCode',
+                };
+                const updatedContact: any = { ...contact, customFields: { ...contact.customFields } };
+                for(const key in dataToSave) {
+                    if (standardFieldMap[key]) {
+                        updatedContact[standardFieldMap[key]] = dataToSave[key];
+                    } else {
+                        updatedContact.customFields[key] = dataToSave[key];
+                    }
+                }
+                await onUpdateContact(updatedContact);
+                alert('Données enregistrées !');
 
-                if (!phoneNumber || !/^\d{10,}$/.test(phoneNumber.replace(/\s/g, ''))) {
-                    alert("Veuillez renseigner un numéro de téléphone valide dans le script avant d'insérer une fiche.");
+            } else if (onInsertContact && campaign) {
+                // This is a new contact, we use the insert logic.
+                const phoneBlock = script.pages.flatMap(p => p.blocks).find(b => b.fieldName === 'phone_number');
+                const phoneNumber = phoneBlock ? dataToSave[phoneBlock.fieldName] : '';
+                 if (!phoneNumber || !/^\d{10,}$/.test(phoneNumber.replace(/\s/g, ''))) {
+                    alert("Veuillez renseigner un numéro de téléphone valide pour le nouveau contact.");
                     return;
                 }
-                onInsertContact(campaign.id, formValues, phoneNumber)
-                    .then(() => {
-                        alert('Nouvelle fiche contact insérée avec succès !');
-                        setFormValues({});
-                    })
-                    .catch(err => {
-                        alert(`Erreur lors de l'insertion de la fiche : ${err.message}`);
-                    });
+                onInsertContact(campaign.id, dataToSave, phoneNumber)
+                    .then(() => alert('Nouvelle fiche contact insérée avec succès !'))
+                    .catch(err => alert(`Erreur lors de l'insertion : ${err.message}`));
             }
+            break;
+        }
+        case 'insert_contact':
+            if (onClearContact) onClearContact();
             break;
         case 'navigate':
             if (action.pageId) setCurrentPageId(action.pageId);
