@@ -36,28 +36,44 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
     const [isProcessing, setIsProcessing] = useState(false);
 
     const availableFieldsForImport = useMemo(() => {
-        const standardFields = [
-            { id: 'phoneNumber', name: 'Numéro de Téléphone', required: true },
-            { id: 'firstName', name: 'Prénom' },
-            { id: 'lastName', name: 'Nom' },
-            { id: 'postalCode', name: 'Code Postal' },
-        ];
+        const standardFieldMap: Record<string, { id: keyof Contact | (string & {}), name: string, required: boolean }> = {
+            'first_name': { id: 'firstName', name: 'Prénom', required: false },
+            'last_name': { id: 'lastName', name: 'Nom', required: false },
+            'phone_number': { id: 'phoneNumber', name: 'Numéro de Téléphone', required: true },
+            'postal_code': { id: 'postalCode', name: 'Code Postal', required: false },
+        };
+
+        const standardFields = script
+            ? script.pages
+                .flatMap((page) => page.blocks)
+                .filter(block => block.isStandard && block.isVisible !== false && standardFieldMap[block.fieldName])
+                .map(block => {
+                    const mapped = standardFieldMap[block.fieldName];
+                    return { ...mapped, name: block.name }; // Use name from script, but id/required from map
+                })
+            : [ // Fallback
+                { id: 'phoneNumber', name: 'Numéro de Téléphone', required: true },
+                { id: 'firstName', name: 'Prénom', required: false },
+                { id: 'lastName', name: 'Nom', required: false },
+                { id: 'postalCode', name: 'Code Postal', required: false },
+            ];
 
         if (!script) return standardFields;
 
-        const scriptFields = script.pages
+        const customFieldsFromScript = script.pages
             .flatMap(page => page.blocks)
-            .filter((block: ScriptBlock) => 
-                ['input', 'email', 'phone', 'date', 'time', 'radio', 'checkbox', 'dropdown', 'textarea'].includes(block.type) && block.fieldName && !block.isStandard
+            .filter((block: ScriptBlock) =>
+                ['input', 'email', 'phone', 'date', 'time', 'radio', 'checkbox', 'dropdown', 'textarea'].includes(block.type) &&
+                block.fieldName && !block.isStandard
             )
             .map((block: ScriptBlock) => ({ id: block.fieldName, name: block.name, required: false }));
 
-        const uniqueScriptFields = scriptFields.filter((field, index, self) =>
+        const uniqueCustomFields = customFieldsFromScript.filter((field, index, self) =>
             index === self.findIndex((f) => f.id === field.id) &&
             !standardFields.some(sf => sf.id === field.id)
         );
 
-        return [...standardFields, ...uniqueScriptFields];
+        return [...standardFields, ...uniqueCustomFields];
     }, [script]);
     
     const handleDedupeFieldChange = (fieldId: string, isChecked: boolean) => {
@@ -153,7 +169,8 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
         const contactsToValidate = csvData.map(row => {
             const customFields: Record<string, any> = {};
             availableFieldsForImport.forEach(field => {
-                if (!['phoneNumber', 'firstName', 'lastName', 'postalCode'].includes(field.id)) {
+                const isStandard = ['phoneNumber', 'firstName', 'lastName', 'postalCode'].includes(field.id);
+                if (!isStandard) {
                     const value = getVal(row, field.id);
                     if (value) customFields[field.id] = value;
                 }
@@ -165,15 +182,13 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
                 lastName: getVal(row, 'lastName'),
                 phoneNumber: getVal(row, 'phoneNumber').replace(/\s/g, ''),
                 postalCode: getVal(row, 'postalCode'),
-                // FIX: Use 'as const' to ensure TypeScript infers the literal type 'pending', matching the 'Contact' type definition.
                 status: 'pending' as const,
                 customFields,
-                originalRow: row, // Pass original row for error reporting
+                originalRow: row,
             };
         });
         
         try {
-            // FIX: Cast `contactsToValidate` to `any` to bypass the strict type checking for `originalRow`, which is expected by the backend but not in the frontend `Contact` type.
             const result = await onImport(contactsToValidate as any, deduplicationConfig);
             setSummary({
                 total: result.summary.total,
