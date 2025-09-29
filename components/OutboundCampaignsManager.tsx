@@ -411,4 +411,4 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
     );
 };
 
-export default OutboundCampaignsManager;
+export default React.memo(OutboundCampaignsManager);

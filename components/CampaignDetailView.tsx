@@ -299,7 +299,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
 
     const renderContent = () => {
         switch (activeTab) {
-            case 'contacts': return <ContactList contacts={campaign.contacts} />;
+            case 'contacts': return <ContactList contacts={campaign.contacts} script={script} />;
             case 'stats': return <CampaignStatsTab campaign={campaign} callHistory={callHistory} qualifications={qualifications} />;
             case 'settings': return <CampaignQuotaTab campaign={campaign} callHistory={callHistory} qualifications={qualifications} script={script}/>;
             default: return null;
@@ -341,9 +341,44 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
 };
 
 
-const ContactList: React.FC<{ contacts: Contact[] }> = ({ contacts }) => {
+const ContactList: React.FC<{ contacts: Contact[]; script: SavedScript | null }> = ({ contacts, script }) => {
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     
+    const columns = useMemo(() => {
+        if (!script) {
+            return [
+                { id: 'firstName', name: 'Prénom' },
+                { id: 'lastName', name: 'Nom' },
+                { id: 'phoneNumber', name: 'Téléphone' },
+                { id: 'postalCode', name: 'Code Postal' },
+            ];
+        }
+        // Create columns dynamically from visible script blocks
+        return script.pages
+            .flatMap(p => p.blocks)
+            .filter(b => b.isVisible !== false) // Filter out hidden fields
+            .map(b => ({ id: b.fieldName, name: b.name }));
+    }, [script]);
+
+    const getContactValue = (contact: Contact, fieldId: string): any => {
+         // Map snake_case from script to camelCase on contact object for standard fields
+        const standardFieldMap: Record<string, keyof Contact> = {
+            'first_name': 'firstName',
+            'last_name': 'lastName',
+            'phone_number': 'phoneNumber',
+            'postal_code': 'postalCode',
+        };
+        const standardKey = standardFieldMap[fieldId];
+        if (standardKey && standardKey in contact) {
+            return contact[standardKey];
+        }
+        // For custom fields, access them directly from the customFields object
+        if (contact.customFields && fieldId in contact.customFields) {
+            return contact.customFields[fieldId];
+        }
+        return '';
+    };
+
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSelectedIds(e.target.checked ? contacts.map(c => c.id) : []);
     };
@@ -365,10 +400,9 @@ const ContactList: React.FC<{ contacts: Contact[] }> = ({ contacts }) => {
                     <thead className="bg-slate-100 sticky top-0">
                         <tr>
                             <th className="px-4 py-2"><input type="checkbox" onChange={handleSelectAll} checked={selectedIds.length === contacts.length && contacts.length > 0} /></th>
-                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Prénom</th>
-                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Nom</th>
-                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Téléphone</th>
-                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Code Postal</th>
+                            {columns.map(col => (
+                                <th key={col.id} className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{col.name}</th>
+                            ))}
                             <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Statut</th>
                         </tr>
                     </thead>
@@ -376,10 +410,9 @@ const ContactList: React.FC<{ contacts: Contact[] }> = ({ contacts }) => {
                         {contacts.map(contact => (
                             <tr key={contact.id}>
                                 <td className="px-4 py-2"><input type="checkbox" checked={selectedIds.includes(contact.id)} onChange={e => handleSelectOne(contact.id, e.target.checked)} /></td>
-                                <td className="px-4 py-2">{contact.firstName}</td>
-                                <td className="px-4 py-2">{contact.lastName}</td>
-                                <td className="px-4 py-2 font-mono">{contact.phoneNumber}</td>
-                                <td className="px-4 py-2">{contact.postalCode}</td>
+                                {columns.map(col => (
+                                    <td key={col.id} className={`px-4 py-2 ${['phone_number', 'postal_code'].includes(col.id) ? 'font-mono' : ''}`}>{getContactValue(contact, col.id)}</td>
+                                ))}
                                 <td className="px-4 py-2">
                                     <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
                                         contact.status === 'pending' ? 'bg-blue-100 text-blue-800' : 
