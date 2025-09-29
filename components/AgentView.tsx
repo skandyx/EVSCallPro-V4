@@ -203,17 +203,40 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         };
     }, []);
 
-    const changeStatus = (newStatus: LocalAgentStatus) => {
+    const changeStatus = useCallback((newStatus: LocalAgentStatus) => {
         setStatus(newStatus);
         setStatusTimer(0);
         onStatusChange(newStatus);
-    };
+    }, [onStatusChange]);
 
     const formatTimer = (seconds: number) => {
         const m = Math.floor(seconds / 60).toString().padStart(2, '0');
         const s = (seconds % 60).toString().padStart(2, '0');
         return `${m}:${s}`;
     };
+
+    const handleWrapUp = useCallback(() => {
+        setCurrentContact(null);
+        setCurrentCampaign(null);
+        setActiveScript(null);
+        setSelectedQual(null);
+        setNewNote('');
+        changeStatus('En Attente');
+    }, [changeStatus]);
+
+    useEffect(() => {
+        let wrapUpTimerId: ReturnType<typeof setTimeout>;
+
+        if (status === 'En Post-Appel' && currentCampaign && currentCampaign.wrapUpTime > 0) {
+            wrapUpTimerId = setTimeout(() => {
+                handleWrapUp();
+            }, currentCampaign.wrapUpTime * 1000);
+        }
+
+        return () => {
+            clearTimeout(wrapUpTimerId);
+        };
+    }, [status, currentCampaign, handleWrapUp]);
 
     const requestNextContact = useCallback(async () => {
         if (isLoadingNextContact || status !== 'En Attente') return;
@@ -250,7 +273,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         } finally {
             setIsLoadingNextContact(false);
         }
-    }, [currentUser.id, data.savedScripts, data.campaigns, isLoadingNextContact, status, activeDialingCampaignId]);
+    }, [currentUser.id, data.savedScripts, data.campaigns, isLoadingNextContact, status, activeDialingCampaignId, changeStatus]);
     
     const handleDial = async (destination: string) => {
         if (!currentContact || !currentCampaign || !destination) return;
@@ -299,15 +322,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             console.error("Failed to schedule callback and qualify contact:", error);
             alert("Une erreur est survenue lors de la planification du rappel.");
         }
-    };
-
-    const handleWrapUp = () => {
-        setCurrentContact(null);
-        setCurrentCampaign(null);
-        setActiveScript(null);
-        setSelectedQual(null);
-        setNewNote('');
-        changeStatus('En Attente');
     };
     
     const handleSaveNote = async () => {

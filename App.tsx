@@ -584,7 +584,8 @@ const AppContent: React.FC = () => {
             onUpdateContact={handleUpdateContact}
             theme={theme}
             setTheme={setTheme}
-            agentState={currentUserAgentState}
+            // FIX: Fixed prop name from `agentState` to `agentStatus` and passed the correct value to match the component's props interface.
+            agentStatus={currentUserAgentState?.status}
             onStatusChange={handleAgentStatusChange}
         />;
     }

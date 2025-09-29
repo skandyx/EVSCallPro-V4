@@ -35,16 +35,16 @@ const getContactValue = (contact, fieldId) => {
         firstName: contact.firstName,
     };
     // Map script field_names to contact camelCase properties
-    const fieldNameMap: Record<string, keyof typeof standardFields> = {
+    const fieldNameMap = {
         'first_name': 'firstName',
         'last_name': 'lastName',
         'phone_number': 'phoneNumber',
         'postal_code': 'postalCode',
     }
-    const camelCaseField = fieldNameMap[fieldId as keyof typeof fieldNameMap] || fieldId;
+    const camelCaseField = fieldNameMap[fieldId] || fieldId;
 
     if (camelCaseField in standardFields) {
-        return standardFields[camelCaseField as keyof typeof standardFields];
+        return standardFields[camelCaseField];
     }
     return contact.customFields ? contact.customFields[fieldId] : undefined;
 };
@@ -423,15 +423,15 @@ const qualifyContact = async (contactId, { qualificationId, campaignId, agentId 
 };
 
 const updateContact = async (contactId, data) => {
-    const standardFieldMap: Record<string, string> = {
+    const standardFieldMap = {
         first_name: 'first_name',
         last_name: 'last_name',
         phone_number: 'phone_number',
         postal_code: 'postal_code',
     };
 
-    const standardFieldsToUpdate: Record<string, any> = {};
-    const customFieldsToUpdate: Record<string, any> = {};
+    const standardFieldsToUpdate = {};
+    const customFieldsToUpdate = {};
 
     for (const key in data) {
         if (standardFieldMap[key]) {
