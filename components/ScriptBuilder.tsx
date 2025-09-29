@@ -604,29 +604,29 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
             : 'shadow-md border border-slate-300';
             
         const bgClass = isGroup ? '' : 'bg-white';
-        const baseClasses = `p-2 rounded-md cursor-move flex flex-col`;
+        const baseClasses = `p-3 rounded-md cursor-move flex flex-col`;
 
         const renderContent = () => {
              switch(block.type) {
                 case 'group': return null;
-                case 'label': return <p className="font-bold whitespace-pre-wrap break-words">{block.content.text}</p>;
-                case 'text': return <p className="whitespace-pre-wrap break-words">{block.content.text}</p>;
-                case 'input': case 'email': case 'phone': return <div className="space-y-1"><label className="block font-semibold text-xs">{block.name}</label><input type="text" placeholder={block.content.placeholder} disabled className="w-full p-1 border rounded-sm bg-slate-100 text-sm"/></div>
-                case 'textarea': return <div className="space-y-1 h-full flex flex-col"><label className="block font-semibold text-xs flex-shrink-0">{block.name}</label><textarea placeholder={block.content.placeholder} disabled className="w-full p-1 border rounded-sm bg-slate-100 text-sm flex-1 resize-none"/></div>
-                case 'history': return <div className="space-y-1 h-full flex flex-col"><label className="block font-semibold text-xs border-b pb-1">Historique des appels</label><div className="text-xs text-slate-400 italic flex-1 flex items-center justify-center">Aperçu de l'historique</div></div>
-                case 'date': case 'time': return <div className="space-y-1"><label className="block font-semibold text-xs">{block.name}</label><input type={block.type} disabled className="w-full p-1 border rounded-sm bg-slate-100 text-sm"/></div>
-                case 'dropdown': return <div className="space-y-1"><label className="block font-semibold text-xs">{block.name}</label><select disabled className="w-full p-1 border rounded-sm bg-slate-100 text-sm"><option>{block.content.options[0] || 'Option'}</option></select></div>
-                case 'radio': return <div className="space-y-1 text-left overflow-hidden"><p className="font-semibold text-xs mb-1 truncate">{block.name}</p>{(block.content.options || []).slice(0, 2).map((opt: string) => (<div key={opt} className="flex items-center"><input type="radio" disabled className="mr-2"/><label className="text-sm truncate">{opt}</label></div>))}</div>
-                case 'checkbox': return <div className="space-y-1 text-left overflow-hidden"><p className="font-semibold text-xs mb-1 truncate">{block.name}</p>{(block.content.options || []).slice(0, 2).map((opt: string) => (<div key={opt} className="flex items-center"><input type="checkbox" disabled className="mr-2"/><label className="text-sm truncate">{opt}</label></div>))}</div>
-                case 'button': return <button disabled className="w-full h-full font-semibold" style={{backgroundColor: block.backgroundColor, color: block.textColor}}>{block.content.text}</button>
-                default: return <span className="p-1 text-xs text-center truncate pointer-events-none">{block.content?.label || block.content?.text || block.content?.question || block.type}</span>;
+                case 'label': return <div className="h-full flex flex-col justify-center"><p className="font-bold text-lg whitespace-pre-wrap break-words">{block.content.text}</p></div>;
+                case 'text': return <div className="h-full flex flex-col justify-center"><p className="whitespace-pre-wrap break-words">{block.content.text}</p></div>;
+                case 'input': case 'email': case 'phone': return <div><label className="block font-semibold mb-1">{block.name}</label><input type="text" placeholder={block.content.placeholder} disabled className="w-full p-2 border rounded-md bg-slate-100"/></div>
+                case 'textarea': return <div className="h-full flex flex-col"><label className="block font-semibold mb-1 flex-shrink-0">{block.name}</label><textarea placeholder={block.content.placeholder} disabled className="w-full p-2 border rounded-md bg-slate-100 flex-1 resize-none"/></div>
+                case 'history': return <div className="h-full flex flex-col"><label className="block font-semibold text-xs border-b pb-1">Historique des appels</label><div className="text-xs text-slate-400 italic flex-1 flex items-center justify-center">Aperçu de l'historique</div></div>
+                case 'date': case 'time': return <div><label className="block font-semibold mb-1">{block.name}</label><input type={block.type} disabled className="w-full p-2 border rounded-md bg-slate-100"/></div>
+                case 'dropdown': return <div><label className="block font-semibold mb-1">{block.name}</label><select disabled className="w-full p-2 border rounded-md bg-slate-100"><option>{block.content.options[0] || 'Option'}</option></select></div>
+                case 'radio': return <div><p className="font-semibold mb-2">{block.content.question}</p><div className="space-y-1">{(block.content.options || []).slice(0, 2).map((opt: string) => (<div key={opt} className="flex items-center"><input type="radio" disabled className="mr-2"/><label className="truncate">{opt}</label></div>))}</div></div>
+                case 'checkbox': return <div><p className="font-semibold mb-2">{block.content.question}</p><div className="space-y-1">{(block.content.options || []).slice(0, 2).map((opt: string) => (<div key={opt} className="flex items-center"><input type="checkbox" disabled className="mr-2"/><label className="truncate">{opt}</label></div>))}</div></div>
+                case 'button': return <div className="h-full flex flex-col justify-center"><button disabled className="w-full p-2 border rounded-md font-semibold" style={{backgroundColor: block.backgroundColor, color: block.textColor}}>{block.content.text}</button></div>
+                default: return <div className="h-full flex flex-col justify-center"><span className="p-1 text-xs text-center truncate pointer-events-none">{block.content?.label || block.content?.text || block.content?.question || block.type}</span></div>;
              }
         }
         
         return (
             <div
                 key={block.id} style={style}
-                className={`${baseClasses} ${block.type !== 'textarea' && 'justify-center'} ${bgClass} ${borderClasses}`}
+                className={`${baseClasses} ${bgClass} ${borderClasses}`}
                 onMouseDown={(e) => handleMouseDownOnBlock(e, block.id)}
             >
                 {renderContent()}
