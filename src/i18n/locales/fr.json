@@ -212,8 +212,6 @@
         "quotas": "Quotas",
         "filters": "Inclusion/Exclusion"
       },
-      "name": "Nom",
-      "description": "Description",
       "agentScript": "Script d'agent",
       "noScript": "Aucun script",
       "qualifGroup": "Groupe de qualifications",

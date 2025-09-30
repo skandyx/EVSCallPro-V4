@@ -250,6 +250,43 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     
     const assignedCampaigns = useMemo(() => currentUser.campaignIds.map(id => data.campaigns.find(c => c.id === id)).filter((c): c is Campaign => !!c), [currentUser.campaignIds, data.campaigns]);
     
+    // FIX: Define myPersonalCallbacks to filter callbacks for the current agent and selected date.
+    const myPersonalCallbacks = useMemo(() => {
+        if (!data.personalCallbacks) return [];
+        const startOfDay = new Date(callbacksDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(callbacksDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        return data.personalCallbacks
+            .filter(cb => cb.agentId === currentUser.id)
+            .filter(cb => {
+                const scheduledTime = new Date(cb.scheduledTime);
+                return scheduledTime >= startOfDay && scheduledTime <= endOfDay;
+            })
+            .sort((a, b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
+    }, [data.personalCallbacks, currentUser.id, callbacksDate]);
+
+    // FIX: Define contactNotesForCurrentContact to filter notes for the currently active contact.
+    const contactNotesForCurrentContact = useMemo(() => {
+        if (!currentContact || !data.contactNotes) return [];
+        return data.contactNotes.filter(note => note.contactId === currentContact.id);
+    }, [currentContact, data.contactNotes]);
+
+    // FIX: Define qualificationsForCampaign to filter qualifications based on the current campaign's group.
+    const qualificationsForCampaign = useMemo(() => {
+        if (!currentCampaign || !data.qualifications) return [];
+
+        const qualificationGroupId = currentCampaign.qualificationGroupId;
+        if (!qualificationGroupId) {
+            // Fallback: return only standard qualifications if no group is assigned
+            return data.qualifications.filter(q => q.isStandard);
+        }
+
+        // Return standard qualifications plus those in the assigned group
+        return data.qualifications.filter(q => q.isStandard || q.groupId === qualificationGroupId);
+    }, [currentCampaign, data.qualifications]);
+
     useEffect(() => {
         if (assignedCampaigns.length > 0 && !activeDialingCampaignId) {
             const firstActive = assignedCampaigns.find(c => c.isActive);
@@ -535,10 +572,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
 
     }, [status, data.campaigns, data.savedScripts]);
 
-    const qualificationsForCampaign = currentCampaign ? data.qualifications.filter(q => q.groupId === currentCampaign.qualificationGroupId || q.isStandard) : [];
-    const contactNotesForCurrentContact = useMemo(() => currentContact ? data.contactNotes.filter(note => note.contactId === currentContact.id) : [], [currentContact, data.contactNotes]);
-    const myPersonalCallbacks = useMemo(() => data.personalCallbacks.filter(cb => cb.agentId === currentUser.id && new Date(cb.scheduledTime).toDateString() === callbacksDate.toDateString()), [data.personalCallbacks, currentUser.id, callbacksDate]);
-    
     const allPhoneNumbers = useMemo(() => {
         if (!currentContact || !activeScript) return [];
         const phoneBlocks = activeScript.pages.flatMap(p => p.blocks).filter(b => b.type === 'phone' && b.isVisible !== false);
@@ -670,7 +703,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 </div>
                 <div className="col-span-6 bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700">{activeScript && currentContact ? <AgentPreview script={activeScript} onClose={() => {}} embedded={true} contact={currentContact} contactNotes={contactNotesForCurrentContact} users={data.users} newNote={newNote} setNewNote={setNewNote} onSaveNote={handleSaveNote} campaign={currentCampaign} onInsertContact={async () => {}} onUpdateContact={onUpdateContact} onClearContact={handleClearContact} /> : <div className="h-full flex items-center justify-center text-slate-500 dark:text-slate-400"><p>{currentContact ? t('agentView.noScript') : t('agentView.scriptWillBeHere')}</p></div>}</div>
                 <div className="col-span-3 flex flex-col gap-4">
-                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 relative"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4">{t('agentView.callControls')}</h2><div className="space-y-2"><div className="relative"><button onClick={handleMainCallClick} disabled={!currentContact || status !== 'En Attente' || currentCampaign?.dialingMode !== 'MANUAL'} className="w-full p-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 disabled:opacity-50">{t('agentView.call')}</button>{isDialOptionsOpen && (<div ref={dialOptionsRef} className="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-72 bg-white dark:bg-slate-700 rounded-md shadow-lg border dark:border-slate-600 p-2 z-20 space-y-1">{allPhoneNumbers.map((phone, index) => (<button key={index} onClick={() => { handleDial(phone.number); setIsDialOptionsOpen(false); }} className="w-full text-left p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-600">{t('agentView.callNumber', { phoneName: phone.name })} <span className="text-sm text-slate-500 dark:text-slate-400">({phone.number})</span></button>))}</div>)}</div><button className="w-full p-3 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 disabled:opacity-50" disabled={!currentContact || !selectedQual} onClick={handleEndCall}>{endCallButtonText}</button><button className="w-full p-3 bg-slate-200 font-semibold rounded-lg hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600" disabled={status !== 'En Appel'}>{t('agentView.hold')}</button><button className="w-full p-3 bg-slate-200 font-semibold rounded-lg hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600" disabled={status !== 'En Appel'}>{t('agentView.transfer')}</button><button onClick={handleRaiseHand} disabled={status === 'En Pause'} className="w-full p-3 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 disabled:opacity-50 inline-flex items-center justify-center gap-2"><HandRaisedIcon className="w-5 h-5"/>{t('agentView.askForHelp')}</button></div></div>
+                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 relative"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4">{t('agentView.callControls')}</h2><div className="space-y-2"><div className="relative"><button onClick={handleMainCallClick} disabled={!currentContact || status !== 'En Attente' || currentCampaign?.dialingMode !== 'MANUAL'} className="w-full p-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 disabled:opacity-50">{t('agentView.call')}</button>{isDialOptionsOpen && (<div ref={dialOptionsRef} className="absolute right-full top-0 mr-2 w-72 bg-white dark:bg-slate-700 rounded-md shadow-lg border dark:border-slate-600 p-2 z-20 space-y-1">{allPhoneNumbers.map((phone, index) => (<button key={index} onClick={() => { handleDial(phone.number); setIsDialOptionsOpen(false); }} className="w-full text-left p-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-600 text-lg"><span className="font-semibold">{t('agentView.callNumber', { phoneName: phone.name })}</span> <span className="block text-sm text-slate-500 dark:text-slate-400 font-mono">{phone.number}</span></button>))}</div>)}</div><button className="w-full p-3 bg-red-500 text-white font-bold rounded-lg hover:bg-red-600 disabled:opacity-50" disabled={!currentContact || !selectedQual} onClick={handleEndCall}>{endCallButtonText}</button><button className="w-full p-3 bg-slate-200 font-semibold rounded-lg hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600" disabled={status !== 'En Appel'}>{t('agentView.hold')}</button><button className="w-full p-3 bg-slate-200 font-semibold rounded-lg hover:bg-slate-300 disabled:opacity-50 dark:bg-slate-700 dark:hover:bg-slate-600" disabled={status !== 'En Appel'}>{t('agentView.transfer')}</button><button onClick={handleRaiseHand} disabled={status === 'En Pause'} className="w-full p-3 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 disabled:opacity-50 inline-flex items-center justify-center gap-2"><HandRaisedIcon className="w-5 h-5"/>{t('agentView.askForHelp')}</button></div></div>
                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col">
                         <div className="flex-1 flex flex-col min-h-0">
                             <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4 flex-shrink-0">{t('agentView.qualifications')}</h2>

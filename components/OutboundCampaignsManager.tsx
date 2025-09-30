@@ -33,7 +33,7 @@ interface CampaignModalProps {
     onSave: (campaign: Campaign) => void;
     onClose: () => void;
 }
-
+// FIX: The CampaignModal component definition has been moved outside of the OutboundCampaignsManager component. This ensures that the modal maintains a stable identity across re-renders of its parent, preventing state loss and fixing the "white screen" bug on edit.
 const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts, qualificationGroups, userGroups, onSave, onClose }) => {
     const [activeTab, setActiveTab] = useState('general');
     const [formData, setFormData] = useState<Campaign>(campaign || {
