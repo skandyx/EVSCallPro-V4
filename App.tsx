@@ -66,7 +66,7 @@ function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
                 agentStates: state.agentStates.map(agent => {
                     if (agent.id !== action.payload.agentId) return agent;
                     
-                    const isEnteringPause = action.payload.status === 'En Pause' && agent.status !== 'En Pause';
+                    const isEnteringPause = (action.payload.status === 'En Pause' || action.payload.status === 'Formation') && agent.status !== 'En Pause' && agent.status !== 'Formation';
                     
                     return {
                         ...agent,
@@ -87,7 +87,7 @@ function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
                 agentStates: state.agentStates.map(a => ({
                     ...a,
                     statusDuration: a.statusDuration + 1,
-                    totalPauseTime: a.status === 'En Pause' ? a.totalPauseTime + 1 : a.totalPauseTime,
+                    totalPauseTime: (a.status === 'En Pause' || a.status === 'Formation') ? a.totalPauseTime + 1 : a.totalPauseTime,
                 })),
                 activeCalls: state.activeCalls.map(c => ({ ...c, duration: c.duration + 1 })),
             };
@@ -523,7 +523,7 @@ const AppContent: React.FC = () => {
     };
 
     // FIX: Added callback to send agent-initiated status changes to the backend for real-time supervision.
-    const handleAgentStatusChange = useCallback((status: 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause') => {
+    const handleAgentStatusChange = useCallback((status: 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause' | 'Formation') => {
         if (currentUser && currentUser.role === 'Agent') {
             wsClient.send({
                 type: 'agentStatusChange',

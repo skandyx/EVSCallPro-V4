@@ -18,6 +18,8 @@ const STATUS_CONFIG: { [key in AgentStatus]: { label: string; color: string } } 
     'Ringing': { label: 'Sonnerie', color: 'bg-blue-100 text-blue-800' },
     'Déconnecté': { label: 'Déconnecté', color: 'bg-gray-100 text-gray-800' },
     'Mise en attente': { label: 'Mise en attente', color: 'bg-purple-100 text-purple-800' },
+    // FIX: Added 'Formation' status to resolve TypeScript error and ensure UI consistency.
+    'Formation': { label: 'Formation', color: 'bg-purple-100 text-purple-800' },
 };
 
 const getStatusLedColor = (status: AgentStatus): string => {
@@ -27,6 +29,8 @@ const getStatusLedColor = (status: AgentStatus): string => {
         case 'En Post-Appel': return 'bg-yellow-500'; // WRAPUP
         case 'Ringing': return 'bg-blue-500'; // RINGING
         case 'En Pause': return 'bg-orange-500'; // PAUSE
+        // FIX: Added 'Formation' status to ensure the correct LED color is displayed.
+        case 'Formation': return 'bg-purple-500';
         case 'Mise en attente': return 'bg-purple-500'; // ONHOLD
         case 'Déconnecté': return 'bg-gray-500'; // LOGGEDOUT
         default: return 'bg-gray-400'; // OFFLINE as default

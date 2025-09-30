@@ -41,6 +41,7 @@ const getStatusColor = (status: AgentStatus | undefined): string => {
         case 'En Post-Appel': return 'bg-yellow-500'; // WRAPUP
         case 'Ringing': return 'bg-blue-500'; // RINGING
         case 'En Pause': return 'bg-orange-500'; // PAUSE
+        case 'Formation': return 'bg-purple-500';
         case 'Mise en attente': return 'bg-purple-500'; // ONHOLD
         case 'Déconnecté': return 'bg-gray-500'; // LOGGEDOUT
         default: return 'bg-gray-400'; // OFFLINE as default

@@ -93,6 +93,8 @@ const getStatusColor = (status: AgentStatus | undefined): string => {
         case 'En Post-Appel': return 'bg-yellow-500'; // WRAPUP
         case 'Ringing': return 'bg-blue-500'; // RINGING
         case 'En Pause': return 'bg-orange-500'; // PAUSE
+        // FIX: Added 'Formation' status to provide the correct color indicator.
+        case 'Formation': return 'bg-purple-500';
         case 'Mise en attente': return 'bg-purple-500'; // ONHOLD
         case 'Déconnecté': return 'bg-gray-500'; // LOGGEDOUT
         default: return 'bg-gray-400'; // OFFLINE as default
@@ -138,6 +140,8 @@ const statusToI18nKey = (status: AgentStatus): string => {
         'Ringing': 'agentView.statuses.ringing',
         'Déconnecté': 'agentView.statuses.disconnected',
         'Mise en attente': 'agentView.statuses.onHold',
+        // FIX: Added 'Formation' to the map to resolve a TypeScript error and support translation for the new agent status.
+        'Formation': 'agentView.statuses.training',
     };
     return map[status] || status;
 };

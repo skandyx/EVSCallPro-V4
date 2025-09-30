@@ -124,9 +124,15 @@
       "onPause": "En Pause",
       "ringing": "Sonnerie",
       "disconnected": "Déconnecté",
-      "onHold": "Mise en attente"
+      "onHold": "Mise en attente",
+      "training": "Formation",
+      "available": "Disponible"
     },
-    "callNumber": "Appeler {phoneName}"
+    "callNumber": "Appeler {phoneName}",
+    "statusManager": {
+      "title": "Mon Statut",
+      "settings": "Modifier le profil"
+    }
   },
   "userManager": {
     "title": "Utilisateurs",

@@ -300,7 +300,7 @@ export interface BackupSchedule {
 }
 
 // FIX: Added 'Mise en attente' to model the 'ONHOLD' state and align with new color requirements.
-export type AgentStatus = 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause' | 'Ringing' | 'Déconnecté' | 'Mise en attente';
+export type AgentStatus = 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause' | 'Ringing' | 'Déconnecté' | 'Mise en attente' | 'Formation';
 
 export interface AgentState extends User {
     status: AgentStatus;
