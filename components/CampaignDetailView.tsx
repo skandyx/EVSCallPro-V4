@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useCallback } from 'react';
 import type { Campaign, SavedScript, Contact, CallHistoryRecord, Qualification, User, ContactNote, UserGroup, QualificationGroup } from '../types';
 import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon } from './Icons';
@@ -30,7 +31,7 @@ const KpiCard: React.FC<{ title: string; value: string | number; }> = ({ title, 
 );
 
 const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
-    const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts } = props;
+    const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts, contactNotes } = props;
     const [activeTab, setActiveTab] = useState<DetailTab>('contacts');
     
     const [searchTerm, setSearchTerm] = useState('');
@@ -61,25 +62,27 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     }, [campaign, campaignCallHistory, qualifications]);
     
     const columnsToDisplay = useMemo(() => {
-        if (!script) return [
+        const baseColumns = [
             { fieldName: 'first_name', name: 'Prénom' }, { fieldName: 'last_name', name: 'Nom' },
             { fieldName: 'phone_number', name: 'Téléphone' }, { fieldName: 'postal_code', name: 'Code Postal' },
         ];
         
-        const standardColumns = [
-            { fieldName: 'first_name', name: 'Prénom' }, { fieldName: 'last_name', name: 'Nom' },
-            { fieldName: 'phone_number', name: 'Téléphone' }, { fieldName: 'postal_code', name: 'Code Postal' },
-        ];
+        if (!script) {
+            return baseColumns.map(c => ({...c, isStandard: true}));
+        }
         
         const visibleStandardFields = new Set(script.pages.flatMap(p => p.blocks).filter(b => b.isStandard && b.isVisible !== false).map(b => b.fieldName));
             
         const customColumns = script.pages.flatMap(p => p.blocks)
             .filter(b => !b.isStandard && ['input', 'textarea', 'email', 'phone', 'date', 'time', 'radio', 'checkbox', 'dropdown'].includes(b.type))
-            .map(b => ({ fieldName: b.fieldName, name: b.name }));
+            .map(b => ({ fieldName: b.fieldName, name: b.name, isStandard: false }));
 
         const uniqueCustomColumns = customColumns.filter((v, i, a) => a.findIndex(t => (t.fieldName === v.fieldName)) === i);
         
-        return [ ...standardColumns.filter(c => visibleStandardFields.has(c.fieldName)), ...uniqueCustomColumns ];
+        return [ 
+            ...baseColumns.filter(c => visibleStandardFields.has(c.fieldName)).map(c => ({...c, isStandard: true})), 
+            ...uniqueCustomColumns 
+        ];
     }, [script]);
 
     const filteredContacts = useMemo(() => {
@@ -162,21 +165,23 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                 <tbody className="bg-white divide-y divide-slate-200 text-sm">
                                     {paginatedContacts.map(contact => {
                                         const lastCall = [...callHistory].filter(c => c.contactId === contact.id).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                                        const lastNote = [...contactNotes].filter(n => n.contactId === contact.id).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
                                         return (
                                         <tr key={contact.id} onClick={() => setHistoryModal({ isOpen: true, contact })} className={`cursor-pointer hover:bg-slate-50 ${selectedContactIds.includes(contact.id) ? 'bg-indigo-50' : ''}`}>
                                             <td className="p-4 w-4" onClick={e => e.stopPropagation()}><input type="checkbox" checked={selectedContactIds.includes(contact.id)} onChange={e => handleSelectContact(contact.id, e.target.checked)} className="h-4 w-4 rounded" /></td>
                                             {columnsToDisplay.map(col => {
                                                 let value = '';
-                                                if (col.fieldName === 'first_name') value = contact.firstName;
-                                                else if (col.fieldName === 'last_name') value = contact.lastName;
-                                                else if (col.fieldName === 'phone_number') value = contact.phoneNumber;
-                                                else if (col.fieldName === 'postal_code') value = contact.postalCode;
-                                                else if (contact.customFields) value = contact.customFields[col.fieldName] || '';
+                                                if (col.isStandard) {
+                                                    const keyMap = { 'first_name': 'firstName', 'last_name': 'lastName', 'phone_number': 'phoneNumber', 'postal_code': 'postalCode'};
+                                                    value = (contact as any)[keyMap[col.fieldName as keyof typeof keyMap]] || '';
+                                                } else if (contact.customFields) {
+                                                    value = contact.customFields[col.fieldName] || '';
+                                                }
                                                 return <td key={col.fieldName} className="px-4 py-3 font-mono truncate max-w-xs" title={value}>{value}</td>
                                             })}
                                             <td className="px-4 py-3"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${contact.status === 'pending' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'}`}>{contact.status}</span></td>
                                             <td className="px-4 py-3">{lastCall ? props.qualifications.find(q => q.id === lastCall.qualificationId)?.description : 'N/A'}</td>
-                                            <td className="px-4 py-3 truncate max-w-xs" title={props.contactNotes.find(n => n.contactId === contact.id)?.note}>{props.contactNotes.find(n => n.contactId === contact.id)?.note || 'N/A'}</td>
+                                            <td className="px-4 py-3 truncate max-w-xs" title={lastNote?.note}>{lastNote?.note || 'N/A'}</td>
                                         </tr>
                                     )})}
                                 </tbody>

@@ -209,6 +209,18 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         onStatusChange(newStatus);
     }, [onStatusChange]);
 
+    useEffect(() => {
+        // Sync local currentContact state when the global data prop updates
+        if (currentContact && currentCampaign && data.campaigns) {
+            const campaign = data.campaigns.find(c => c.id === currentCampaign.id);
+            const updatedContact = campaign?.contacts.find(c => c.id === currentContact.id);
+            // Check for actual changes to prevent re-render loops
+            if (updatedContact && JSON.stringify(updatedContact) !== JSON.stringify(currentContact)) {
+                setCurrentContact(updatedContact);
+            }
+        }
+    }, [data.campaigns, currentContact, currentCampaign]);
+
     const formatTimer = (seconds: number) => {
         const m = Math.floor(seconds / 60).toString().padStart(2, '0');
         const s = (seconds % 60).toString().padStart(2, '0');

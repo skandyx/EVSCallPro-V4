@@ -1,5 +1,6 @@
 
-import React, { useState, useMemo } from 'react';
+
+import React, { useState, useMemo, useEffect } from 'react';
 import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact, CallHistoryRecord, Qualification, UserGroup, ContactNote } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ArrowUpTrayIcon } from './Icons.tsx';
 import ImportContactsModal from './ImportContactsModal.tsx';
@@ -257,6 +258,17 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [importTargetCampaign, setImportTargetCampaign] = useState<Campaign | null>(null);
     const { t } = useI18n();
+
+    useEffect(() => {
+        // When the main campaigns list is refreshed (e.g., after a contact update),
+        // update the selectedCampaign to ensure the detail view shows the latest data.
+        if (selectedCampaign) {
+            const updatedCampaign = campaigns.find(c => c.id === selectedCampaign.id);
+            if (updatedCampaign && JSON.stringify(updatedCampaign) !== JSON.stringify(selectedCampaign)) {
+                setSelectedCampaign(updatedCampaign);
+            }
+        }
+    }, [campaigns, selectedCampaign]);
 
     const handleAddNew = () => {
         setEditingCampaign(null);

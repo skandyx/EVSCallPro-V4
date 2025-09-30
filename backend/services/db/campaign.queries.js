@@ -1,3 +1,4 @@
+// backend/services/db/campaign.queries.js
 
 const pool = require('./connection');
 const { keysToCamel } = require('./utils');
@@ -216,40 +217,48 @@ const getCallHistoryForContact = async (contactId) => {
 };
 
 const updateContact = async (contactId, contactData) => {
-    const { firstName, lastName, phoneNumber, postalCode, customFields } = contactData;
-    
-    const standardFieldsToUpdate = {
-        first_name: firstName,
-        last_name: lastName,
-        phone_number: phoneNumber,
-        postal_code: postalCode,
-    };
-
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-
-        // Update standard fields
-        const standardSetClauses = Object.keys(standardFieldsToUpdate)
-            .filter(key => standardFieldsToUpdate[key] !== undefined)
-            .map((key, i) => `${key} = $${i + 2}`);
         
-        if (standardSetClauses.length > 0) {
-            const standardValues = Object.values(standardFieldsToUpdate).filter(v => v !== undefined);
-            const standardQuery = `UPDATE contacts SET ${standardSetClauses.join(', ')}, updated_at = NOW() WHERE id = $1`;
-            await client.query(standardQuery, [contactId, ...standardValues]);
-        }
+        const standardFieldMap = { firstName: 'first_name', lastName: 'last_name', phoneNumber: 'phone_number', postalCode: 'postal_code' };
+        const standardFieldsToUpdate = {};
+        
+        Object.keys(standardFieldMap).forEach(key => {
+            if (contactData[key] !== undefined) {
+                standardFieldsToUpdate[standardFieldMap[key]] = contactData[key];
+            }
+        });
 
-        // Update custom fields
-        if (customFields && Object.keys(customFields).length > 0) {
-            const customQuery = `UPDATE contacts SET custom_fields = custom_fields || $1, updated_at = NOW() WHERE id = $2`;
-            await client.query(customQuery, [customFields, contactId]);
-        }
+        // Clean the customFields object to prevent saving standard fields inside the JSONB column
+        const cleanCustomFields = { ...contactData.customFields };
+        Object.values(standardFieldMap).forEach(dbKey => delete cleanCustomFields[dbKey]);
+        Object.keys(standardFieldMap).forEach(jsKey => delete cleanCustomFields[jsKey]);
+
+        const setClauses = [];
+        const values = [contactId];
+        
+        Object.entries(standardFieldsToUpdate).forEach(([key, value]) => {
+            setClauses.push(`${key} = $${values.length + 1}`);
+            values.push(value);
+        });
+        
+        setClauses.push(`custom_fields = custom_fields || $${values.length + 1}`);
+        values.push(cleanCustomFields);
+
+        const query = `
+            UPDATE contacts SET
+                ${setClauses.join(', ')},
+                updated_at = NOW()
+            WHERE id = $1
+            RETURNING *;
+        `;
+
+        const { rows } = await client.query(query, values);
 
         await client.query('COMMIT');
+        return keysToCamel(rows[0]);
 
-        const res = await client.query('SELECT * FROM contacts WHERE id = $1', [contactId]);
-        return keysToCamel(res.rows[0]);
     } catch (e) {
         await client.query('ROLLBACK');
         console.error('Error updating contact:', e);
@@ -258,6 +267,7 @@ const updateContact = async (contactId, contactData) => {
         client.release();
     }
 };
+
 
 module.exports = {
     getCampaigns,
