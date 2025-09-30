@@ -78,8 +78,9 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
             { id: 'lastName', name: 'Nom de famille' },
         ];
         if (!selectedScript || !selectedScript.pages) return standard;
+        // FIX: Added optional chaining (`page?.blocks`) and a fallback `[]` to prevent the app from crashing if a script page is malformed and does not contain a `blocks` array. This provides robustness against corrupted data.
         const scriptFields = selectedScript.pages
-            .flatMap(page => page.blocks)
+            .flatMap(page => page?.blocks || [])
             .filter(b => ['input', 'email', 'phone', 'date', 'time', 'radio', 'checkbox', 'dropdown', 'textarea'].includes(b.type))
             .map(b => ({ id: b.fieldName, name: b.name }));
         return [...standard, ...scriptFields];
