@@ -116,7 +116,17 @@
     "pauseCount": "Pause Count",
     "totalPauseTime": "Total Pause Time",
     "pause": "Pause",
-    "ready": "Ready"
+    "ready": "Ready",
+    "statuses": {
+      "waiting": "Waiting",
+      "onCall": "On Call",
+      "wrapUp": "Wrap-up",
+      "onPause": "On Pause",
+      "ringing": "Ringing",
+      "disconnected": "Disconnected",
+      "onHold": "On Hold"
+    },
+    "callNumber": "Call {phoneName}"
   },
   "userManager": {
     "title": "Users",

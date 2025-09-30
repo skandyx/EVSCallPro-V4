@@ -54,6 +54,19 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
     const isWrapUpTimeValid = formData.wrapUpTime >= 0 && formData.wrapUpTime <= 120;
     const isFormValid = isNameValid && isQualifGroupValid && isCallerIdValid && isWrapUpTimeValid;
     
+    useEffect(() => {
+        setFormData(campaign || {
+            id: `campaign-${Date.now()}`, name: '', description: '', scriptId: null, callerId: '', isActive: true,
+            assignedUserIds: [], qualificationGroupId: qualificationGroups.length > 0 ? qualificationGroups[0].id : null,
+            contacts: [], dialingMode: 'MANUAL', priority: 5, timezone: 'Europe/Paris', callingDays: [1, 2, 3, 4, 5],
+            callingStartTime: '09:00', callingEndTime: '20:00', maxAbandonRate: 3, paceFactor: 1.2, minAgentsBeforeStart: 1,
+            retryAttempts: 3, retryIntervals: [30, 60, 120], retryOnStatus: [], amdEnabled: true, amdConfidence: 80,
+            voicemailAction: 'HANGUP', recordingEnabled: true, recordingBeep: true, maxRingDuration: 25, wrapUpTime: 10,
+            maxCallDuration: 3600, quotaRules: [], filterRules: [],
+        });
+    }, [campaign, qualificationGroups]);
+
+
     const selectedScript = useMemo(() => {
         if (!formData.scriptId) return null;
         return scripts.find(s => s.id === formData.scriptId) || null;

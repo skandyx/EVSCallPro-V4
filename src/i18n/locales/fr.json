@@ -116,7 +116,17 @@
     "pauseCount": "Nb Pauses",
     "totalPauseTime": "Temps Total en Pause",
     "pause": "Pause",
-    "ready": "Prêt"
+    "ready": "Prêt",
+    "statuses": {
+      "waiting": "En Attente",
+      "onCall": "En Appel",
+      "wrapUp": "En Post-Appel",
+      "onPause": "En Pause",
+      "ringing": "Sonnerie",
+      "disconnected": "Déconnecté",
+      "onHold": "Mise en attente"
+    },
+    "callNumber": "Appeler {phoneName}"
   },
   "userManager": {
     "title": "Utilisateurs",
