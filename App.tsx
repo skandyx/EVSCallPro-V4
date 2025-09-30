@@ -236,7 +236,15 @@ const AppContent: React.FC = () => {
                     // Fetch data first, then user. This ensures all data is present before rendering authenticated views.
                     await fetchApplicationData();
                     const meResponse = await apiClient.get('/auth/me');
-                    setCurrentUser(meResponse.data.user);
+                    const user = meResponse.data.user;
+                    setCurrentUser(user);
+                    // FIX: On successful session restoration for an agent, immediately set their status to Available.
+                    if (user.role === 'Agent') {
+                        dispatch({
+                            type: 'AGENT_STATUS_UPDATE',
+                            payload: { agentId: user.id, status: 'En Attente' }
+                        });
+                    }
                 } catch (error) {
                     console.error("Session check failed:", error);
                     // The refresh token logic in axios interceptor will handle this.
@@ -249,7 +257,7 @@ const AppContent: React.FC = () => {
         };
 
         loadApp();
-    }, [fetchApplicationData, setLanguage]);
+    }, [fetchApplicationData, setLanguage, dispatch]);
 
     // Effect to handle logout event from axios interceptor
     useEffect(() => {
@@ -267,9 +275,6 @@ const AppContent: React.FC = () => {
 
      // Effect to manage WebSocket connection and live data updates
     useEffect(() => {
-        // FIX: This effect now runs for all logged-in users, not just supervisors.
-        // This is crucial for agents to connect to the WebSocket, receive their initial 'En Attente' status,
-        // and for their status timer to function correctly.
         if (currentUser) {
             const token = localStorage.getItem('authToken');
             if (token) {
@@ -345,6 +350,13 @@ const AppContent: React.FC = () => {
             await fetchApplicationData();
             // ...then set the user to trigger the render.
             setCurrentUser(user);
+             // FIX: On successful login for an agent, immediately set their status to Available.
+            if (user.role === 'Agent') {
+                dispatch({
+                    type: 'AGENT_STATUS_UPDATE',
+                    payload: { agentId: user.id, status: 'En Attente' }
+                });
+            }
         } catch (error) {
             // If fetching data fails, log the user out to prevent a broken state
             localStorage.removeItem('authToken');

@@ -560,26 +560,23 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
              {isProfileModalOpen && <UserProfileModal user={currentUser} onClose={() => setIsProfileModalOpen(false)} onSavePassword={onUpdatePassword} onSaveProfilePicture={onUpdateProfilePicture} />}
              <CallbackSchedulerModal isOpen={isCallbackModalOpen} onClose={() => setIsCallbackModalOpen(false)} onSchedule={handleScheduleAndEndCall} />
              <header className="flex-shrink-0 bg-white dark:bg-slate-800 shadow-md p-3 flex justify-between items-center z-10">
-                <div ref={statusMenuRef} className="relative">
-                    <button onClick={() => setIsStatusMenuOpen(p => !p)} className="flex items-center gap-4 text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
-                        <div className="relative">
-                            {currentUser.profilePictureUrl ? <img src={currentUser.profilePictureUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" /> : <UserCircleIcon className="w-10 h-10 text-slate-400" />}
-                            <span className={`absolute top-0 right-0 block h-3.5 w-3.5 rounded-full border-2 border-white dark:border-slate-800 ${getStatusColor(agentState?.status)}`}></span>
-                        </div>
-                        <div>
-                            <h1 className="font-bold text-slate-800 dark:text-slate-100">{t('agentView.title')}</h1>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">{currentUser.firstName} {currentUser.lastName} - Ext: {currentUser.loginId}</p>
-                             {agentState && (
-                                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-1">
-                                    <span className={`w-2 h-2 rounded-full ${getStatusColor(agentState.status)}`}></span>
-                                    <span>{t(statusToI18nKey(agentState.status))}</span>
-                                    <span className="font-mono">{formatTimer(agentState.statusDuration)}</span>
-                                </div>
-                            )}
-                        </div>
+                <div ref={statusMenuRef} className="relative flex items-center gap-4">
+                    <button onClick={() => setIsStatusMenuOpen(p => !p)} className="relative p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+                        {currentUser.profilePictureUrl ? <img src={currentUser.profilePictureUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" /> : <UserCircleIcon className="w-10 h-10 text-slate-400" />}
+                        <span className={`absolute top-0 right-0 block h-3.5 w-3.5 rounded-full border-2 border-white dark:border-slate-800 ${getStatusColor(agentState?.status)}`}></span>
                     </button>
+                    <div className="text-left">
+                        <p className="font-bold text-slate-800 dark:text-slate-100">{currentUser.firstName} {currentUser.lastName} - Ext: {currentUser.loginId}</p>
+                         {agentState && (
+                            <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${getStatusColor(agentState.status)}`}></span>
+                                <span>{t(statusToI18nKey(agentState.status))}</span>
+                                <span className="font-mono">{formatTimer(agentState.statusDuration)}</span>
+                            </div>
+                        )}
+                    </div>
                     {isStatusMenuOpen && (
-                         <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-slate-800 rounded-md shadow-lg border dark:border-slate-700 p-2 z-20">
+                         <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-md shadow-lg border dark:border-slate-700 p-2 z-20">
                             <div className="space-y-1">
                                 {statuses.map(s => (
                                     <button
