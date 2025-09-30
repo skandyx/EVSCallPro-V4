@@ -77,7 +77,7 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
             { id: 'phoneNumber', name: 'Numéro de Téléphone' },
             { id: 'lastName', name: 'Nom de famille' },
         ];
-        if (!selectedScript) return standard;
+        if (!selectedScript || !selectedScript.pages) return standard;
         const scriptFields = selectedScript.pages
             .flatMap(page => page.blocks)
             .filter(b => ['input', 'email', 'phone', 'date', 'time', 'radio', 'checkbox', 'dropdown', 'textarea'].includes(b.type))
