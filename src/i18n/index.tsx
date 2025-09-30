@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import fr from './locales/fr.json';
 import en from './locales/en.json';
 import ar from './locales/ar.json';
@@ -28,11 +28,11 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
         document.documentElement.lang = language;
     }, [language]);
 
-    const setLanguage = (lang: string) => {
+    const setLanguage = useCallback((lang: string) => {
         if (['fr', 'en'].includes(lang)) {
             setLanguageState(lang);
         }
-    };
+    }, []);
 
     const t = useCallback((key: string, options?: Record<string, any>): string => {
         let translation = key.split('.').reduce((obj, k) => obj?.[k], translations[language]);
@@ -55,7 +55,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return translation;
     }, [language]);
 
-    const value = { language, setLanguage, t };
+    const value = useMemo(() => ({ language, setLanguage, t }), [language, setLanguage, t]);
 
     return (
         <I18nContext.Provider value={value}>

@@ -165,6 +165,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
     const statusMenuRef = useRef<HTMLDivElement>(null);
     const [callbackCampaignFilter, setCallbackCampaignFilter] = useState('all');
+    const [activeCallbackId, setActiveCallbackId] = useState<string | null>(null);
 
     const status = agentState?.status || 'Déconnecté';
     
@@ -277,6 +278,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const handleWrapUp = useCallback(() => {
         const lastCampaignMode = currentCampaign?.dialingMode; 
         setCurrentContact(null); setCurrentCampaign(null); setActiveScript(null); setSelectedQual(null); setNewNote('');
+        setActiveCallbackId(null);
         onStatusChange('En Attente');
         if (lastCampaignMode && lastCampaignMode !== 'MANUAL') {
             setTimeout(() => requestNextContact(), 100);
@@ -311,6 +313,10 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         if (selectedQual === 'std-94') { setIsCallbackModalOpen(true); return; }
         try {
             await apiClient.post(`/contacts/${currentContact.id}/qualify`, { qualificationId: selectedQual, campaignId: currentCampaign.id, agentId: currentUser.id });
+            if (activeCallbackId) {
+                await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
+                await refreshData();
+            }
             if (currentCampaign.wrapUpTime === 0) handleWrapUp();
             else onStatusChange('En Post-Appel');
         } catch (error) { console.error("Failed to qualify contact:", error); alert("Erreur lors de la qualification."); }
@@ -321,6 +327,9 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         try {
             await apiClient.post(`/contacts/${currentContact.id}/schedule-callback`, { agentId: currentUser.id, campaignId: currentCampaign.id, contactName: `${currentContact.firstName} ${currentContact.lastName}`, contactNumber: currentContact.phoneNumber, scheduledTime, notes });
             await apiClient.post(`/contacts/${currentContact.id}/qualify`, { qualificationId: selectedQual, campaignId: currentCampaign.id, agentId: currentUser.id });
+            if (activeCallbackId) {
+                 await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
+            }
             setIsCallbackModalOpen(false); refreshData();
             if (currentCampaign.wrapUpTime === 0) handleWrapUp();
             else onStatusChange('En Post-Appel');
@@ -355,6 +364,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         if (status !== 'En Attente') {
             setFeedbackMessage("Veuillez terminer votre tâche actuelle avant de charger un rappel."); setTimeout(() => setFeedbackMessage(null), 3000); return;
         }
+        setActiveCallbackId(callback.id);
         const campaign = data.campaigns.find(c => c.id === callback.campaignId); if (!campaign) { console.error(`Campaign ${callback.campaignId} not found.`); return; }
         const contact = campaign.contacts.find(c => c.id === callback.contactId); if (!contact) { console.error(`Contact ${callback.contactId} not found.`); return; }
         const script = data.savedScripts.find(s => s.id === campaign.scriptId);
@@ -460,7 +470,11 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                                 )) : <p className="text-sm text-slate-500 italic text-center">{t('agentView.noCampaigns')}</p>}
                             </div>
                         </div>
-                         <button className="mt-4 w-full p-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 disabled:opacity-50" disabled={status !== 'En Post-Appel'} onClick={handleWrapUp}>{t('agentView.finalize')}</button>
+                         {status === 'En Post-Appel' && (
+                            <div className="mt-4">
+                                <p className="text-center text-sm text-slate-500">Post-appel en cours... {agentState?.statusDuration}s / {currentCampaign?.wrapUpTime}s</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </main>

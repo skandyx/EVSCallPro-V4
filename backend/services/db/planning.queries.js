@@ -35,6 +35,21 @@ const createPersonalCallback = async (callback) => {
     return keysToCamel(res.rows[0]);
 };
 
+const updatePersonalCallbackStatus = async (callbackId, status) => {
+    const query = `
+        UPDATE personal_callbacks
+        SET status = $1, updated_at = NOW()
+        WHERE id = $2
+        RETURNING *;
+    `;
+    const res = await pool.query(query, [status, callbackId]);
+    if (res.rows.length === 0) {
+        console.warn(`[DB] Attempted to update non-existent callback ${callbackId}`);
+        return null;
+    }
+    return keysToCamel(res.rows[0]);
+};
+
 module.exports = {
     getPlanningEvents,
     savePlanningEvent,
@@ -42,4 +57,5 @@ module.exports = {
     getActivityTypes,
     getPersonalCallbacks,
     createPersonalCallback,
+    updatePersonalCallbackStatus,
 };
