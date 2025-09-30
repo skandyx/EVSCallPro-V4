@@ -4,12 +4,15 @@ const pool = require('./connection');
 const { keysToCamel } = require('./utils');
 
 const getCampaigns = async () => {
-    // This query now also fetches all contacts for each campaign.
-    // In a real application with many contacts, this should be paginated or handled differently.
+    // This query now correctly fetches assigned user IDs along with contacts.
     const query = `
-        SELECT c.*, COALESCE(json_agg(ct.*) FILTER (WHERE ct.id IS NOT NULL), '[]') as contacts
+        SELECT 
+            c.*, 
+            COALESCE(json_agg(ct.*) FILTER (WHERE ct.id IS NOT NULL), '[]') as contacts,
+            COALESCE(ARRAY_AGG(ca.user_id) FILTER (WHERE ca.user_id IS NOT NULL), '{}') as assigned_user_ids
         FROM campaigns c
         LEFT JOIN contacts ct ON c.id = ct.campaign_id
+        LEFT JOIN campaign_agents ca ON c.id = ca.campaign_id
         GROUP BY c.id
         ORDER BY c.name;
     `;
