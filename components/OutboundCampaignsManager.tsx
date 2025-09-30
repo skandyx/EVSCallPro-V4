@@ -49,7 +49,6 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
     // --- Validation Logic for LEDs ---
     const isNameValid = !!formData.name.trim();
     const isQualifGroupValid = !!formData.qualificationGroupId;
-    // FIX: Corrected a TypeScript error caused by operator precedence. The `!!` was incorrectly converting the string length to a boolean before the `> 0` comparison, leading to `boolean > number`. Removing `!!` ensures the length is correctly checked.
     const isCallerIdValid = formData.callerId.trim().length > 0 && /^\d+$/.test(formData.callerId);
     const isWrapUpTimeValid = formData.wrapUpTime >= 0 && formData.wrapUpTime <= 120;
     const isFormValid = isNameValid && isQualifGroupValid && isCallerIdValid && isWrapUpTimeValid;
@@ -258,14 +257,30 @@ interface OutboundCampaignsManagerProps {
     contactNotes: ContactNote[];
     onSaveCampaign: (campaign: Campaign) => void;
     onDeleteCampaign: (campaignId: string) => void;
-    // FIX: Changed return type from 'void' to 'Promise<any>' to match the async nature of the import process and align with the child component's expectations.
     onImportContacts: (campaignId: string, contacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => Promise<any>;
     onUpdateContact: (contact: Contact) => void;
     onDeleteContacts: (contactIds: string[]) => void;
 }
 
 const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props) => {
-    const { feature, campaigns, users, savedScripts, qualificationGroups, userGroups, onSaveCampaign, onDeleteCampaign, onImportContacts, onUpdateContact, onDeleteContacts, callHistory, qualifications, contactNotes } = props;
+    // FIX: Destructuring props with default empty arrays to prevent crashes if data is missing during render.
+    const { 
+        feature, 
+        campaigns = [], 
+        users = [], 
+        savedScripts = [], 
+        qualificationGroups = [], 
+        userGroups = [], 
+        callHistory = [], 
+        qualifications = [], 
+        contactNotes = [],
+        onSaveCampaign, 
+        onDeleteCampaign, 
+        onImportContacts, 
+        onUpdateContact, 
+        onDeleteContacts 
+    } = props;
+    
     const [view, setView] = useState<'list' | 'detail'>('list');
     const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -275,8 +290,6 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
     const { t } = useI18n();
 
     useEffect(() => {
-        // When the main campaigns list is refreshed (e.g., after a contact update),
-        // update the selectedCampaign to ensure the detail view shows the latest data.
         if (selectedCampaign) {
             const updatedCampaign = campaigns.find(c => c.id === selectedCampaign.id);
             if (updatedCampaign && JSON.stringify(updatedCampaign) !== JSON.stringify(selectedCampaign)) {
@@ -311,7 +324,6 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
         setIsImportModalOpen(true);
     };
 
-    // FIX: Converted the function to `async` and now it returns the promise from `onImportContacts`, allowing the modal to await the result and display a summary.
     const handleImport = async (newContacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => {
         if (importTargetCampaign) {
             return onImportContacts(importTargetCampaign.id, newContacts, deduplicationConfig);
@@ -333,14 +345,12 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
                 onSaveCampaign={onSaveCampaign}
                 onUpdateContact={onUpdateContact}
                 onDeleteContacts={onDeleteContacts}
-                // Pass all required data for stats and settings
                 callHistory={callHistory}
                 qualifications={qualifications}
                 qualificationGroups={qualificationGroups}
                 savedScripts={savedScripts}
                 users={users}
                 contactNotes={contactNotes}
-// FIX: Pass the 'userGroups' prop to CampaignDetailView to satisfy its required props.
                 userGroups={userGroups}
             />
         )
@@ -368,9 +378,7 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
                 />
             )}
             <header>
-                {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
                 <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
-                {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
                 <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
 

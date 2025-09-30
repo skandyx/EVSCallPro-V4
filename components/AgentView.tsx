@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { User, Campaign, Contact, Qualification, SavedScript, QualificationGroup, ContactNote, PersonalCallback, AgentStatus, AgentState } from '../types.ts';
-import { PowerIcon, PhoneIcon, UserCircleIcon, PauseIcon, CalendarDaysIcon, ComputerDesktopIcon, SunIcon, MoonIcon, ChevronDownIcon, ArrowLeftIcon, ArrowRightIcon, HandRaisedIcon, XMarkIcon, BellAlertIcon, Cog6ToothIcon } from './Icons.tsx';
+import { PowerIcon, PhoneIcon, UserCircleIcon, PauseIcon, CalendarDaysIcon, ComputerDesktopIcon, SunIcon, MoonIcon, ChevronDownIcon, ArrowLeftIcon, ArrowRightIcon, HandRaisedIcon, XMarkIcon, BellAlertIcon, Cog6ToothIcon, CheckIcon } from './Icons.tsx';
 import AgentPreview from './AgentPreview.tsx';
 import UserProfileModal from './UserProfileModal.tsx';
 import apiClient from '../src/lib/axios.ts';
@@ -144,87 +144,7 @@ const statusToI18nKey = (status: AgentStatus): string => {
     return map[status] || status;
 };
 
-// --- New Status Manager Component ---
-const StatusManager: React.FC<{
-    currentStatus: LocalAgentStatus;
-    statusDuration: number;
-    onChangeStatus: (newStatus: LocalAgentStatus) => void;
-    onOpenProfile: () => void;
-}> = ({ currentStatus, statusDuration, onChangeStatus, onOpenProfile }) => {
-    const { t } = useI18n();
-    const [isOpen, setIsOpen] = useState(false);
-    const menuRef = useRef<HTMLDivElement>(null);
-
-    const statuses: { id: LocalAgentStatus, i18nKey: string, color: string }[] = [
-        { id: 'En Attente', i18nKey: 'agentView.statuses.available', color: 'bg-green-500' },
-        { id: 'En Pause', i18nKey: 'agentView.statuses.onPause', color: 'bg-orange-500' },
-        { id: 'Formation', i18nKey: 'agentView.statuses.training', color: 'bg-purple-500' },
-    ];
-    
-    const canChangeStatus = !['En Appel', 'En Post-Appel'].includes(currentStatus);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const formatTimer = (seconds: number) => {
-        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-        const s = (seconds % 60).toString().padStart(2, '0');
-        return `${m}:${s}`;
-    };
-    
-    const currentStatusConfig = statuses.find(s => s.id === currentStatus) || { i18nKey: statusToI18nKey(currentStatus as AgentStatus), color: getStatusColor(currentStatus) };
-
-    return (
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col relative" ref={menuRef}>
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4">{t('agentView.statusManager.title')}</h2>
-            <button
-                onClick={() => setIsOpen(p => !p)}
-                disabled={!canChangeStatus}
-                className="text-center my-auto w-full p-4 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 disabled:cursor-not-allowed"
-            >
-                <div className="flex items-center justify-center gap-2">
-                    <span className={`w-3 h-3 rounded-full ${currentStatusConfig.color}`}></span>
-                    <p className="text-4xl font-bold text-indigo-600 dark:text-indigo-400">{t(currentStatusConfig.i18nKey)}</p>
-                </div>
-                <p className="text-6xl font-mono text-slate-700 dark:text-slate-300 mt-2">{formatTimer(statusDuration)}</p>
-            </button>
-            {isOpen && canChangeStatus && (
-                <div className="absolute top-full left-0 mt-1 w-full bg-white dark:bg-slate-800 rounded-md shadow-lg border dark:border-slate-700 p-2 z-20">
-                    <div className="space-y-1">
-                        {statuses.map(s => (
-                            <button
-                                key={s.id}
-                                onClick={() => { onChangeStatus(s.id); setIsOpen(false); }}
-                                className={`w-full text-left flex items-center gap-3 p-2 rounded-md text-slate-700 dark:text-slate-200 ${currentStatus === s.id ? 'bg-indigo-50 dark:bg-indigo-900/50' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}`}
-                            >
-                                <span className={`w-2.5 h-2.5 rounded-full ${s.color}`}></span>
-                                {t(s.i18nKey)}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="border-t dark:border-slate-700 mt-2 pt-2">
-                         <button
-                            onClick={onOpenProfile}
-                            className="w-full text-left flex items-center gap-3 p-2 rounded-md text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
-                        >
-                            <Cog6ToothIcon className="w-5 h-5 text-slate-500" />
-                            {t('agentView.statusManager.settings')}
-                        </button>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-
+// --- Agent View ---
 const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refreshData, onUpdatePassword, onUpdateProfilePicture, onUpdateContact, theme, setTheme, agentState, onStatusChange }) => {
     const { t } = useI18n();
     const [status, setStatus] = useState<LocalAgentStatus>('En Attente');
@@ -247,10 +167,11 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const [isDialOptionsOpen, setIsDialOptionsOpen] = useState(false);
     const dialOptionsRef = useRef<HTMLDivElement>(null);
 
+    const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+    const statusMenuRef = useRef<HTMLDivElement>(null);
     
     const assignedCampaigns = useMemo(() => currentUser.campaignIds.map(id => data.campaigns.find(c => c.id === id)).filter((c): c is Campaign => !!c), [currentUser.campaignIds, data.campaigns]);
     
-    // FIX: Define myPersonalCallbacks to filter callbacks for the current agent and selected date.
     const myPersonalCallbacks = useMemo(() => {
         if (!data.personalCallbacks) return [];
         const startOfDay = new Date(callbacksDate);
@@ -267,23 +188,19 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             .sort((a, b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
     }, [data.personalCallbacks, currentUser.id, callbacksDate]);
 
-    // FIX: Define contactNotesForCurrentContact to filter notes for the currently active contact.
     const contactNotesForCurrentContact = useMemo(() => {
         if (!currentContact || !data.contactNotes) return [];
         return data.contactNotes.filter(note => note.contactId === currentContact.id);
     }, [currentContact, data.contactNotes]);
 
-    // FIX: Define qualificationsForCampaign to filter qualifications based on the current campaign's group.
     const qualificationsForCampaign = useMemo(() => {
         if (!currentCampaign || !data.qualifications) return [];
 
         const qualificationGroupId = currentCampaign.qualificationGroupId;
         if (!qualificationGroupId) {
-            // Fallback: return only standard qualifications if no group is assigned
             return data.qualifications.filter(q => q.isStandard);
         }
 
-        // Return standard qualifications plus those in the assigned group
         return data.qualifications.filter(q => q.isStandard || q.groupId === qualificationGroupId);
     }, [currentCampaign, data.qualifications]);
 
@@ -312,6 +229,16 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     useEffect(() => {
         const interval = setInterval(() => setStatusTimer(prev => prev + 1), 1000);
         return () => clearInterval(interval);
+    }, []);
+    
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (statusMenuRef.current && !statusMenuRef.current.contains(event.target as Node)) {
+                setIsStatusMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     useEffect(() => {
@@ -346,11 +273,9 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     }, [onStatusChange]);
 
     useEffect(() => {
-        // Sync local currentContact state when the global data prop updates
         if (currentContact && currentCampaign && data.campaigns) {
             const campaign = data.campaigns.find(c => c.id === currentCampaign.id);
             const updatedContact = campaign?.contacts.find(c => c.id === currentContact.id);
-            // Check for actual changes to prevent re-render loops
             if (updatedContact && JSON.stringify(updatedContact) !== JSON.stringify(currentContact)) {
                 setCurrentContact(updatedContact);
             }
@@ -375,9 +300,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 const script = data.savedScripts.find(s => s.id === campaign.scriptId);
                 setActiveScript(script || null);
                 
-                // Ne lance l'appel automatiquement que pour les modes non-manuels
                 if (campaign.dialingMode !== 'MANUAL') {
-                    // La logique de dial réelle serait ici, pour l'instant on simule en changeant l'état
                     changeStatus('En Appel');
                 }
             } else {
@@ -395,7 +318,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     }, [currentUser.id, data.savedScripts, data.campaigns, isLoadingNextContact, status, activeDialingCampaignId, changeStatus]);
 
     const handleWrapUp = useCallback(() => {
-        const lastCampaignMode = currentCampaign?.dialingMode; // Capture mode before clearing state
+        const lastCampaignMode = currentCampaign?.dialingMode; 
 
         setCurrentContact(null);
         setCurrentCampaign(null);
@@ -404,9 +327,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         setNewNote('');
         changeStatus('En Attente');
         
-        // Automatically request next contact for non-manual modes
         if (lastCampaignMode && lastCampaignMode !== 'MANUAL') {
-            // Use a short timeout to allow the state update to render before fetching.
             setTimeout(() => {
                 requestNextContact();
             }, 100);
@@ -454,14 +375,11 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             return;
         }
         try {
-            // FIX: Replaced `contact` with `currentContact` to resolve 'Cannot find name' error.
             await apiClient.post(`/contacts/${currentContact.id}/qualify`, { qualificationId: selectedQual, campaignId: currentCampaign.id, agentId: currentUser.id });
             
-            // If wrap-up is 0, immediately become available and trigger next contact if applicable.
             if (currentCampaign.wrapUpTime === 0) {
                 handleWrapUp();
             } else {
-                // Otherwise, go into post-call state and let the timer handle it.
                 changeStatus('En Post-Appel');
             }
         } catch (error) {
@@ -473,9 +391,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const handleScheduleAndEndCall = async (scheduledTime: string, notes: string) => {
         if (!currentContact || !currentCampaign || !selectedQual) return;
         try {
-            // FIX: Replaced `contact` with `currentContact` to resolve 'Cannot find name' error.
             await apiClient.post(`/contacts/${currentContact.id}/schedule-callback`, { agentId: currentUser.id, campaignId: currentCampaign.id, contactName: `${currentContact.firstName} ${currentContact.lastName}`, contactNumber: currentContact.phoneNumber, scheduledTime, notes });
-            // FIX: Replaced `contact` with `currentContact` to resolve 'Cannot find name' error.
             await apiClient.post(`/contacts/${currentContact.id}/qualify`, { qualificationId: selectedQual, campaignId: currentCampaign.id, agentId: currentUser.id });
             setIsCallbackModalOpen(false);
             refreshData();
@@ -539,7 +455,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     
     const handleClearContact = () => {
         setCurrentContact(null);
-        // We keep the campaign and script active for the new contact entry.
         setSelectedQual(null);
         setNewNote('');
     };
@@ -587,9 +502,9 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         if (!currentContact) return;
     
         if (allPhoneNumbers.length > 1) {
-            setIsDialOptionsOpen(prev => !prev); // Toggle pop-up
+            setIsDialOptionsOpen(prev => !prev);
         } else {
-            setIsDialOptionsOpen(false); // Ensure it's closed
+            setIsDialOptionsOpen(false);
             const numberToDial = allPhoneNumbers.length > 0 ? allPhoneNumbers[0].number : currentContact.phoneNumber;
             handleDial(numberToDial);
         }
@@ -632,21 +547,61 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         const s = (seconds % 60).toString().padStart(2, '0');
         return `${m}:${s}`;
     };
+    
+    const canChangeStatus = !['En Appel', 'En Post-Appel'].includes(status);
+    const statuses: { id: LocalAgentStatus, i18nKey: string, color: string }[] = [
+        { id: 'En Attente', i18nKey: 'agentView.statuses.available', color: 'bg-green-500' },
+        { id: 'En Pause', i18nKey: 'agentView.statuses.onPause', color: 'bg-orange-500' },
+        { id: 'Formation', i18nKey: 'agentView.statuses.training', color: 'bg-purple-500' },
+    ];
 
     return (
         <div className="h-screen w-screen flex flex-col font-sans bg-slate-100 text-lg dark:bg-slate-900 dark:text-slate-200">
              {isProfileModalOpen && <UserProfileModal user={currentUser} onClose={() => setIsProfileModalOpen(false)} onSavePassword={onUpdatePassword} onSaveProfilePicture={onUpdateProfilePicture} />}
              <CallbackSchedulerModal isOpen={isCallbackModalOpen} onClose={() => setIsCallbackModalOpen(false)} onSchedule={handleScheduleAndEndCall} />
              <header className="flex-shrink-0 bg-white dark:bg-slate-800 shadow-md p-3 flex justify-between items-center z-10">
-                <div className="flex items-center gap-4 text-left p-2">
-                    <div className="relative">
-                        {currentUser.profilePictureUrl ? <img src={currentUser.profilePictureUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" /> : <UserCircleIcon className="w-10 h-10 text-slate-400" />}
-                        <span className={`absolute top-0 right-0 block h-3.5 w-3.5 rounded-full border-2 border-white dark:border-slate-800 ${getStatusColor(agentState?.status)}`}></span>
-                    </div>
-                    <div>
-                        <h1 className="font-bold text-slate-800 dark:text-slate-100">{t('agentView.title')}</h1>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">{currentUser.firstName} {currentUser.lastName} - Ext: {currentUser.loginId}</p>
-                    </div>
+                <div ref={statusMenuRef} className="relative">
+                    <button onClick={() => setIsStatusMenuOpen(p => !p)} className="flex items-center gap-4 text-left p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700">
+                        <div className="relative">
+                            {currentUser.profilePictureUrl ? <img src={currentUser.profilePictureUrl} alt="Avatar" className="w-10 h-10 rounded-full object-cover" /> : <UserCircleIcon className="w-10 h-10 text-slate-400" />}
+                            <span className={`absolute top-0 right-0 block h-3.5 w-3.5 rounded-full border-2 border-white dark:border-slate-800 ${getStatusColor(agentState?.status)}`}></span>
+                        </div>
+                        <div>
+                            <h1 className="font-bold text-slate-800 dark:text-slate-100">{t('agentView.title')}</h1>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">{currentUser.firstName} {currentUser.lastName} - Ext: {currentUser.loginId}</p>
+                             {agentState && (
+                                <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 mt-1">
+                                    <span className={`w-2 h-2 rounded-full ${getStatusColor(agentState.status)}`}></span>
+                                    <span>{t(statusToI18nKey(agentState.status))}</span>
+                                    <span className="font-mono">{formatTimer(agentState.statusDuration)}</span>
+                                </div>
+                            )}
+                        </div>
+                    </button>
+                    {isStatusMenuOpen && (
+                         <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-slate-800 rounded-md shadow-lg border dark:border-slate-700 p-2 z-20">
+                            <div className="space-y-1">
+                                {statuses.map(s => (
+                                    <button
+                                        key={s.id}
+                                        onClick={() => { changeStatus(s.id); setIsStatusMenuOpen(false); }}
+                                        disabled={!canChangeStatus}
+                                        className={`w-full text-left flex items-center gap-3 p-2 rounded-md text-slate-700 dark:text-slate-200 ${status === s.id ? 'bg-indigo-50 dark:bg-indigo-900/50' : 'hover:bg-slate-100 dark:hover:bg-slate-700'} disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    >
+                                        <span className={`w-2.5 h-2.5 rounded-full ${s.color}`}></span>
+                                        {t(s.i18nKey)}
+                                        {status === s.id && <CheckIcon className="w-4 h-4 text-indigo-600 ml-auto"/>}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="border-t dark:border-slate-700 mt-2 pt-2">
+                                <button onClick={() => { setIsProfileModalOpen(true); setIsStatusMenuOpen(false); }} className="w-full text-left flex items-center gap-3 p-2 rounded-md text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700">
+                                    <Cog6ToothIcon className="w-5 h-5 text-slate-500" />
+                                    {t('agentView.statusManager.settings')}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
                 <div className="flex items-center gap-4">
                     <Clock />
@@ -698,7 +653,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             <main className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden">
                 <div className="col-span-3 flex flex-col gap-4">
                      <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4">Informations</h2><div className="mb-4"><h3 className="text-base font-semibold text-slate-600 dark:text-slate-300">{t('agentView.kpis')}</h3>{agentState ? (<div className="grid grid-cols-2 gap-2 mt-2"><KpiCard title={t('agentView.callsHandled')} value={agentState.callsHandledToday} /><KpiCard title="DMT" value={formatTimer(agentState.averageHandlingTime)} /><KpiCard title="DMC" value={formatTimer(agentState.averageTalkTime)} /><KpiCard title={t('agentView.pauseCount')} value={agentState.pauseCount} /><div className="col-span-2"><KpiCard title={t('agentView.totalPauseTime')} value={formatTimer(agentState.totalPauseTime)} /></div></div>) : <p className="text-xs text-slate-400 italic mt-1">Chargement...</p>}</div>{matchingQuota && (<div className="border-t dark:border-slate-600 pt-4"><h3 className="text-base font-semibold text-slate-600 dark:text-slate-300">Quota Actif</h3><div className="bg-slate-50 dark:bg-slate-700 p-3 rounded-md mt-2"><p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate" title={matchingQuota.name}>{matchingQuota.name}</p><div className="w-full bg-slate-200 dark:bg-slate-600 rounded-full h-2.5 mt-2"><div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: `${matchingQuota.progress}%` }}></div></div><p className="text-xs text-right text-slate-500 dark:text-slate-400 mt-1">{matchingQuota.current} / {matchingQuota.limit}</p></div></div>)}{(!currentContact && status === 'En Attente') && (<div className="flex-1 mt-auto pt-4 border-t dark:border-slate-600"><div className="h-full flex flex-col items-center justify-center text-center">{feedbackMessage ? <p className="text-amber-600 font-semibold">{feedbackMessage}</p> : <p className="text-slate-500 dark:text-slate-400">{t('agentView.waitingForCall')}</p>}<button onClick={requestNextContact} disabled={isLoadingNextContact} className="mt-4 bg-primary text-primary-text font-bold py-2 px-4 rounded-lg shadow-md hover:bg-primary-hover disabled:opacity-50">{isLoadingNextContact ? t('agentView.searching') : t('agentView.nextCall')}</button></div></div>)}</div>
-                     <StatusManager currentStatus={status} statusDuration={statusTimer} onChangeStatus={changeStatus} onOpenProfile={() => setIsProfileModalOpen(true)} />
                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col"><div className="border-b dark:border-slate-600 pb-2 mb-2 flex items-center justify-between"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2"><CalendarDaysIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400"/>{t('agentView.myCallbacks')}</h2><div className="flex items-center gap-1"><button onClick={() => handleCallbackDateChange(-1)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowLeftIcon className="w-5 h-5"/></button><span className="text-sm font-semibold w-24 text-center">{callbacksDate.toLocaleDateString('fr-FR', {day: '2-digit', month: 'short'})}</span><button onClick={() => handleCallbackDateChange(1)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowRightIcon className="w-5 h-5"/></button></div></div><div className="flex-1 overflow-y-auto pr-2 space-y-2 text-base">{myPersonalCallbacks.length > 0 ? myPersonalCallbacks.map(cb => (<button key={cb.id} onClick={() => handleCallbackClick(cb)} disabled={status !== 'En Attente'} className="w-full text-left p-2 rounded-md bg-slate-50 border dark:bg-slate-700 dark:border-slate-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 hover:border-indigo-300 disabled:opacity-60 disabled:cursor-not-allowed"><p className="font-semibold text-slate-800 dark:text-slate-200">{cb.contactName}</p><p className="text-sm text-slate-600 dark:text-slate-400 font-mono">{cb.contactNumber}</p><p className="text-sm font-bold text-indigo-700 dark:text-indigo-400 mt-1">{new Date(cb.scheduledTime).toLocaleString('fr-FR')}</p></button>)) : (<p className="text-sm text-slate-500 dark:text-slate-400 text-center pt-8 italic">{t('agentView.noCallbacks')}</p>)}</div></div>
                 </div>
                 <div className="col-span-6 bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700">{activeScript && currentContact ? <AgentPreview script={activeScript} onClose={() => {}} embedded={true} contact={currentContact} contactNotes={contactNotesForCurrentContact} users={data.users} newNote={newNote} setNewNote={setNewNote} onSaveNote={handleSaveNote} campaign={currentCampaign} onInsertContact={async () => {}} onUpdateContact={onUpdateContact} onClearContact={handleClearContact} /> : <div className="h-full flex items-center justify-center text-slate-500 dark:text-slate-400"><p>{currentContact ? t('agentView.noScript') : t('agentView.scriptWillBeHere')}</p></div>}</div>
