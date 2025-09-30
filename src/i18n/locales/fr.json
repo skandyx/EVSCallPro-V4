@@ -92,7 +92,9 @@
     "nextCall": "Prochain Appel",
     "searching": "Recherche...",
     "callControls": "Contrôles d'Appel",
+    "call": "Appeler",
     "endCall": "Terminer l'Appel",
+    "qualifyContact": "Qualifier la Fiche",
     "hold": "Mettre en attente",
     "transfer": "Transférer",
     "qualifications": "Qualifications",
@@ -108,7 +110,13 @@
     "noCallbacks": "Aucun rappel pour ce jour.",
     "supervisorResponse": "Réponse du Superviseur",
     "messages": "Messages",
-    "clearAll": "Tout effacer"
+    "clearAll": "Tout effacer",
+    "kpis": "KPIs du Jour",
+    "callsHandled": "Appels Traités",
+    "pauseCount": "Nb Pauses",
+    "totalPauseTime": "Temps Total en Pause",
+    "pause": "Pause",
+    "ready": "Prêt"
   },
   "userManager": {
     "title": "Utilisateurs",

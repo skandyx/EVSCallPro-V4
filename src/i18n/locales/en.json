@@ -92,7 +92,9 @@
     "nextCall": "Next Call",
     "searching": "Searching...",
     "callControls": "Call Controls",
+    "call": "Call",
     "endCall": "End Call",
+    "qualifyContact": "Qualify Contact",
     "hold": "Hold",
     "transfer": "Transfer",
     "qualifications": "Qualifications",
@@ -108,7 +110,13 @@
     "noCallbacks": "No callbacks for this day.",
     "supervisorResponse": "Supervisor's Response",
     "messages": "Messages",
-    "clearAll": "Clear all"
+    "clearAll": "Clear all",
+    "kpis": "Today's KPIs",
+    "callsHandled": "Calls Handled",
+    "pauseCount": "Pause Count",
+    "totalPauseTime": "Total Pause Time",
+    "pause": "Pause",
+    "ready": "Ready"
   },
   "userManager": {
     "title": "Users",

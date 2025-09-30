@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact, CallHistoryRecord, Qualification, UserGroup, ContactNote } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ArrowUpTrayIcon } from './Icons.tsx';
@@ -30,14 +28,13 @@ interface CampaignModalProps {
     campaign: Campaign | null;
     users: User[];
     scripts: SavedScript[];
-    script: SavedScript | null; // Pass the selected script for dynamic fields
     qualificationGroups: QualificationGroup[];
     userGroups: UserGroup[];
     onSave: (campaign: Campaign) => void;
     onClose: () => void;
 }
 
-const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts, script, qualificationGroups, userGroups, onSave, onClose }) => {
+const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts, qualificationGroups, userGroups, onSave, onClose }) => {
     const [activeTab, setActiveTab] = useState('general');
     const [formData, setFormData] = useState<Campaign>(campaign || {
         id: `campaign-${Date.now()}`, name: '', description: '', scriptId: null, callerId: '', isActive: true,
@@ -57,19 +54,24 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
     const isWrapUpTimeValid = formData.wrapUpTime >= 0 && formData.wrapUpTime <= 120;
     const isFormValid = isNameValid && isQualifGroupValid && isCallerIdValid && isWrapUpTimeValid;
     
+    const selectedScript = useMemo(() => {
+        if (!formData.scriptId) return null;
+        return scripts.find(s => s.id === formData.scriptId) || null;
+    }, [formData.scriptId, scripts]);
+
     const availableFields = useMemo(() => {
         const standard = [
             { id: 'postalCode', name: 'Code Postal' },
             { id: 'phoneNumber', name: 'Numéro de Téléphone' },
             { id: 'lastName', name: 'Nom de famille' },
         ];
-        if (!script) return standard;
-        const scriptFields = script.pages
+        if (!selectedScript) return standard;
+        const scriptFields = selectedScript.pages
             .flatMap(page => page.blocks)
             .filter(b => ['input', 'email', 'phone', 'date', 'time', 'radio', 'checkbox', 'dropdown', 'textarea'].includes(b.type))
             .map(b => ({ id: b.fieldName, name: b.name }));
         return [...standard, ...scriptFields];
-    }, [script]);
+    }, [selectedScript]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -338,7 +340,6 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
                     campaign={editingCampaign}
                     users={users}
                     scripts={savedScripts}
-                    script={savedScripts.find(s => s.id === editingCampaign?.scriptId) || null}
                     qualificationGroups={qualificationGroups}
                     userGroups={userGroups}
                     onSave={handleSave}
