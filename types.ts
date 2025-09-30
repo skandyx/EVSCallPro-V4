@@ -307,6 +307,9 @@ export interface AgentState extends User {
     statusDuration: number;
     callsHandledToday: number;
     averageHandlingTime: number;
+    averageTalkTime: number;
+    pauseCount: number;
+    totalPauseTime: number;
 }
 
 export interface ActiveCall {
