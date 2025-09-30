@@ -424,10 +424,10 @@ const qualifyContact = async (contactId, { qualificationId, campaignId, agentId 
 
 const updateContact = async (contactId, data) => {
     const standardFieldMap = {
-        first_name: 'first_name',
-        last_name: 'last_name',
-        phone_number: 'phone_number',
-        postal_code: 'postal_code',
+        firstName: 'first_name',
+        lastName: 'last_name',
+        phoneNumber: 'phone_number',
+        postalCode: 'postal_code',
     };
 
     const standardFieldsToUpdate = {};
@@ -436,8 +436,8 @@ const updateContact = async (contactId, data) => {
     for (const key in data) {
         if (standardFieldMap[key]) {
             standardFieldsToUpdate[standardFieldMap[key]] = data[key];
-        } else {
-            customFieldsToUpdate[key] = data[key];
+        } else if (key === 'customFields' && typeof data.customFields === 'object' && data.customFields !== null) {
+            Object.assign(customFieldsToUpdate, data.customFields);
         }
     }
 
@@ -445,19 +445,29 @@ const updateContact = async (contactId, data) => {
     try {
         await client.query('BEGIN');
 
+        const setClauses = [];
+        const queryParams = [contactId];
+
         if (Object.keys(standardFieldsToUpdate).length > 0) {
-            const setClauses = Object.keys(standardFieldsToUpdate).map((key, i) => `${key} = $${i + 2}`);
-            const query = `UPDATE contacts SET ${setClauses.join(', ')}, updated_at = NOW() WHERE id = $1`;
-            await client.query(query, [contactId, ...Object.values(standardFieldsToUpdate)]);
+            for (const [key, value] of Object.entries(standardFieldsToUpdate)) {
+                queryParams.push(value);
+                setClauses.push(`${key} = $${queryParams.length}`);
+            }
         }
 
         if (Object.keys(customFieldsToUpdate).length > 0) {
-            const query = `UPDATE contacts SET custom_fields = custom_fields || $2::jsonb, updated_at = NOW() WHERE id = $1`;
-            await client.query(query, [contactId, customFieldsToUpdate]);
+            queryParams.push(customFieldsToUpdate);
+            setClauses.push(`custom_fields = custom_fields || $${queryParams.length}::jsonb`);
         }
         
-        await client.query('COMMIT');
+        if (setClauses.length > 0) {
+            setClauses.push('updated_at = NOW()');
+            const query = `UPDATE contacts SET ${setClauses.join(', ')} WHERE id = $1`;
+            await client.query(query, queryParams);
+        }
 
+        await client.query('COMMIT');
+        
         const updatedContactRes = await client.query('SELECT * FROM contacts WHERE id = $1', [contactId]);
         return keysToCamel(updatedContactRes.rows[0]);
 

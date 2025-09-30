@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import type { Campaign, Contact, SavedScript, Qualification, QualificationGroup, CallHistoryRecord, User } from '../types.ts';
+import type { Campaign, Contact, SavedScript, Qualification, QualificationGroup, CallHistoryRecord, User, BlockType, ContactNote } from '../types.ts';
 import { ArrowLeftIcon, UserCircleIcon, ChartBarIcon, WrenchScrewdriverIcon, TrashIcon, PlusIcon } from './Icons.tsx';
 
 declare var Chart: any;
@@ -17,6 +17,7 @@ interface CampaignDetailViewProps {
     qualificationGroups: QualificationGroup[];
     savedScripts: SavedScript[];
     users: User[];
+    contactNotes: ContactNote[];
 }
 
 const KpiCard: React.FC<{ title: string; value: string | number; subtext?: string }> = ({ title, value, subtext }) => (
@@ -294,12 +295,12 @@ const CampaignQuotaTab: React.FC<{ campaign: Campaign; callHistory: CallHistoryR
 };
 
 const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
-    const { campaign, script, onBack, onSaveCampaign, onUpdateContact, onDeleteContacts, callHistory, qualifications, qualificationGroups, savedScripts, users } = props;
+    const { campaign, script, onBack, onSaveCampaign, onUpdateContact, onDeleteContacts, callHistory, qualifications, qualificationGroups, savedScripts, users, contactNotes } = props;
     const [activeTab, setActiveTab] = useState<'contacts' | 'stats' | 'settings'>('stats');
 
     const renderContent = () => {
         switch (activeTab) {
-            case 'contacts': return <ContactList contacts={campaign.contacts} script={script} />;
+            case 'contacts': return <ContactList contacts={campaign.contacts} script={script} callHistory={callHistory} qualifications={qualifications} contactNotes={contactNotes} />;
             case 'stats': return <CampaignStatsTab campaign={campaign} callHistory={callHistory} qualifications={qualifications} />;
             case 'settings': return <CampaignQuotaTab campaign={campaign} callHistory={callHistory} qualifications={qualifications} script={script}/>;
             default: return null;
@@ -340,8 +341,15 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     );
 };
 
+interface ContactListProps {
+    contacts: Contact[];
+    script: SavedScript | null;
+    callHistory: CallHistoryRecord[];
+    qualifications: Qualification[];
+    contactNotes: ContactNote[];
+}
 
-const ContactList: React.FC<{ contacts: Contact[]; script: SavedScript | null }> = ({ contacts, script }) => {
+const ContactList: React.FC<ContactListProps> = ({ contacts, script, callHistory, qualifications, contactNotes }) => {
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     
     const columns = useMemo(() => {
@@ -351,17 +359,26 @@ const ContactList: React.FC<{ contacts: Contact[]; script: SavedScript | null }>
                 { id: 'lastName', name: 'Nom' },
                 { id: 'phoneNumber', name: 'Téléphone' },
                 { id: 'postalCode', name: 'Code Postal' },
-            ];
+            ].map(f => ({ id: f.id, name: f.name }));
         }
-        // Create columns dynamically from visible script blocks
-        return script.pages
-            .flatMap(p => p.blocks)
-            .filter(b => b.isVisible !== false) // Filter out hidden fields
-            .map(b => ({ id: b.fieldName, name: b.name }));
+    
+        const dataEntryTypes: BlockType[] = ['input', 'email', 'phone', 'date', 'time', 'radio', 'checkbox', 'dropdown', 'textarea'];
+        const allVisibleBlocks = script.pages.flatMap(p => p.blocks).filter(b => b.isVisible !== false);
+    
+        const standardBlocks = allVisibleBlocks.filter(b => b.isStandard);
+        const customBlocks = allVisibleBlocks.filter(b => !b.isStandard && dataEntryTypes.includes(b.type));
+        
+        const seen = new Set<string>();
+        const uniqueBlocks = [...standardBlocks, ...customBlocks].filter(el => {
+            const duplicate = seen.has(el.fieldName);
+            seen.add(el.fieldName);
+            return !duplicate;
+        });
+    
+        return uniqueBlocks.map(b => ({ id: b.fieldName, name: b.name }));
     }, [script]);
 
     const getContactValue = (contact: Contact, fieldId: string): any => {
-         // Map snake_case from script to camelCase on contact object for standard fields
         const standardFieldMap: Record<string, keyof Contact> = {
             'first_name': 'firstName',
             'last_name': 'lastName',
@@ -372,7 +389,6 @@ const ContactList: React.FC<{ contacts: Contact[]; script: SavedScript | null }>
         if (standardKey && standardKey in contact) {
             return contact[standardKey];
         }
-        // For custom fields, access them directly from the customFields object
         if (contact.customFields && fieldId in contact.customFields) {
             return contact.customFields[fieldId];
         }
@@ -386,6 +402,31 @@ const ContactList: React.FC<{ contacts: Contact[]; script: SavedScript | null }>
     const handleSelectOne = (id: string, isChecked: boolean) => {
         setSelectedIds(prev => isChecked ? [...prev, id] : prev.filter(selectedId => selectedId !== id));
     };
+
+    const lastQualMap = useMemo(() => {
+        const map = new Map<string, Qualification>();
+        const sortedCalls = [...callHistory].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        for (const call of sortedCalls) {
+            if (call.contactId && !map.has(call.contactId) && call.qualificationId) {
+                const qual = qualifications.find(q => q.id === call.qualificationId);
+                if (qual) {
+                    map.set(call.contactId, qual);
+                }
+            }
+        }
+        return map;
+    }, [callHistory, qualifications]);
+
+    const lastNoteMap = useMemo(() => {
+        const map = new Map<string, string>();
+        const sortedNotes = [...contactNotes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        for (const note of sortedNotes) {
+            if (note.contactId && !map.has(note.contactId)) {
+                map.set(note.contactId, note.note);
+            }
+        }
+        return map;
+    }, [contactNotes]);
 
     return (
         <div>
@@ -404,25 +445,33 @@ const ContactList: React.FC<{ contacts: Contact[]; script: SavedScript | null }>
                                 <th key={col.id} className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{col.name}</th>
                             ))}
                             <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Statut</th>
+                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Dernière Qualification</th>
+                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Dernière Remarque</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-200">
-                        {contacts.map(contact => (
-                            <tr key={contact.id}>
-                                <td className="px-4 py-2"><input type="checkbox" checked={selectedIds.includes(contact.id)} onChange={e => handleSelectOne(contact.id, e.target.checked)} /></td>
-                                {columns.map(col => (
-                                    <td key={col.id} className={`px-4 py-2 ${['phone_number', 'postal_code'].includes(col.id) ? 'font-mono' : ''}`}>{getContactValue(contact, col.id)}</td>
-                                ))}
-                                <td className="px-4 py-2">
-                                    <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
-                                        contact.status === 'pending' ? 'bg-blue-100 text-blue-800' : 
-                                        contact.status === 'called' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                                    }`}>
-                                        {contact.status}
-                                    </span>
-                                </td>
-                            </tr>
-                        ))}
+                        {contacts.map(contact => {
+                            const lastQual = lastQualMap.get(contact.id);
+                            const lastNote = lastNoteMap.get(contact.id);
+                            return (
+                                <tr key={contact.id}>
+                                    <td className="px-4 py-2"><input type="checkbox" checked={selectedIds.includes(contact.id)} onChange={e => handleSelectOne(contact.id, e.target.checked)} /></td>
+                                    {columns.map(col => (
+                                        <td key={col.id} className={`px-4 py-2 ${['phone_number', 'postal_code'].includes(col.id) ? 'font-mono' : ''}`}>{getContactValue(contact, col.id)}</td>
+                                    ))}
+                                    <td className="px-4 py-2">
+                                        <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                                            contact.status === 'pending' ? 'bg-blue-100 text-blue-800' : 
+                                            contact.status === 'called' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                                        }`}>
+                                            {contact.status}
+                                        </span>
+                                    </td>
+                                    <td className="px-4 py-2">{lastQual ? `[${lastQual.code}] ${lastQual.description}` : ''}</td>
+                                    <td className="px-4 py-2 truncate max-w-xs" title={lastNote}>{lastNote || ''}</td>
+                                </tr>
+                            )
+                        })}
                     </tbody>
                 </table>
                  {contacts.length === 0 && <p className="text-center py-8 text-slate-500">Aucun contact dans cette campagne.</p>}

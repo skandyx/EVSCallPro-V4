@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact, CallHistoryRecord, Qualification, UserGroup } from '../types.ts';
+import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact, CallHistoryRecord, Qualification, UserGroup, ContactNote } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ArrowUpTrayIcon } from './Icons.tsx';
 import ImportContactsModal from './ImportContactsModal.tsx';
 // FIX: Corrected import path for CampaignDetailView
@@ -238,6 +238,7 @@ interface OutboundCampaignsManagerProps {
     userGroups: UserGroup[];
     callHistory: CallHistoryRecord[];
     qualifications: Qualification[];
+    contactNotes: ContactNote[];
     onSaveCampaign: (campaign: Campaign) => void;
     onDeleteCampaign: (campaignId: string) => void;
     // FIX: Changed return type from 'void' to 'Promise<any>' to match the async nature of the import process and align with the child component's expectations.
@@ -247,7 +248,7 @@ interface OutboundCampaignsManagerProps {
 }
 
 const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props) => {
-    const { feature, campaigns, users, savedScripts, qualificationGroups, userGroups, onSaveCampaign, onDeleteCampaign, onImportContacts, onUpdateContact, onDeleteContacts, callHistory, qualifications } = props;
+    const { feature, campaigns, users, savedScripts, qualificationGroups, userGroups, onSaveCampaign, onDeleteCampaign, onImportContacts, onUpdateContact, onDeleteContacts, callHistory, qualifications, contactNotes } = props;
     const [view, setView] = useState<'list' | 'detail'>('list');
     const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -310,6 +311,7 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
                 qualificationGroups={qualificationGroups}
                 savedScripts={savedScripts}
                 users={users}
+                contactNotes={contactNotes}
             />
         )
     }
