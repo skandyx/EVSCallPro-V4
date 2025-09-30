@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
-import type { Campaign, SavedScript, Contact, CallHistoryRecord, Qualification, User, ContactNote } from '../types';
+import type { Campaign, SavedScript, Contact, CallHistoryRecord, Qualification, User, ContactNote, UserGroup, QualificationGroup } from '../types';
 import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon } from './Icons';
 import ContactHistoryModal from './ContactHistoryModal.tsx';
 
@@ -15,24 +15,12 @@ interface CampaignDetailViewProps {
     qualifications: Qualification[];
     users: User[];
     contactNotes: ContactNote[];
+    qualificationGroups: QualificationGroup[];
+    savedScripts: SavedScript[];
+    userGroups: UserGroup[];
 }
 
-type DetailTab = 'dashboard' | 'contacts';
-
-const findEntityName = (id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>) => {
-    if (!id) return 'N/A';
-    const item = collection.find(i => i.id === id);
-    return item?.name || `${item?.firstName} ${item?.lastName}` || item?.description || 'Inconnu';
-};
-
-const formatDuration = (seconds: number, type: 'full' | 'short' = 'short') => {
-    if(isNaN(seconds) || seconds < 0) return type === 'full' ? '0h 0m 0s' : '00:00:00';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.round(seconds % 60);
-    if(type === 'full') return `${h}h ${m}m ${s}s`;
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-};
+type DetailTab = 'contacts' | 'dashboard' | 'settings';
 
 const KpiCard: React.FC<{ title: string; value: string | number; }> = ({ title, value }) => (
     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
@@ -42,15 +30,13 @@ const KpiCard: React.FC<{ title: string; value: string | number; }> = ({ title, 
 );
 
 const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
-    const { campaign, onBack, callHistory, qualifications, users, contactNotes, onDeleteContacts } = props;
-    const [activeTab, setActiveTab] = useState<DetailTab>('dashboard');
+    const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts } = props;
+    const [activeTab, setActiveTab] = useState<DetailTab>('contacts');
     
-    // State for Contacts tab
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
     
-    // State for History Modal
     const [historyModal, setHistoryModal] = useState<{ isOpen: boolean, contact: Contact | null }>({ isOpen: false, contact: null });
 
     const campaignCallHistory = useMemo(() => callHistory.filter(c => c.campaignId === campaign.id), [callHistory, campaign.id]);
@@ -60,36 +46,51 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         const remaining = campaign.contacts.filter(c => c.status === 'pending').length;
         const processed = totalContacts - remaining;
         const completionRate = totalContacts > 0 ? (processed / totalContacts) * 100 : 0;
-        
         const positiveQuals = campaignCallHistory.filter(call => {
             const qual = qualifications.find(q => q.id === call.qualificationId);
             return qual?.type === 'positive';
         }).length;
-        
         const successRate = processed > 0 ? (positiveQuals / processed) * 100 : 0;
 
         return {
-            totalContacts,
-            remaining,
+            totalContacts, remaining,
             completionRate: `${completionRate.toFixed(1)}%`,
             callsMade: campaignCallHistory.length,
             successRate: `${successRate.toFixed(1)}%`,
         };
     }, [campaign, campaignCallHistory, qualifications]);
     
+    const columnsToDisplay = useMemo(() => {
+        if (!script) return [
+            { fieldName: 'first_name', name: 'Prénom' }, { fieldName: 'last_name', name: 'Nom' },
+            { fieldName: 'phone_number', name: 'Téléphone' }, { fieldName: 'postal_code', name: 'Code Postal' },
+        ];
+        
+        const standardColumns = [
+            { fieldName: 'first_name', name: 'Prénom' }, { fieldName: 'last_name', name: 'Nom' },
+            { fieldName: 'phone_number', name: 'Téléphone' }, { fieldName: 'postal_code', name: 'Code Postal' },
+        ];
+        
+        const visibleStandardFields = new Set(script.pages.flatMap(p => p.blocks).filter(b => b.isStandard && b.isVisible !== false).map(b => b.fieldName));
+            
+        const customColumns = script.pages.flatMap(p => p.blocks)
+            .filter(b => !b.isStandard && ['input', 'textarea', 'email', 'phone', 'date', 'time', 'radio', 'checkbox', 'dropdown'].includes(b.type))
+            .map(b => ({ fieldName: b.fieldName, name: b.name }));
+
+        const uniqueCustomColumns = customColumns.filter((v, i, a) => a.findIndex(t => (t.fieldName === v.fieldName)) === i);
+        
+        return [ ...standardColumns.filter(c => visibleStandardFields.has(c.fieldName)), ...uniqueCustomColumns ];
+    }, [script]);
+
     const filteredContacts = useMemo(() => {
         return campaign.contacts.filter(contact => {
             if (!searchTerm) return true;
             const term = searchTerm.toLowerCase();
-            return (
-                contact.firstName.toLowerCase().includes(term) ||
-                contact.lastName.toLowerCase().includes(term) ||
-                contact.phoneNumber.includes(term) ||
-                contact.postalCode.includes(term)
-            );
+            return Object.values(contact).some(val => String(val).toLowerCase().includes(term)) ||
+                   (contact.customFields && Object.values(contact.customFields).some(val => String(val).toLowerCase().includes(term)));
         });
     }, [campaign.contacts, searchTerm]);
-    
+
     const contactsPerPage = 20;
     const paginatedContacts = useMemo(() => {
         const start = (currentPage - 1) * contactsPerPage;
@@ -98,23 +99,18 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const totalPages = Math.ceil(filteredContacts.length / contactsPerPage);
 
     const handleSelectContact = (contactId: string, isSelected: boolean) => {
-        if (isSelected) {
-            setSelectedContactIds(prev => [...prev, contactId]);
-        } else {
-            setSelectedContactIds(prev => prev.filter(id => id !== contactId));
-        }
+        setSelectedContactIds(prev => isSelected ? [...prev, contactId] : prev.filter(id => id !== contactId));
     };
-    
+
     const handleSelectAllOnPage = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const pageIds = new Set(paginatedContacts.map(c => c.id));
         if (e.target.checked) {
-            const pageIds = paginatedContacts.map(c => c.id);
             setSelectedContactIds(prev => [...new Set([...prev, ...pageIds])]);
         } else {
-            const pageIdsSet = new Set(paginatedContacts.map(c => c.id));
-            setSelectedContactIds(prev => prev.filter(id => !pageIdsSet.has(id)));
+            setSelectedContactIds(prev => prev.filter(id => !pageIds.has(id)));
         }
     };
-    
+
     const isAllOnPageSelected = paginatedContacts.length > 0 && paginatedContacts.every(c => selectedContactIds.includes(c.id));
 
     const handleDeleteSelected = () => {
@@ -126,117 +122,74 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     };
 
     const TabButton: React.FC<{ tab: DetailTab; label: string; icon: React.FC<any> }> = ({ tab, label, icon: Icon }) => (
-        <button
-            onClick={() => setActiveTab(tab)}
-            className={`flex items-center gap-2 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors ${
-              activeTab === tab
-                ? 'border-primary text-link'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-        >
-            <Icon className="w-5 h-5" />
-            {label}
+        <button onClick={() => setActiveTab(tab)} className={`flex items-center gap-2 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors ${activeTab === tab ? 'border-primary text-link' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>
+            <Icon className="w-5 h-5" /> {label}
         </button>
     );
 
     return (
         <div className="max-w-7xl mx-auto space-y-6">
             {historyModal.isOpen && historyModal.contact && (
-                <ContactHistoryModal
-                    isOpen={true}
-                    onClose={() => setHistoryModal({ isOpen: false, contact: null })}
-                    contact={historyModal.contact}
-                    callHistory={callHistory}
-                    users={users}
-                    qualifications={qualifications}
-                />
+                <ContactHistoryModal isOpen={true} onClose={() => setHistoryModal({ isOpen: false, contact: null })} contact={historyModal.contact} users={users} qualifications={qualifications} />
             )}
             <header>
-                <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-800 mb-2">
-                    <ArrowLeftIcon className="w-5 h-5"/> Retour aux campagnes
-                </button>
+                <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-800 mb-2"><ArrowLeftIcon className="w-5 h-5"/> Retour aux campagnes</button>
                 <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{campaign.name}</h1>
-                <p className="mt-1 text-lg text-slate-600">{campaign.description}</p>
+                <p className="mt-1 text-lg text-slate-600">{campaign.description || `Script associé: ${script?.name || 'Aucun'}`}</p>
             </header>
 
             <div className="bg-white rounded-lg shadow-sm border border-slate-200">
-                <div className="border-b border-slate-200">
-                    <nav className="-mb-px flex space-x-4 px-6">
-                        <TabButton tab="dashboard" label="Tableau de bord" icon={ChartBarIcon} />
-                        <TabButton tab="contacts" label="Contacts" icon={UsersIcon} />
-                        {/* <TabButton tab="settings" label="Paramètres" icon={Cog6ToothIcon} /> */}
-                    </nav>
-                </div>
-                
+                <div className="border-b border-slate-200"><nav className="-mb-px flex space-x-4 px-6">
+                    <TabButton tab="contacts" label={`Contacts (${campaign.contacts.length})`} icon={UsersIcon} />
+                    <TabButton tab="dashboard" label="Statistiques" icon={ChartBarIcon} />
+                    <TabButton tab="settings" label="Paramètres" icon={Cog6ToothIcon} />
+                </nav></div>
                 <div className="p-6">
-                    {activeTab === 'dashboard' && (
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                            <KpiCard title="Total Contacts" value={kpis.totalContacts} />
-                            <KpiCard title="Contacts Restants" value={kpis.remaining} />
-                            <KpiCard title="Taux d'achèvement" value={kpis.completionRate} />
-                            <KpiCard title="Appels Effectués" value={kpis.callsMade} />
-                            <KpiCard title="Taux de Succès" value={kpis.successRate} />
-                        </div>
-                    )}
                     {activeTab === 'contacts' && (
-                         <div>
+                        <div>
                             <div className="flex justify-between items-center mb-4">
-                                <input
-                                    type="search"
-                                    placeholder="Rechercher un contact..."
-                                    value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                    className="w-full max-w-sm p-2 border border-slate-300 rounded-md"
-                                />
-                                 {selectedContactIds.length > 0 && (
-                                    <button
-                                        onClick={handleDeleteSelected}
-                                        className="bg-red-100 text-red-700 font-bold py-2 px-4 rounded-lg inline-flex items-center gap-2"
-                                    >
-                                        <TrashIcon className="w-5 h-5"/>
-                                        Supprimer ({selectedContactIds.length})
-                                    </button>
-                                )}
+                                <input type="search" placeholder="Rechercher un contact..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full max-w-sm p-2 border border-slate-300 rounded-md"/>
+                                {selectedContactIds.length > 0 && <button onClick={handleDeleteSelected} className="bg-red-100 text-red-700 font-bold py-2 px-4 rounded-lg inline-flex items-center gap-2"><TrashIcon className="w-5 h-5"/>Supprimer la sélection ({selectedContactIds.length})</button>}
                             </div>
-                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-slate-200">
-                                    <thead className="bg-slate-50"><tr>
-                                        <th className="p-4 w-4"><input type="checkbox" checked={isAllOnPageSelected} onChange={handleSelectAllOnPage} className="h-4 w-4 rounded" /></th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Nom</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Téléphone</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Code Postal</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Statut</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Historique</th>
-                                    </tr></thead>
-                                    <tbody className="bg-white divide-y divide-slate-200 text-sm">
-                                        {paginatedContacts.map(contact => (
-                                            <tr key={contact.id} className={selectedContactIds.includes(contact.id) ? 'bg-indigo-50' : ''}>
-                                                <td className="p-4 w-4"><input type="checkbox" checked={selectedContactIds.includes(contact.id)} onChange={e => handleSelectContact(contact.id, e.target.checked)} className="h-4 w-4 rounded" /></td>
-                                                <td className="px-4 py-3 font-medium">{contact.firstName} {contact.lastName}</td>
-                                                <td className="px-4 py-3 font-mono">{contact.phoneNumber}</td>
-                                                <td className="px-4 py-3">{contact.postalCode}</td>
-                                                <td className="px-4 py-3"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${contact.status === 'pending' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'}`}>{contact.status}</span></td>
-                                                <td className="px-4 py-3">
-                                                    <button
-                                                        onClick={() => setHistoryModal({ isOpen: true, contact })}
-                                                        className="text-link hover:underline"
-                                                    >
-                                                        Voir
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-slate-200"><thead className="bg-slate-50"><tr>
+                                    <th className="p-4 w-4"><input type="checkbox" checked={isAllOnPageSelected} onChange={handleSelectAllOnPage} className="h-4 w-4 rounded" /></th>
+                                    {columnsToDisplay.map(col => <th key={col.fieldName} className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{col.name}</th>)}
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Statut</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Dernière Qualification</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Dernière Remarque</th>
+                                </tr></thead>
+                                <tbody className="bg-white divide-y divide-slate-200 text-sm">
+                                    {paginatedContacts.map(contact => {
+                                        const lastCall = [...callHistory].filter(c => c.contactId === contact.id).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                                        return (
+                                        <tr key={contact.id} onClick={() => setHistoryModal({ isOpen: true, contact })} className={`cursor-pointer hover:bg-slate-50 ${selectedContactIds.includes(contact.id) ? 'bg-indigo-50' : ''}`}>
+                                            <td className="p-4 w-4" onClick={e => e.stopPropagation()}><input type="checkbox" checked={selectedContactIds.includes(contact.id)} onChange={e => handleSelectContact(contact.id, e.target.checked)} className="h-4 w-4 rounded" /></td>
+                                            {columnsToDisplay.map(col => {
+                                                let value = '';
+                                                if (col.fieldName === 'first_name') value = contact.firstName;
+                                                else if (col.fieldName === 'last_name') value = contact.lastName;
+                                                else if (col.fieldName === 'phone_number') value = contact.phoneNumber;
+                                                else if (col.fieldName === 'postal_code') value = contact.postalCode;
+                                                else if (contact.customFields) value = contact.customFields[col.fieldName] || '';
+                                                return <td key={col.fieldName} className="px-4 py-3 font-mono truncate max-w-xs" title={value}>{value}</td>
+                                            })}
+                                            <td className="px-4 py-3"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${contact.status === 'pending' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'}`}>{contact.status}</span></td>
+                                            <td className="px-4 py-3">{lastCall ? props.qualifications.find(q => q.id === lastCall.qualificationId)?.description : 'N/A'}</td>
+                                            <td className="px-4 py-3 truncate max-w-xs" title={props.contactNotes.find(n => n.contactId === contact.id)?.note}>{props.contactNotes.find(n => n.contactId === contact.id)?.note || 'N/A'}</td>
+                                        </tr>
+                                    )})}
+                                </tbody>
                                 </table>
                                 {filteredContacts.length === 0 && <p className="text-center py-8 text-slate-500">Aucun contact trouvé.</p>}
                             </div>
-                            <div className="flex justify-between items-center mt-4 text-sm">
+                            {totalPages > 1 && <div className="flex justify-between items-center mt-4 text-sm">
                                 <p className="text-slate-600">Page {currentPage} sur {totalPages}</p>
                                 <div className="flex gap-2">
                                     <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border rounded-md disabled:opacity-50">Précédent</button>
                                     <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border rounded-md disabled:opacity-50">Suivant</button>
                                 </div>
-                            </div>
+                            </div>}
                         </div>
                     )}
                 </div>

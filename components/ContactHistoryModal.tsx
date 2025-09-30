@@ -1,78 +1,143 @@
 
-import React from 'react';
-import type { Contact, CallHistoryRecord, User, Qualification } from '../types.ts';
-import { XMarkIcon } from './Icons.tsx';
+
+import React, { useState, useEffect, useMemo } from 'react';
+import type { Contact, CallHistoryRecord, User, Qualification, ContactNote } from '../types';
+// FIX: Replaced ClockIcon with TimeIcon as ClockIcon is not an exported member.
+import { XMarkIcon, PhoneIcon, ChartBarIcon, TimeIcon, UsersIcon } from './Icons';
+import apiClient from '../src/lib/axios';
 
 interface ContactHistoryModalProps {
     isOpen: boolean;
     onClose: () => void;
     contact: Contact;
-    callHistory: CallHistoryRecord[];
     users: User[];
     qualifications: Qualification[];
 }
 
-const findEntityName = (id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>) => {
-    if (!id) return <span className="text-slate-400 italic">N/A</span>;
+const findEntityName = (id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>): string => {
+    if (!id) return 'N/A';
     const item = collection.find(i => i.id === id);
-    if (!item) return <span className="text-red-500">Inconnu</span>;
-    return item.name || `${item.firstName} ${item.lastName}` || item.description;
+    if (!item) return 'Inconnu';
+    return item.name || `${item.firstName} ${item.lastName}` || item.description || 'Inconnu';
 };
 
-const formatDuration = (seconds: number) => {
-    if(isNaN(seconds) || seconds < 0) return '00:00:00';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
+const formatDuration = (seconds: number): string => {
+    if(isNaN(seconds) || seconds < 0) return '0m 0s';
+    const m = Math.floor(seconds / 60);
     const s = Math.round(seconds % 60);
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${m}m ${s}s`;
 };
 
-const ContactHistoryModal: React.FC<ContactHistoryModalProps> = ({ isOpen, onClose, contact, callHistory, users, qualifications }) => {
-    if (!isOpen) return null;
+const KpiCard: React.FC<{ title: string, value: string | number, icon: React.FC<any> }> = ({ title, value, icon: Icon }) => (
+    <div className="bg-slate-50 p-3 rounded-lg border">
+        <div className="flex items-center">
+            <Icon className="w-6 h-6 text-slate-500 mr-3" />
+            <div>
+                <p className="text-xs text-slate-500">{title}</p>
+                <p className="text-xl font-bold text-slate-800">{value}</p>
+            </div>
+        </div>
+    </div>
+);
 
-    const contactHistory = callHistory.filter(c => c.contactId === contact.id);
+const ContactHistoryModal: React.FC<ContactHistoryModalProps> = ({ isOpen, onClose, contact, users, qualifications }) => {
+    const [history, setHistory] = useState<{ calls: CallHistoryRecord[], notes: ContactNote[] }>({ calls: [], notes: [] });
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (isOpen && contact) {
+            setIsLoading(true);
+            apiClient.get(`/contacts/${contact.id}/history`)
+                .then(response => {
+                    setHistory({
+                        calls: response.data.callHistory || [],
+                        notes: response.data.contactNotes || []
+                    });
+                })
+                .catch(err => console.error("Failed to fetch contact history", err))
+                .finally(() => setIsLoading(false));
+        }
+    }, [isOpen, contact]);
+
+    const timeline = useMemo(() => {
+        const callEvents = history.calls.map(call => ({
+            type: 'call' as const,
+// FIX: Changed call.startTime to call.timestamp to match the CallHistoryRecord type.
+            date: new Date(call.timestamp),
+            data: call,
+        }));
+        const noteEvents = history.notes.map(note => ({
+            type: 'note' as const,
+            date: new Date(note.createdAt),
+            data: note,
+        }));
+        
+        return [...callEvents, ...noteEvents].sort((a, b) => b.date.getTime() - a.date.getTime());
+    }, [history]);
+    
+    const kpis = useMemo(() => {
+        const totalCalls = history.calls.length;
+        const totalDuration = history.calls.reduce((sum, call) => sum + (call.duration || 0), 0);
+        const uniqueAgents = new Set(history.calls.map(c => c.agentId));
+        const positiveQuals = history.calls.filter(c => qualifications.find(q => q.id === c.qualificationId)?.type === 'positive').length;
+        return { totalCalls, totalDuration, uniqueAgents: uniqueAgents.size, positiveQuals };
+    }, [history, qualifications]);
+
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 bg-slate-800 bg-opacity-75 flex items-center justify-center p-4 z-[70]">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col">
-                <div className="p-4 border-b flex justify-between items-center">
-                    <h3 className="text-lg font-medium text-slate-900">
-                        Historique pour : {contact.firstName} {contact.lastName} ({contact.phoneNumber})
-                    </h3>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200">
-                        <XMarkIcon className="w-6 h-6 text-slate-500" />
-                    </button>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col">
+                <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
+                    <div>
+                        <h3 className="text-lg font-semibold text-slate-900">Historique du contact</h3>
+                        <p className="text-sm text-slate-500">{contact.firstName} {contact.lastName} ({contact.phoneNumber})</p>
+                    </div>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200"><XMarkIcon className="w-6 h-6 text-slate-500" /></button>
                 </div>
-                <div className="p-4 flex-1 overflow-y-auto">
-                    {contactHistory.length > 0 ? (
-                        <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-50">
-                                <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Date & Heure</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Agent</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Qualification</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-slate-200 text-sm">
-                                {contactHistory.map(record => (
-                                    <tr key={record.id}>
-                                        <td className="px-4 py-3 text-slate-600">{new Date(record.timestamp).toLocaleString('fr-FR')}</td>
-                                        <td className="px-4 py-3 font-medium">{findEntityName(record.agentId, users)}</td>
-                                        <td className="px-4 py-3 font-mono">{formatDuration(record.duration)}</td>
-                                        <td className="px-4 py-3">{findEntityName(record.qualificationId, qualifications)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    ) : (
-                        <p className="text-center text-slate-500 pt-8">Aucun historique d'appel pour ce contact.</p>
-                    )}
-                </div>
-                <div className="bg-slate-50 p-3 flex justify-end">
-                    <button onClick={onClose} className="bg-white border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50">
-                        Fermer
-                    </button>
+
+                {isLoading ? (
+                    <div className="flex-1 flex items-center justify-center">Chargement de l'historique...</div>
+                ) : (
+                    <>
+                        <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4 border-b flex-shrink-0">
+                            <KpiCard title="Appels Totaux" value={kpis.totalCalls} icon={PhoneIcon} />
+                            <KpiCard title="Temps de Com." value={formatDuration(kpis.totalDuration)} icon={TimeIcon} />
+                            <KpiCard title="Agents Uniques" value={kpis.uniqueAgents} icon={UsersIcon} />
+                            <KpiCard title="Qualifications Positives" value={kpis.positiveQuals} icon={ChartBarIcon} />
+                        </div>
+                        <div className="p-4 flex-1 overflow-y-auto">
+                            <h4 className="font-semibold text-slate-800 mb-4">Chronologie des Interactions</h4>
+                            {timeline.length > 0 ? (
+                                <div className="space-y-4">
+                                    {timeline.map((item, index) => (
+                                        <div key={index} className="p-3 bg-slate-50 rounded-md border">
+                                            <div className="flex justify-between items-baseline text-xs text-slate-500 mb-1">
+                                                <p className="font-semibold">
+                                                    {item.type === 'call' ? `Appel par ${findEntityName(item.data.agentId, users)}` : `Note par ${findEntityName(item.data.agentId, users)}`}
+                                                </p>
+                                                <p>{item.date.toLocaleString('fr-FR')}</p>
+                                            </div>
+                                            {item.type === 'call' ? (
+                                                <div className="text-sm grid grid-cols-2 gap-x-4">
+                                                    <p><strong>Durée:</strong> {formatDuration(item.data.duration)}</p>
+                                                    <p><strong>Qualification:</strong> {findEntityName(item.data.qualificationId, qualifications)}</p>
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-slate-700 whitespace-pre-wrap">{item.data.note}</p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-center text-slate-500 pt-8">Aucun historique d'interaction pour ce contact.</p>
+                            )}
+                        </div>
+                    </>
+                )}
+
+                <div className="bg-slate-50 p-3 flex justify-end flex-shrink-0">
+                    <button onClick={onClose} className="bg-white border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50">Fermer</button>
                 </div>
             </div>
         </div>

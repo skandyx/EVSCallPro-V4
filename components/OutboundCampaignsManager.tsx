@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact, CallHistoryRecord, Qualification, UserGroup, ContactNote } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ArrowUpTrayIcon } from './Icons.tsx';
@@ -312,6 +313,8 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
                 savedScripts={savedScripts}
                 users={users}
                 contactNotes={contactNotes}
+// FIX: Pass the 'userGroups' prop to CampaignDetailView to satisfy its required props.
+                userGroups={userGroups}
             />
         )
     }
