@@ -1,6 +1,7 @@
 const { amiClient, connectWithRetry } = require('./amiClient');
 const db = require('./db');
 const { broadcastToRoom } = require('./webSocketServer');
+const logger = require('./logger');
 
 const agentMap = new Map(); // Map<extension, userId>
 
@@ -9,6 +10,7 @@ const agentMap = new Map(); // Map<extension, userId>
  */
 async function initializeAmiListener() {
     console.log('[AMI Listener] Initializing...');
+    logger.logSystem('INFO', 'AMI Listener', 'Initializing...');
 
     // Pré-charger la correspondance entre extensions et IDs d'utilisateurs
     try {
@@ -18,9 +20,14 @@ async function initializeAmiListener() {
                 agentMap.set(user.extension, user.id);
             }
         });
-        console.log(`[AMI Listener] Pre-loaded ${agentMap.size} agent extensions.`);
+        const message = `Pre-loaded ${agentMap.size} agent extensions.`;
+        console.log(`[AMI Listener] ${message}`);
+        logger.logSystem('INFO', 'AMI Listener', message);
+
     } catch (error) {
-        console.error('[AMI Listener] Failed to pre-load agent extensions:', error);
+        const message = `Failed to pre-load agent extensions: ${error.message}`;
+        console.error(`[AMI Listener] ${message}`);
+        logger.logSystem('ERROR', 'AMI Listener', message);
     }
 
     // Attache les écouteurs d'événements métier
@@ -37,9 +44,8 @@ async function initializeAmiListener() {
  * @param {object} evt - L'événement brut de l'AMI.
  */
 function handleAmiEvent(evt) {
-    // console.log('[AMI] Event received:', evt); // Décommenter pour un débogage intensif
-    
     const eventName = evt.event ? evt.event.toLowerCase() : '';
+    logger.logAmi(`Event: ${eventName} | Content: ${JSON.stringify(evt)}`);
     
     // Exemple de mapping d'événement : un agent change d'état
     if (eventName === 'agentstatus') {

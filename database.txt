@@ -38,10 +38,11 @@ CREATE TYPE call_status_type AS ENUM ('ANSWERED', 'NO ANSWER', 'BUSY', 'FAILED',
 CREATE TABLE sites (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
+    ip_address TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-COMMENT ON TABLE sites IS 'Stocke les différents sites physiques pour le routage des appels via Asterisk.';
+COMMENT ON TABLE sites IS 'Stocke les différents sites physiques et leurs informations de connexion (passerelle).';
 
 -- Table des utilisateurs de l'application
 CREATE TABLE users (

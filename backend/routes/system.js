@@ -6,7 +6,10 @@ const pool = require('../services/db/connection');
 const nodemailer = require('nodemailer');
 const fs = require('fs/promises');
 const path = require('path');
-const dotenv = require('dotenv'); // Import dotenv
+const dotenv = require('dotenv');
+const { exec } = require('child_process');
+const net = require('net');
+const logger = require('../services/logger');
 
 // Middleware to check for SuperAdmin role
 const isSuperAdmin = (req, res, next) => {
@@ -27,40 +30,117 @@ const isSuperAdmin = (req, res, next) => {
  *       '200':
  *         description: "Statistiques du système."
  */
-router.get('/stats', (req, res) => {
-    const cpus = os.cpus();
-    const totalMem = os.totalmem();
-    const freeMem = os.freemem();
+router.get('/stats', isSuperAdmin, async (req, res) => {
+    try {
+        const cpus = os.cpus();
+        const totalMem = os.totalmem();
+        const freeMem = os.freemem();
 
-    const cpuLoad = cpus.reduce((acc, cpu) => {
-        const total = Object.values(cpu.times).reduce((a, b) => a + b, 0);
-        acc.total += total;
-        acc.idle += cpu.times.idle;
-        return acc;
-    }, { total: 0, idle: 0 });
+        const cpuLoad = cpus.reduce((acc, cpu) => {
+            const total = Object.values(cpu.times).reduce((a, b) => a + b, 0);
+            acc.total += total;
+            acc.idle += cpu.times.idle;
+            return acc;
+        }, { total: 0, idle: 0 });
+        
+        const loadPercentage = ((cpuLoad.total - cpuLoad.idle) / cpuLoad.total * 100).toFixed(1);
+
+        const getDiskUsage = () => new Promise((resolve) => {
+            exec("df -k / | tail -n 1 | awk '{print $2, $3}'", (error, stdout, stderr) => {
+                if (error) {
+                    logger.logSystem('ERROR', 'Stats', `Error getting disk usage: ${stderr}`);
+                    return resolve({ total: 0, used: 0 });
+                }
+                const [total, used] = stdout.trim().split(' ').map(Number);
+                resolve({ total: total * 1024, used: used * 1024 });
+            });
+        });
+        
+        const disk = await getDiskUsage();
+
+        res.json({
+            cpu: {
+                brand: cpus[0].model,
+                load: loadPercentage,
+            },
+            ram: {
+                total: totalMem,
+                used: totalMem - freeMem,
+            },
+            disk: disk,
+            recordings: { 
+                size: 1.5 * 1024 * 1024 * 1024,
+                files: 1234,
+            },
+        });
+    } catch (error) {
+        logger.logSystem('ERROR', 'Stats', `Failed to fetch system stats: ${error.message}`);
+        res.status(500).json({ error: "Failed to fetch system stats." });
+    }
+});
+
+/**
+ * @openapi
+ * /system/logs:
+ *   get:
+ *     summary: Récupère les journaux système, AMI et de sécurité.
+ *     tags: [Système]
+ *     responses:
+ *       '200':
+ *         description: "Journaux du système."
+ */
+router.get('/logs', isSuperAdmin, (req, res) => {
+    res.json(logger.getLogs());
+});
+
+/**
+ * @openapi
+ * /system/ping:
+ *   post:
+ *     summary: Teste la connectivité TCP vers un hôte et un port.
+ *     tags: [Système]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               ip: { type: string }
+ *               port: { type: number }
+ *     responses:
+ *       '200':
+ *         description: "Résultat du test de connectivité."
+ */
+router.post('/ping', isSuperAdmin, (req, res) => {
+    const { ip, port = 80 } = req.body;
+    if (!ip) {
+        return res.status(400).json({ error: 'IP address is required.' });
+    }
+
+    const socket = new net.Socket();
+    const startTime = process.hrtime();
     
-    // This is a very basic load calculation, not perfectly accurate but fine for a dashboard
-    const loadPercentage = ((cpuLoad.total - cpuLoad.idle) / cpuLoad.total * 100).toFixed(1);
+    socket.setTimeout(2000); // 2 second timeout
 
-    res.json({
-        cpu: {
-            brand: cpus[0].model,
-            load: loadPercentage,
-        },
-        ram: {
-            total: totalMem,
-            used: totalMem - freeMem,
-        },
-        disk: { // Mocked data as `diskusage` is an external dependency
-            total: 50 * 1024 * 1024 * 1024, // 50 GB
-            used: 20 * 1024 * 1024 * 1024, // 20 GB
-        },
-        recordings: { // Mocked
-            size: 1.5 * 1024 * 1024 * 1024, // 1.5 GB
-            files: 1234,
-        },
+    socket.connect(port, ip, () => {
+        const endTime = process.hrtime(startTime);
+        const latency = (endTime[0] * 1000 + endTime[1] / 1e6).toFixed(0);
+        res.json({ status: 'success', latency: parseInt(latency) });
+        socket.destroy();
+    });
+
+    socket.on('error', (err) => {
+        res.json({ status: 'failure', error: err.message });
+        socket.destroy();
+    });
+
+    socket.on('timeout', () => {
+        res.json({ status: 'failure', error: 'Connection timed out' });
+        socket.destroy();
     });
 });
+
 
 /**
  * @openapi

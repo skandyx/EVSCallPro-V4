@@ -15,6 +15,7 @@ const SiteModal: React.FC<SiteModalProps> = ({ site, onSave, onClose }) => {
     const [formData, setFormData] = useState<Site>(site || {
         id: `site-${Date.now()}`,
         name: '',
+        ipAddress: '',
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,11 +34,15 @@ const SiteModal: React.FC<SiteModalProps> = ({ site, onSave, onClose }) => {
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
                         <h3 className="text-lg font-medium leading-6 text-slate-900 dark:text-slate-100">{site ? 'Modifier le Site' : 'Nouveau Site'}</h3>
-                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Configurez le nom du site pour le routage des appels.</p>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Configurez le nom et l'IP du site pour le routage des appels.</p>
                         <div className="mt-4 space-y-4">
                             <div>
                                 <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Nom du site</label>
                                 <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="mt-1 block w-full p-2 border border-slate-300 rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200" placeholder="Ex: Agence de Paris"/>
+                            </div>
+                            <div>
+                                <label htmlFor="ipAddress" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Adresse IP (Passerelle)</label>
+                                <input type="text" name="ipAddress" id="ipAddress" value={formData.ipAddress || ''} onChange={handleChange} className="mt-1 block w-full p-2 border border-slate-300 rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200" placeholder="Ex: 10.1.0.254"/>
                             </div>
                         </div>
                     </div>
@@ -155,6 +160,7 @@ const SiteManager: React.FC<SiteManagerProps> = ({ feature, sites, onSaveSite, o
                         <thead className="bg-slate-50 dark:bg-slate-700">
                             <tr>
                                 <SortableHeader sortKey="name" label="Nom" />
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Adresse IP</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>
@@ -162,6 +168,7 @@ const SiteManager: React.FC<SiteManagerProps> = ({ feature, sites, onSaveSite, o
                             {filteredAndSortedSites.map(site => (
                                 <tr key={site.id}>
                                     <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200">{site.name}</td>
+                                    <td className="px-6 py-4 font-mono text-sm text-slate-500">{site.ipAddress}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium space-x-4">
                                         <button onClick={() => handleEdit(site)} className="text-link hover:underline"><EditIcon className="w-4 h-4 inline-block -mt-1"/> Modifier</button>
                                         <button onClick={() => onDeleteSite(site.id)} className="text-red-600 hover:text-red-900 dark:hover:text-red-400"><TrashIcon className="w-4 h-4 inline-block -mt-1"/> Supprimer</button>

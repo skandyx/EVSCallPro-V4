@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const db = require('../services/db');
 const authMiddleware = require('../middleware/auth.middleware');
+const logger = require('../services/logger');
 
 const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET;
@@ -42,9 +43,11 @@ router.post('/login', async (req, res) => {
     try {
         const user = await db.authenticateUser(loginId, password);
         if (!user) {
+            logger.logSecurity('WARNING', `Failed login attempt for: ${loginId} (Invalid credentials)`);
             return res.status(401).json({ error: "Identifiant ou mot de passe incorrect." });
         }
         if (!user.isActive) {
+            logger.logSecurity('WARNING', `Failed login attempt for: ${loginId} (Account disabled)`);
             return res.status(401).json({ error: "Ce compte utilisateur est désactivé." });
         }
 
@@ -54,6 +57,7 @@ router.post('/login', async (req, res) => {
         }
         // -------------------------
 
+        logger.logSecurity('INFO', `Successful login for: ${loginId} (Role: ${user.role})`);
         const userPayload = { id: user.id, role: user.role };
         const accessToken = jwt.sign(userPayload, ACCESS_TOKEN_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRATION });
         const refreshToken = jwt.sign(userPayload, REFRESH_TOKEN_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRATION });
@@ -72,6 +76,7 @@ router.post('/login', async (req, res) => {
         res.json({ user: userToSend, accessToken });
 
     } catch (error) {
+        logger.logSystem('ERROR', 'Login', `Internal server error during login for ${loginId}: ${error.message}`);
         console.error("Login error:", error);
         res.status(500).json({ error: "Erreur interne du serveur." });
     }
@@ -128,6 +133,7 @@ router.post('/logout', authMiddleware, async (req, res) => {
     }
     // -------------------------
     
+    logger.logSecurity('INFO', `User logged out: ${user.id}`);
     res.clearCookie('refreshToken', { path: '/' });
     res.status(200).json({ message: 'Déconnexion réussie.' });
 });

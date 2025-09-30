@@ -76,6 +76,7 @@ export interface User {
 export interface Site {
     id: string;
     name: string;
+    ipAddress?: string;
 }
 
 export interface UserGroup {

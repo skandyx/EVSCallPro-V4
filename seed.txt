@@ -21,9 +21,9 @@ DELETE FROM sites;
 -- Insertion des sites de démonstration.
 -- =============================================================================
 
-INSERT INTO sites (id, name) VALUES
-('site-paris', 'Siège de Paris'),
-('site-lyon', 'Agence de Lyon');
+INSERT INTO sites (id, name, ip_address) VALUES
+('site-paris', 'Siège de Paris', '10.1.0.254'),
+('site-lyon', 'Agence de Lyon', '10.2.0.254');
 
 -- =============================================================================
 -- SECTION 2 : UTILISATEURS

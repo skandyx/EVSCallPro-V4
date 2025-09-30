@@ -32,6 +32,7 @@ const os = require('os');
 const fs = require('fs/promises');
 const authMiddleware = require('./middleware/auth.middleware.js');
 const dotenv = require('dotenv');
+const logger = require('./services/logger.js');
 
 
 // --- INITIALIZATION ---
@@ -308,16 +309,19 @@ app.post('/api/system-connection', async (req, res) => {
 // AGI SERVER
 const agiPort = parseInt(process.env.AGI_PORT || '4573', 10);
 const agiNetServer = net.createServer((socket) => {
-    console.log('[AGI] New AGI connection received.');
+    const remoteAddress = socket.remoteAddress;
+    logger.logSystem('INFO', 'AGI Server', `New AGI connection from ${remoteAddress}.`);
     const agiContext = new Agi(agiHandler, socket);
-    agiContext.on('error', (err) => console.error('[AGI] Error on AGI context:', err));
-    agiContext.on('close', () => console.log('[AGI] AGI context closed.'));
+    agiContext.on('error', (err) => logger.logSystem('ERROR', 'AGI Context', `Error on AGI context: ${err.message}`));
+    agiContext.on('close', () => logger.logSystem('INFO', 'AGI Server', `AGI connection from ${remoteAddress} closed.`));
 }).on('error', (err) => {
-    console.error(`[AGI] Critical error on AGI server, port ${agiPort}:`, err);
+    logger.logSystem('ERROR', 'AGI Server', `Critical error on AGI server port ${agiPort}: ${err.message}`);
     throw err;
 });
 agiNetServer.listen(agiPort, () => {
-    console.log(`[AGI] Server listening for connections from Asterisk on port ${agiPort}`);
+    const message = `AGI Server listening for connections from Asterisk on port ${agiPort}`;
+    console.log(`[AGI] ${message}`);
+    logger.logSystem('INFO', 'AGI Server', message);
 });
 
 // --- WEBSOCKET & AMI ---
@@ -331,5 +335,7 @@ app.get('*', (req, res) => {
 
 // --- START SERVER ---
 server.listen(PORT, () => {
-    console.log(`HTTP server listening on port ${PORT}`);
+    const message = `HTTP server listening on port ${PORT}`;
+    console.log(`[Server] ${message}`);
+    logger.logSystem('INFO', 'Express', message);
 });
