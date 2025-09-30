@@ -267,7 +267,10 @@ const AppContent: React.FC = () => {
 
      // Effect to manage WebSocket connection and live data updates
     useEffect(() => {
-        if (currentUser && currentUser.role !== 'Agent') {
+        // FIX: This effect now runs for all logged-in users, not just supervisors.
+        // This is crucial for agents to connect to the WebSocket, receive their initial 'En Attente' status,
+        // and for their status timer to function correctly.
+        if (currentUser) {
             const token = localStorage.getItem('authToken');
             if (token) {
                 wsClient.connect(token);
