@@ -405,6 +405,8 @@ export interface PersonalCallback {
     contactNumber: string;
     scheduledTime: string; // ISO String
     notes: string;
+    // FIX: Add 'status' property to allow filtering of pending callbacks.
+    status: 'pending' | 'completed' | 'cancelled';
 }
 
 export interface SystemConnectionSettings {

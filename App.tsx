@@ -201,14 +201,14 @@ const AppContent: React.FC = () => {
     useEffect(() => {
         const loadApp = async () => {
             setIsLoading(true);
-
+            const token = localStorage.getItem('authToken');
+            
             // 1. Always fetch public settings first for the login screen.
             try {
                 const configResponse = await apiClient.get('/public-config');
                 const settings = configResponse.data.appSettings;
                 setAllData(prev => ({ ...prev, appSettings: settings }));
                 
-                // FIX: Set default language if not already set by user preference in localStorage.
                 const savedLang = localStorage.getItem('language');
                 if (!savedLang && settings.defaultLanguage) {
                     setLanguage(settings.defaultLanguage);
@@ -216,48 +216,45 @@ const AppContent: React.FC = () => {
 
             } catch (e) {
                 console.error("Failed to load public config:", e);
-                // Set defaults on failure to prevent a broken UI
                 setAllData(prev => ({
                     ...prev,
                     appSettings: {
-                        companyAddress: '',
-                        appLogoUrl: '',
-                        colorPalette: 'default',
-                        appName: 'Architecte de Solutions',
-                        defaultLanguage: 'fr',
+                        companyAddress: '', appLogoUrl: '', colorPalette: 'default', appName: 'Architecte de Solutions', defaultLanguage: 'fr',
                     }
                 }));
             }
             
-            // 2. Then, check for an active session token.
-            const token = localStorage.getItem('authToken');
             if (token) {
                 try {
-                    // Fetch data first, then user. This ensures all data is present before rendering authenticated views.
                     await fetchApplicationData();
                     const meResponse = await apiClient.get('/auth/me');
-                    const user = meResponse.data.user;
-                    setCurrentUser(user);
-                    // FIX: On successful session restoration for an agent, immediately set their status to Available.
-                    if (user.role === 'Agent') {
-                        dispatch({
-                            type: 'AGENT_STATUS_UPDATE',
-                            payload: { agentId: user.id, status: 'En Attente' }
-                        });
-                    }
+                    setCurrentUser(meResponse.data.user);
                 } catch (error) {
                     console.error("Session check failed:", error);
-                    // The refresh token logic in axios interceptor will handle this.
-                    // If refresh fails, it will dispatch the logout event.
                 }
             }
             
-            // 3. Finish loading sequence.
             setIsLoading(false);
         };
 
         loadApp();
-    }, [fetchApplicationData, setLanguage, dispatch]);
+    }, [fetchApplicationData, setLanguage]);
+    
+    // This effect ensures agent status is correctly initialized AFTER data is loaded.
+    useEffect(() => {
+        if (currentUser && allData.users && allData.campaigns) {
+            dispatch({ type: 'INIT_STATE', payload: { agents: allData.users, campaigns: allData.campaigns } });
+            
+            if (currentUser.role === 'Agent') {
+                // This ensures the agent's status is set to 'En Attente' after a login or page refresh.
+                dispatch({
+                    type: 'AGENT_STATUS_UPDATE',
+                    payload: { agentId: currentUser.id, status: 'En Attente' }
+                });
+            }
+        }
+    }, [currentUser, allData.users, allData.campaigns]);
+
 
     // Effect to handle logout event from axios interceptor
     useEffect(() => {
@@ -282,13 +279,11 @@ const AppContent: React.FC = () => {
             }
 
             const handleWebSocketMessage = (event: any) => {
-                // --- Live Supervision Data Handler ---
                 if (['agentStatusUpdate', 'newCall', 'callHangup'].includes(event.type)) {
                      const actionType = event.type.replace(/([A-Z])/g, '_$1').toUpperCase();
                     dispatch({ type: actionType as any, payload: event.payload });
                 }
                 
-                // --- Application State Sync Handler ---
                 if (event.type === 'campaignUpdate') {
                      setAllData(prev => {
                         const newCampaigns = prev.campaigns.map((c: Campaign) => c.id === event.payload.id ? event.payload : c);
@@ -317,8 +312,7 @@ const AppContent: React.FC = () => {
                     setNotifications(prev => [newNotification, ...prev]);
                     showAlert(`L'agent ${event.payload.agentName} demande de l'aide !`, 'info');
                 }
-
-                // FIX: Added handler for 'agentResponseMessage' to provide feedback when an agent replies.
+                
                 if (event.type === 'agentResponseMessage') {
                     showAlert(`Réponse de ${event.payload.agentName}: "${event.payload.message}"`, 'info');
                 }
@@ -335,30 +329,13 @@ const AppContent: React.FC = () => {
         }
     }, [currentUser, showAlert]);
 
-    // Effect to initialize live data state once static data is loaded
-    useEffect(() => {
-        if (allData.users && allData.campaigns) {
-            dispatch({ type: 'INIT_STATE', payload: { agents: allData.users, campaigns: allData.campaigns } });
-        }
-    }, [allData.users, allData.campaigns]);
-
 
     const handleLoginSuccess = async ({ user, token }: { user: User, token: string }) => {
         localStorage.setItem('authToken', token);
         try {
-            // Fetch data first...
             await fetchApplicationData();
-            // ...then set the user to trigger the render.
             setCurrentUser(user);
-             // FIX: On successful login for an agent, immediately set their status to Available.
-            if (user.role === 'Agent') {
-                dispatch({
-                    type: 'AGENT_STATUS_UPDATE',
-                    payload: { agentId: user.id, status: 'En Attente' }
-                });
-            }
         } catch (error) {
-            // If fetching data fails, log the user out to prevent a broken state
             localStorage.removeItem('authToken');
             setCurrentUser(null);
         }
@@ -366,19 +343,17 @@ const AppContent: React.FC = () => {
 
     const handleSaveOrUpdate = async (dataType: string, data: any, endpoint?: string) => {
         try {
-            // A special map because some `dataType` values (for endpoints) don't match `allData` keys (for state).
             const dataTypeToStateKey: { [key: string]: keyof typeof allData } = {
                 'users': 'users', 'user-groups': 'userGroups', 'scripts': 'savedScripts',
                 'campaigns': 'campaigns', 'qualifications': 'qualifications', 'qualification-groups': 'qualificationGroups',
                 'ivr-flows': 'ivrFlows', 'audio-files': 'audioFiles', 'trunks': 'trunks',
                 'dids': 'dids', 'sites': 'sites', 'planning-events': 'planningEvents',
-                'contacts': 'contacts' // Ajout pour la sauvegarde des fiches
+                'contacts': 'contacts'
             };
 
             const collectionKey = dataTypeToStateKey[dataType];
             const collection = collectionKey ? allData[collectionKey] : [];
             
-            // For contacts, they are nested within campaigns, so the logic is different
             let itemExistsInState = false;
             if (dataType === 'contacts') {
                  itemExistsInState = allData.campaigns.some((c: Campaign) => c.contacts.some(contact => contact.id === data.id));
@@ -393,9 +368,6 @@ const AppContent: React.FC = () => {
                 ? await apiClient.post(url, data)
                 : await apiClient.put(`${url}/${data.id}`, data);
             
-            // FIX: Re-enabled data fetching after mutations. The WebSocket implementation was
-            // incomplete, causing the UI to become stale. This ensures the UI always reflects
-            // the latest state after any save or update operation.
             await fetchApplicationData();
             showAlert(t('alerts.saveSuccess'), 'success');
             return response.data;
@@ -407,13 +379,12 @@ const AppContent: React.FC = () => {
         }
     };
     
-    // FIX: Corrected the signature and implementation of the `handleDelete` function to accept an optional `endpoint` parameter. This resolves errors where it was called with three arguments instead of the expected two, ensuring that API calls for deletion are made to the correct custom endpoints when provided.
     const handleDelete = async (dataType: string, id: string, endpoint?: string) => {
         if (window.confirm(t('alerts.confirmDelete'))) {
             try {
                 const url = endpoint || `/${dataType.toLowerCase()}`;
                 await apiClient.delete(`${url}/${id}`);
-                await fetchApplicationData(); // Re-fetch on delete is still simplest
+                await fetchApplicationData(); 
                 showAlert(t('alerts.deleteSuccess'), 'success');
             } catch (error: any) {
                 const errorMessage = error.response?.data?.error || t('alerts.deleteError');
@@ -424,7 +395,6 @@ const AppContent: React.FC = () => {
     };
 
     const handleSaveVisibilitySettings = (visibility: ModuleVisibility) => {
-        // As there's no backend endpoint, this is a client-side state update for the current session.
         setAllData(prevData => ({
             ...prevData,
             moduleVisibility: visibility,
@@ -451,9 +421,6 @@ const AppContent: React.FC = () => {
     const handleSaveAppSettings = async (settings: SystemAppSettings) => {
         try {
             await apiClient.put('/system/app-settings', settings);
-            // FIX: Update state locally instead of refetching.
-            // The backend saves to .env but the running Node process doesn't see the change.
-            // This local update ensures the theme is applied instantly.
             setAllData(prevData => ({
                 ...prevData,
                 appSettings: settings,
@@ -495,19 +462,15 @@ const AppContent: React.FC = () => {
         try {
             const response = await apiClient.post(`/campaigns/${campaignId}/contacts`, { contacts, deduplicationConfig });
             await fetchApplicationData();
-            // The API now returns a detailed summary, which we pass back to the modal.
             return response.data;
         } catch (error: any) {
             const errorMessage = error.response?.data?.error || t('alerts.contactImportError');
             showAlert(errorMessage, 'error');
-            // Re-throw the error so the modal knows the operation failed.
             throw new Error(errorMessage);
         }
     };
 
     const handleUpdateContact = async (contact: Contact) => {
-        // This is a new handler for AgentView to save contact modifications.
-        // It's simpler as it doesn't need to return anything to a modal.
         await handleSaveOrUpdate('contacts', contact);
     };
 
@@ -520,7 +483,7 @@ const AppContent: React.FC = () => {
              const errorMessage = error.response?.data?.error || t('alerts.updateError');
             console.error(`Failed to update password:`, error);
             showAlert(errorMessage, 'error');
-            throw error; // Rethrow to keep modal open and show error
+            throw error; 
         }
     };
 
@@ -528,18 +491,23 @@ const AppContent: React.FC = () => {
         try {
             await apiClient.put('/users/me/picture', { pictureUrl: base64DataUrl });
             showAlert(t('alerts.profilePictureUpdateSuccess'), 'success');
-            // Refresh all data to get the updated user object everywhere
             await fetchApplicationData(); 
         } catch (error: any) {
             const errorMessage = error.response?.data?.error || t('alerts.updateError');
             showAlert(errorMessage, 'error');
-            throw error; // Rethrow to allow modal to handle UI state
+            throw error; 
         }
     };
 
-    // FIX: Added callback to send agent-initiated status changes to the backend for real-time supervision.
-    const handleAgentStatusChange = useCallback((status: 'En Attente' | 'En Appel' | 'En Post-Appel' | 'En Pause' | 'Formation') => {
+    // FIX: Changed the type of 'status' to AgentStatus to allow for a wider range of statuses to be passed from the AgentView, fixing type errors.
+    const handleAgentStatusChange = useCallback((status: AgentStatus) => {
         if (currentUser && currentUser.role === 'Agent') {
+            // Dispatch locally for instant UI feedback for the agent
+            dispatch({
+                type: 'AGENT_STATUS_UPDATE',
+                payload: { agentId: currentUser.id, status: status }
+            });
+            // Also notify the server for supervisors
             wsClient.send({
                 type: 'agentStatusChange',
                 payload: { agentId: currentUser.id, status }
@@ -547,7 +515,6 @@ const AppContent: React.FC = () => {
         }
     }, [currentUser]);
 
-    // FIX: Modified the handler to also remove the notification from the state, which makes the counter decrease.
     const handleRespondToAgent = useCallback((agentId: string, message: string, notificationId: number) => {
         if (currentUser) {
             wsClient.send({
@@ -561,8 +528,7 @@ const AppContent: React.FC = () => {
             setNotifications(prev => prev.filter(n => n.id !== notificationId));
         }
     }, [currentUser]);
-
-    // FIX: Added a new handler for direct contact, separate from 'raise hand' responses.
+    
     const handleContactAgent = useCallback((agentId: string, agentName: string, message: string) => {
         if (currentUser) {
             wsClient.send({
@@ -580,13 +546,12 @@ const AppContent: React.FC = () => {
     const currentUserAgentState: AgentState | undefined = useMemo(() => {
         if (!currentUser) return undefined;
         let state = liveState.agentStates.find(a => a.id === currentUser.id);
-         // Add mock data for display of new KPIs
         if (state) {
             state = {
                 ...state,
                 callsHandledToday: state.callsHandledToday > 0 ? state.callsHandledToday : 23,
-                averageHandlingTime: state.averageHandlingTime > 0 ? state.averageHandlingTime : 187, // 3m 7s
-                averageTalkTime: state.averageTalkTime > 0 ? state.averageTalkTime : 152, // 2m 32s
+                averageHandlingTime: state.averageHandlingTime > 0 ? state.averageHandlingTime : 187,
+                averageTalkTime: state.averageTalkTime > 0 ? state.averageTalkTime : 152,
             };
         }
         return state;
@@ -606,10 +571,6 @@ const AppContent: React.FC = () => {
     }
 
     if (currentUser.role === 'Agent') {
-        // FIX: The root cause of the blank screen bug is rendering AgentView before its `data` prop is populated.
-        // This guard ensures that we show a loading screen until the necessary data is available,
-        // providing a robust solution to the race condition. `allData.campaigns` is used as a proxy
-        // to check if the main data fetch is complete.
         if (!allData.campaigns) {
              return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">Chargement de l'interface agent...</div>;
         }
@@ -623,7 +584,6 @@ const AppContent: React.FC = () => {
             onUpdateContact={handleUpdateContact}
             theme={theme}
             setTheme={setTheme}
-            // FIX: Pass the entire agent state object, including KPIs, to AgentView instead of just the status string.
             agentState={currentUserAgentState}
             onStatusChange={handleAgentStatusChange}
         />;
@@ -637,10 +597,8 @@ const AppContent: React.FC = () => {
 
         const componentProps = {
             ...allData,
-            // FIX: Conditionally spread liveState only for components that need it.
-            // This prevents components like Reporting from re-rendering every second.
             ...( (activeFeatureId === 'supervision' || activeFeatureId === 'monitoring') && liveState),
-            features: features, // Pass the main features array to all components
+            features: features,
             feature: activeFeature,
             currentUser,
             onSaveUser: handleSaveUser,
@@ -676,7 +634,7 @@ const AppContent: React.FC = () => {
             onSaveSmtpSettings: handleSaveSmtpSettings,
             onSaveAppSettings: handleSaveAppSettings,
             onContactAgent: handleContactAgent,
-            apiCall: apiClient, // Passe l'instance axios configurée
+            apiCall: apiClient,
         };
         
         return <FeatureComponent {...componentProps} />;
