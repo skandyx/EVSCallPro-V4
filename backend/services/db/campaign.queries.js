@@ -2,6 +2,7 @@
 
 const pool = require('./connection');
 const { keysToCamel } = require('./utils');
+const { broadcast } = require('../webSocketServer');
 
 const getCampaigns = async () => {
     // This query now correctly fetches assigned user IDs along with contacts.
@@ -24,6 +25,25 @@ const getCampaigns = async () => {
         return campaign;
     });
 };
+
+const getCampaignById = async (id, client = pool) => {
+     const query = `
+        SELECT 
+            c.*, 
+            COALESCE(json_agg(ct.*) FILTER (WHERE ct.id IS NOT NULL), '[]') as contacts,
+            COALESCE(ARRAY_AGG(ca.user_id) FILTER (WHERE ca.user_id IS NOT NULL), '{}') as assigned_user_ids
+        FROM campaigns c
+        LEFT JOIN contacts ct ON c.id = ct.campaign_id
+        LEFT JOIN campaign_agents ca ON c.id = ca.campaign_id
+        WHERE c.id = $1
+        GROUP BY c.id;
+    `;
+    const res = await client.query(query, [id]);
+    if (res.rows.length === 0) return null;
+    const campaign = keysToCamel(res.rows[0]);
+    campaign.contacts = campaign.contacts.map(keysToCamel);
+    return campaign;
+}
 
 const saveCampaign = async (campaign, id) => {
     const client = await pool.connect();
@@ -242,6 +262,14 @@ const qualifyContact = async (contactId, qualificationId, campaignId, agentId) =
         ]);
 
         await client.query('COMMIT');
+        
+        // --- Step 4: After commit, fetch and broadcast the updated campaign state ---
+        const updatedCampaign = await getCampaignById(campaignId);
+        broadcast({
+            type: 'campaignUpdate',
+            payload: updatedCampaign
+        });
+
     } catch (error) {
         await client.query('ROLLBACK');
         console.error("Error qualifying contact:", error);
@@ -250,6 +278,50 @@ const qualifyContact = async (contactId, qualificationId, campaignId, agentId) =
         client.release();
     }
 };
+
+const recycleContactsByQualification = async (campaignId, qualificationId) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        
+        // Find all contact_ids that have been qualified with the given qualificationId in this campaign
+        const contactsToRecycleRes = await client.query(
+            `SELECT DISTINCT contact_id FROM call_history WHERE campaign_id = $1 AND qualification_id = $2`,
+            [campaignId, qualificationId]
+        );
+        
+        const contactIds = contactsToRecycleRes.rows.map(r => r.contact_id);
+
+        if (contactIds.length === 0) {
+            await client.query('COMMIT'); // Nothing to do, but commit to end transaction
+            return 0;
+        }
+
+        // Update the status of these contacts back to 'pending'
+        const updateRes = await client.query(
+            `UPDATE contacts SET status = 'pending', updated_at = NOW() WHERE id = ANY($1::text[])`,
+            [contactIds]
+        );
+        
+        await client.query('COMMIT');
+
+        // After commit, fetch and broadcast the updated campaign state
+        const updatedCampaign = await getCampaignById(campaignId);
+        broadcast({
+            type: 'campaignUpdate',
+            payload: updatedCampaign
+        });
+        
+        return updateRes.rowCount;
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error("Error recycling contacts:", error);
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
 
 const getCallHistoryForContact = async (contactId) => {
     const query = `
@@ -323,6 +395,7 @@ module.exports = {
     importContacts,
     getNextContactForCampaign,
     qualifyContact,
+    recycleContactsByQualification,
     getCallHistoryForContact,
     updateContact,
 };

@@ -413,6 +413,19 @@ const AppContent: React.FC = () => {
             throw error;
         }
     };
+    
+    const handleRecycleContacts = async (campaignId: string, qualificationId: string) => {
+        try {
+            await apiClient.post(`/campaigns/${campaignId}/recycle`, { qualificationId });
+            // The WebSocket event will trigger the data refresh automatically.
+            showAlert('Les contacts ont été réinitialisés et sont de nouveau disponibles.', 'success');
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.error || 'Échec du recyclage des contacts.';
+            console.error(`Failed to recycle contacts:`, error);
+            showAlert(errorMessage, 'error');
+            throw error;
+        }
+    };
 
     const handleSaveVisibilitySettings = (visibility: ModuleVisibility) => {
         setAllData(prevData => ({
@@ -635,6 +648,7 @@ const AppContent: React.FC = () => {
             onImportContacts: handleImportContacts,
             onUpdateContact: handleUpdateContact,
             onDeleteContacts: handleDeleteContacts,
+            onRecycleContacts: handleRecycleContacts,
             onSaveQualification: (q: Qualification) => handleSaveOrUpdate('qualifications', q),
             onDeleteQualification: (id: string) => handleDelete('qualifications', id),
             onSaveQualificationGroup: (group: QualificationGroup, assignedQualIds: string[]) => handleSaveOrUpdate('qualification-groups', { ...group, assignedQualIds }, '/qualification-groups/groups'),

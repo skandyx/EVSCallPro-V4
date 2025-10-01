@@ -176,4 +176,39 @@ router.post('/next-contact', async (req, res) => {
     }
 });
 
+/**
+ * @openapi
+ * /campaigns/{id}/recycle:
+ *   post:
+ *     summary: Réinitialise le statut des contacts pour une qualification donnée.
+ *     tags: [Campagnes]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               qualificationId: { type: string }
+ *     responses:
+ *       '200':
+ *         description: "Contacts recyclés."
+ */
+router.post('/:id/recycle', async (req, res) => {
+    try {
+        const { qualificationId } = req.body;
+        const { campaignId } = req.params;
+        const updatedCount = await db.recycleContactsByQualification(campaignId, qualificationId);
+        res.json({ message: `${updatedCount} contacts ont été recyclés avec succès.` });
+    } catch (error) {
+        console.error('Error recycling contacts:', error);
+        res.status(500).json({ error: 'Failed to recycle contacts.' });
+    }
+});
+
 module.exports = router;

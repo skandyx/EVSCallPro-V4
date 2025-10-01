@@ -310,6 +310,7 @@ interface OutboundCampaignsManagerProps {
     onImportContacts: (campaignId: string, contacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => Promise<any>;
     onUpdateContact: (contact: Contact) => void;
     onDeleteContacts: (contactIds: string[]) => void;
+    onRecycleContacts: (campaignId: string, qualificationId: string) => void;
     currentUser: User;
 }
 
@@ -330,6 +331,7 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
         onImportContacts, 
         onUpdateContact, 
         onDeleteContacts,
+        onRecycleContacts,
         currentUser
     } = props;
     
@@ -401,6 +403,7 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
                 onSaveCampaign={onSaveCampaign}
                 onUpdateContact={onUpdateContact}
                 onDeleteContacts={onDeleteContacts}
+                onRecycleContacts={onRecycleContacts}
                 callHistory={callHistory}
                 qualifications={qualifications}
                 qualificationGroups={qualificationGroups}

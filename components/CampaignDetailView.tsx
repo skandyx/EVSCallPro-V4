@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { Campaign, SavedScript, Contact, CallHistoryRecord, Qualification, User, ContactNote, UserGroup, QualificationGroup } from '../types.ts';
-import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon } from './Icons';
+import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon, ChevronDownIcon } from './Icons';
 import ContactHistoryModal from './ContactHistoryModal.tsx';
 
 // Déclaration pour Chart.js via CDN
@@ -13,6 +13,7 @@ interface CampaignDetailViewProps {
     onSaveCampaign: (campaign: Campaign) => void;
     onUpdateContact: (contact: Contact) => void;
     onDeleteContacts: (contactIds: string[]) => void;
+    onRecycleContacts: (campaignId: string, qualificationId: string) => void;
     callHistory: CallHistoryRecord[];
     qualifications: Qualification[];
     users: User[];
@@ -24,6 +25,7 @@ interface CampaignDetailViewProps {
 }
 
 type DetailTab = 'contacts' | 'dashboard' | 'settings';
+type ContactSortKeys = 'firstName' | 'lastName' | 'phoneNumber' | 'postalCode' | 'status';
 
 const KpiCard: React.FC<{ title: string; value: string | number; }> = ({ title, value }) => (
     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
@@ -68,12 +70,13 @@ const formatDuration = (seconds: number) => {
 };
 
 const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
-    const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts, contactNotes, currentUser } = props;
+    const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts, onRecycleContacts, contactNotes, currentUser } = props;
     const [activeTab, setActiveTab] = useState<DetailTab>('dashboard');
     
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
+    const [contactSortConfig, setContactSortConfig] = useState<{ key: ContactSortKeys; direction: 'ascending' | 'descending' }>({ key: 'lastName', direction: 'ascending' });
     
     const [historyModal, setHistoryModal] = useState<{ isOpen: boolean, contact: Contact | null }>({ isOpen: false, contact: null });
 
@@ -92,7 +95,6 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         const totalCalls = campaignCallHistory.length;
         const contactedCalls = campaignCallHistory.filter(call => {
              const qual = qualifications.find(q => q.id === call.qualificationId);
-             // Consider 'contacted' if it's not a technical failure like 'Faux numéro'
              return qual && qual.id !== 'std-91';
         }).length;
         
@@ -120,7 +122,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             hitRate: hitRate,
             avgDuration: avgDuration
         };
-    }, [campaign, campaignCallHistory, qualifications]);
+    }, [campaign.contacts, campaignCallHistory, qualifications]);
     
     const qualificationDistribution = useMemo(() => {
         const counts = { positive: 0, neutral: 0, negative: 0 };
@@ -172,40 +174,49 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         return Object.values(perf).sort((a,b) => b.conversions - a.conversions || b.calls - a.calls);
     }, [campaignCallHistory, users, qualifications]);
 
+    const qualificationPerformance = useMemo(() => {
+        const campaignQuals = qualifications.filter(q => q.isStandard || q.groupId === campaign.qualificationGroupId);
+        const qualCounts = campaignCallHistory.reduce((acc, call) => {
+            if (call.qualificationId) {
+                acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
+            }
+            return acc;
+        }, {} as Record<string, number>);
+
+        return campaignQuals.map(qual => {
+            const count = qualCounts[qual.id] || 0;
+            const rate = campaignCallHistory.length > 0 ? (count / campaignCallHistory.length) * 100 : 0;
+            return {
+                ...qual,
+                count,
+                rate,
+            };
+        }).sort((a,b) => b.count - a.count);
+    }, [campaign.qualificationGroupId, qualifications, campaignCallHistory]);
+
     const columnsToDisplay = useMemo(() => {
-        const baseColumns = [
-            { fieldName: 'first_name', name: 'Prénom', isStandard: true },
-            { fieldName: 'last_name', name: 'Nom', isStandard: true },
-            { fieldName: 'phone_number', name: 'Téléphone', isStandard: true },
-            { fieldName: 'postal_code', name: 'Code Postal', isStandard: true },
+        const standardColumns: { id: ContactSortKeys; name: string }[] = [
+            { id: 'lastName', name: 'NOM' },
+            { id: 'firstName', name: 'PRÉNOM' },
+            { id: 'phoneNumber', name: 'TÉLÉPHONE' },
+            { id: 'postalCode', name: 'CODE POSTAL' },
         ];
         
-        if (!script) {
-            return baseColumns;
-        }
-
-        const visibleStandardBlocks = script.pages
+        const customColumns = (script?.pages || [])
             .flatMap(p => p.blocks)
-            .filter(b => b.isStandard && b.isVisible !== false);
-        
-        const visibleStandardFieldNames = new Set(visibleStandardBlocks.map(b => b.fieldName));
-        const finalStandardColumns = baseColumns
-            .filter(c => visibleStandardFieldNames.has(c.fieldName))
-            .map(c => {
-                const scriptBlock = visibleStandardBlocks.find(b => b.fieldName === c.fieldName);
-                return { ...c, name: scriptBlock?.name || c.name }; // Use script name if available
-            });
+            .filter(b => !b.isStandard && b.isVisible !== false)
+            .map(b => ({ id: b.fieldName, name: b.name.toUpperCase() }));
 
-        const customColumns = script.pages.flatMap(p => p.blocks)
-            .filter(b => !b.isStandard && ['input', 'textarea', 'email', 'phone', 'date', 'time', 'radio', 'checkbox', 'dropdown'].includes(b.type))
-            .map(b => ({ fieldName: b.fieldName, name: b.name, isStandard: false }));
-
-        const uniqueCustomColumns = customColumns.filter((v, i, a) => 
-            a.findIndex(t => (t.fieldName === v.fieldName)) === i &&
-            !finalStandardColumns.some(sc => sc.fieldName === v.fieldName)
-        );
+        const allColumns = [...standardColumns, ...customColumns];
         
-        return [ ...finalStandardColumns, ...uniqueCustomColumns ];
+        const finalColumns = allColumns.map(col => ({
+            ...col,
+            sortable: ['lastName', 'firstName', 'phoneNumber', 'postalCode', 'status'].includes(col.id)
+        }));
+
+        finalColumns.push({ id: 'status', name: 'STATUT', sortable: true });
+        
+        return finalColumns;
     }, [script]);
 
     const filteredContacts = useMemo(() => {
@@ -217,12 +228,22 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         });
     }, [campaign.contacts, searchTerm]);
 
+    const sortedAndFilteredContacts = useMemo(() => {
+        return [...filteredContacts].sort((a, b) => {
+            const key = contactSortConfig.key;
+            const aValue = a[key] || '';
+            const bValue = b[key] || '';
+            const comparison = String(aValue).localeCompare(String(bValue), undefined, { numeric: true });
+            return contactSortConfig.direction === 'ascending' ? comparison : -comparison;
+        });
+    }, [filteredContacts, contactSortConfig]);
+
     const contactsPerPage = 20;
     const paginatedContacts = useMemo(() => {
         const start = (currentPage - 1) * contactsPerPage;
-        return filteredContacts.slice(start, start + contactsPerPage);
-    }, [filteredContacts, currentPage]);
-    const totalPages = Math.ceil(filteredContacts.length / contactsPerPage);
+        return sortedAndFilteredContacts.slice(start, start + contactsPerPage);
+    }, [sortedAndFilteredContacts, currentPage]);
+    const totalPages = Math.ceil(sortedAndFilteredContacts.length / contactsPerPage);
 
     const handleSelectContact = (contactId: string, isSelected: boolean) => {
         setSelectedContactIds(prev => isSelected ? [...prev, contactId] : prev.filter(id => id !== contactId));
@@ -236,6 +257,14 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             setSelectedContactIds(prev => prev.filter(id => !pageIds.has(id)));
         }
     };
+    
+    const requestSort = (key: ContactSortKeys) => {
+        let direction: 'ascending' | 'descending' = 'ascending';
+        if (contactSortConfig.key === key && contactSortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setContactSortConfig({ key, direction });
+    };
 
     const isAllOnPageSelected = paginatedContacts.length > 0 && paginatedContacts.every(c => selectedContactIds.includes(c.id));
 
@@ -246,11 +275,26 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             setSelectedContactIds([]);
         }
     };
+    
+    const handleRecycleClick = (qualificationId: string) => {
+        if (window.confirm(`Êtes-vous sûr de vouloir recycler tous les contacts avec cette qualification ? Leur statut sera réinitialisé à "pending".`)) {
+            onRecycleContacts(campaign.id, qualificationId);
+        }
+    };
 
     const TabButton: React.FC<{ tab: DetailTab; label: string; icon: React.FC<any> }> = ({ tab, label, icon: Icon }) => (
         <button onClick={() => setActiveTab(tab)} className={`flex items-center gap-2 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors ${activeTab === tab ? 'border-primary text-link' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>
             <Icon className="w-5 h-5" /> {label}
         </button>
+    );
+    
+     const SortableHeader: React.FC<{ sortKey: ContactSortKeys; label: string }> = ({ sortKey, label }) => (
+        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">
+            <button onClick={() => requestSort(sortKey)} className="group inline-flex items-center gap-1">
+                {label}
+                <span className="opacity-0 group-hover:opacity-100"><ChevronDownIcon className={`w-4 h-4 transition-transform ${contactSortConfig.key === sortKey && contactSortConfig.direction === 'descending' ? 'rotate-180' : ''}`}/></span>
+            </button>
+        </th>
     );
 
     return (
@@ -280,28 +324,25 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-slate-200"><thead className="bg-slate-50"><tr>
                                     <th className="p-4 w-4"><input type="checkbox" checked={isAllOnPageSelected} onChange={handleSelectAllOnPage} className="h-4 w-4 rounded" /></th>
-                                    {columnsToDisplay.map(col => <th key={col.fieldName} className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{col.name}</th>)}
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Statut</th>
+                                    <SortableHeader sortKey="lastName" label="Nom" />
+                                    <SortableHeader sortKey="firstName" label="Prénom" />
+                                    <SortableHeader sortKey="phoneNumber" label="Téléphone" />
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">QUERRY</th>
+                                    <SortableHeader sortKey="status" label="Statut" />
                                     <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Dernière Qualification</th>
                                     <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Dernière Remarque</th>
                                 </tr></thead>
                                 <tbody className="bg-white divide-y divide-slate-200 text-sm">
                                     {paginatedContacts.map(contact => {
-                                        const lastCall = [...callHistory].filter(c => c.contactId === contact.id).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                                        const lastCall = [...campaignCallHistory].filter(c => c.contactId === contact.id).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
                                         const lastNote = [...contactNotes].filter(n => n.contactId === contact.id).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
                                         return (
                                         <tr key={contact.id} onClick={() => setHistoryModal({ isOpen: true, contact })} className={`cursor-pointer hover:bg-slate-50 ${selectedContactIds.includes(contact.id) ? 'bg-indigo-50' : ''}`}>
                                             <td className="p-4 w-4" onClick={e => e.stopPropagation()}><input type="checkbox" checked={selectedContactIds.includes(contact.id)} onChange={e => handleSelectContact(contact.id, e.target.checked)} className="h-4 w-4 rounded" /></td>
-                                            {columnsToDisplay.map(col => {
-                                                let value = '';
-                                                if (col.isStandard) {
-                                                    const keyMap = { 'first_name': 'firstName', 'last_name': 'lastName', 'phone_number': 'phoneNumber', 'postal_code': 'postalCode'};
-                                                    value = (contact as any)[keyMap[col.fieldName as keyof typeof keyMap]] || '';
-                                                } else if (contact.customFields) {
-                                                    value = contact.customFields[col.fieldName] || '';
-                                                }
-                                                return <td key={col.fieldName} className="px-4 py-3 font-mono truncate max-w-xs" title={value}>{value}</td>
-                                            })}
+                                            <td className="px-4 py-3 font-medium">{contact.lastName}</td>
+                                            <td className="px-4 py-3">{contact.firstName}</td>
+                                            <td className="px-4 py-3 font-mono">{contact.phoneNumber}</td>
+                                            <td className="px-4 py-3">{contact.customFields?.querry || ''}</td>
                                             <td className="px-4 py-3"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${contact.status === 'pending' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'}`}>{contact.status}</span></td>
                                             <td className="px-4 py-3">{lastCall ? props.qualifications.find(q => q.id === lastCall.qualificationId)?.description : 'N/A'}</td>
                                             <td className="px-4 py-3 truncate max-w-xs" title={lastNote?.note}>{lastNote?.note || 'N/A'}</td>
@@ -368,9 +409,30 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                     <div className="h-64"><ChartComponent type="bar" data={callsByHour} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }} /></div>
                                 </div>
                             </div>
-                            <div>
+                             <div className="pt-4 border-t">
+                                <h3 className="text-lg font-semibold text-slate-800 mb-2">Performance par Qualification</h3>
+                                <div className="overflow-x-auto max-h-60 border rounded-md">
+                                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                                        <thead className="bg-slate-50 sticky top-0"><tr>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Qualification</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Fiches Traitées</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Taux</th>
+                                        </tr></thead>
+                                        <tbody className="bg-white divide-y divide-slate-200">
+                                            {qualificationPerformance.map(qual => (
+                                                <tr key={qual.id}>
+                                                    <td className="px-4 py-2 font-medium">{qual.description}</td>
+                                                    <td className="px-4 py-2">{qual.count}</td>
+                                                    <td className="px-4 py-2">{qual.rate.toFixed(2)}%</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div className="pt-4 border-t">
                                 <h3 className="text-lg font-semibold text-slate-800 mb-2">Performance par Agent</h3>
-                                <div className="overflow-x-auto max-h-60">
+                                <div className="overflow-x-auto max-h-60 border rounded-md">
                                     <table className="min-w-full divide-y divide-slate-200 text-sm">
                                         <thead className="bg-slate-50 sticky top-0"><tr>
                                             <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Agent</th>
@@ -383,6 +445,39 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                                     <td className="px-4 py-2 font-medium">{agent.name}</td>
                                                     <td className="px-4 py-2">{agent.calls}</td>
                                                     <td className="px-4 py-2">{agent.conversions}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'settings' && (
+                        <div className="space-y-6">
+                             <div>
+                                <h3 className="text-lg font-semibold text-slate-800 mb-2">Recyclage des Fiches</h3>
+                                <p className="text-sm text-slate-500 mb-4">Réinitialisez le statut des contacts qualifiés pour les rendre de nouveau disponibles pour les agents.</p>
+                                <div className="overflow-x-auto max-h-96 border rounded-md">
+                                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                                        <thead className="bg-slate-50 sticky top-0"><tr>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Qualification</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Fiches Traitées</th>
+                                            <th className="px-4 py-2 text-right font-medium text-slate-500 uppercase">Action</th>
+                                        </tr></thead>
+                                        <tbody className="bg-white divide-y divide-slate-200">
+                                            {qualificationPerformance.filter(q => q.count > 0).map(qual => (
+                                                <tr key={qual.id}>
+                                                    <td className="px-4 py-2 font-medium">{qual.description}</td>
+                                                    <td className="px-4 py-2">{qual.count}</td>
+                                                    <td className="px-4 py-2 text-right">
+                                                        <button 
+                                                            onClick={() => handleRecycleClick(qual.id)}
+                                                            className="bg-indigo-100 text-indigo-700 font-semibold text-xs py-1 px-3 rounded-md hover:bg-indigo-200"
+                                                        >
+                                                            Recycler
+                                                        </button>
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
