@@ -184,15 +184,48 @@ const qualifyContact = async (contactId, qualificationId, campaignId, agentId) =
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        // Update contact status
+
+        // --- Step 1: Check if qualification is positive ---
+        const qualRes = await client.query('SELECT type FROM qualifications WHERE id = $1', [qualificationId]);
+        const isPositive = qualRes.rows.length > 0 && qualRes.rows[0].type === 'positive';
+
+        // --- Step 2: If positive, update quota ---
+        if (isPositive) {
+            const campaignRes = await client.query('SELECT quota_rules FROM campaigns WHERE id = $1 FOR UPDATE', [campaignId]);
+            const contactRes = await client.query('SELECT * FROM contacts WHERE id = $1', [contactId]);
+            
+            if (campaignRes.rows.length > 0 && contactRes.rows.length > 0) {
+                const campaign = keysToCamel(campaignRes.rows[0]);
+                const contact = keysToCamel(contactRes.rows[0]);
+                let rules = campaign.quotaRules || [];
+                let rulesUpdated = false;
+
+                for (const rule of rules) {
+                    const contactFieldValue = (rule.contactField === 'postalCode' ? contact.postalCode : contact.customFields?.[rule.contactField]) || '';
+                    let match = false;
+                    if (rule.operator === 'equals' && contactFieldValue === rule.value) match = true;
+                    if (rule.operator === 'starts_with' && contactFieldValue.startsWith(rule.value)) match = true;
+                    
+                    if (match) {
+                        rule.currentCount = (rule.currentCount || 0) + 1;
+                        rulesUpdated = true;
+                        break; // Assume a contact can only match one quota rule at a time
+                    }
+                }
+
+                if (rulesUpdated) {
+                    await client.query('UPDATE campaigns SET quota_rules = $1 WHERE id = $2', [JSON.stringify(rules), campaignId]);
+                }
+            }
+        }
+
+        // --- Step 3: Original logic (update contact status & create history) ---
         await client.query("UPDATE contacts SET status = 'qualified', updated_at = NOW() WHERE id = $1", [contactId]);
         
-        // Create a call history record (this is a simplified version)
-        // A real system would get more details from AMI events
-        const contactRes = await client.query("SELECT phone_number FROM contacts WHERE id = $1", [contactId]);
+        const contactResForHistory = await client.query("SELECT phone_number FROM contacts WHERE id = $1", [contactId]);
         const agentRes = await client.query("SELECT login_id FROM users WHERE id = $1", [agentId]);
         
-        if (contactRes.rows.length === 0 || agentRes.rows.length === 0) {
+        if (contactResForHistory.rows.length === 0 || agentRes.rows.length === 0) {
             throw new Error("Contact or Agent not found for call history creation.");
         }
         
@@ -204,7 +237,7 @@ const qualifyContact = async (contactId, qualificationId, campaignId, agentId) =
         `;
         await client.query(callHistoryQuery, [
             `call-${Date.now()}`, now, now, 0, 0, 'outbound', 'ANSWERED',
-            agentRes.rows[0].login_id, contactRes.rows[0].phone_number,
+            agentRes.rows[0].login_id, contactResForHistory.rows[0].phone_number,
             agentId, contactId, campaignId, qualificationId
         ]);
 
