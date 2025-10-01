@@ -265,10 +265,12 @@ const qualifyContact = async (contactId, qualificationId, campaignId, agentId) =
         
         // --- Step 4: After commit, fetch and broadcast the updated campaign state ---
         const updatedCampaign = await getCampaignById(campaignId);
-        broadcast({
-            type: 'campaignUpdate',
-            payload: updatedCampaign
-        });
+        if (updatedCampaign) {
+            broadcast({
+                type: 'campaignUpdate',
+                payload: updatedCampaign
+            });
+        }
 
     } catch (error) {
         await client.query('ROLLBACK');
@@ -307,10 +309,12 @@ const recycleContactsByQualification = async (campaignId, qualificationId) => {
 
         // After commit, fetch and broadcast the updated campaign state
         const updatedCampaign = await getCampaignById(campaignId);
-        broadcast({
-            type: 'campaignUpdate',
-            payload: updatedCampaign
-        });
+        if (updatedCampaign) {
+            broadcast({
+                type: 'campaignUpdate',
+                payload: updatedCampaign
+            });
+        }
         
         return updateRes.rowCount;
     } catch (error) {

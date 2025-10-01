@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Feature, CallHistoryRecord, User, Campaign, Qualification, AgentSession } from '../types.ts';
 import { ArrowUpTrayIcon, TimeIcon, PhoneIcon, ChartBarIcon } from './Icons.tsx';
@@ -112,7 +106,6 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         end.setHours(23, 59, 59, 999);
         
         const calls = callHistory.filter(call => {
-// FIX: Property 'timestamp' does not exist on type 'CallHistoryRecord'. Did you mean 'startTime'?
             const callDate = new Date(call.startTime);
             return callDate >= start && callDate <= end;
         });
@@ -242,7 +235,6 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
     const dailyVolumeData = useMemo(() => {
         const counts: { [date: string]: number } = {};
         filteredHistory.forEach(call => {
-// FIX: Property 'timestamp' does not exist on type 'CallHistoryRecord'. Did you mean 'startTime'?
             const date = new Date(call.startTime).toLocaleDateString('fr-FR');
             counts[date] = (counts[date] || 0) + 1;
         });
@@ -425,11 +417,9 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         doc.setFontSize(12);
         doc.text("Historique des Appels", 14, doc.previousAutoTable.finalY + 15);
         const callLogBody = filteredHistory.map(call => [
-// FIX: Property 'timestamp' does not exist on type 'CallHistoryRecord'. Did you mean 'startTime'?
             new Date(call.startTime).toLocaleString('fr-FR'),
             findEntityName(call.agentId, users, true),
             findEntityName(call.campaignId, campaigns, true),
-// FIX: Property 'callerNumber' does not exist on type 'CallHistoryRecord'. Did you mean 'destination'?
             call.destination,
             formatDuration(call.duration),
             findEntityName(call.qualificationId, qualifications, true)
