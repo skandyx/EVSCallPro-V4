@@ -311,6 +311,8 @@ export interface AgentState extends User {
     averageTalkTime: number;
     pauseCount: number;
     totalPauseTime: number;
+    totalTrainingTime: number;
+    totalConnectedTime: number;
 }
 
 export interface ActiveCall {

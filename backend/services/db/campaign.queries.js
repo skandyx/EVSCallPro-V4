@@ -78,6 +78,14 @@ const deleteCampaign = async (id) => {
     await pool.query('DELETE FROM campaigns WHERE id = $1', [id]);
 };
 
+const deleteContacts = async (contactIds) => {
+    if (!contactIds || contactIds.length === 0) {
+        return 0;
+    }
+    const result = await pool.query('DELETE FROM contacts WHERE id = ANY($1::text[])', [contactIds]);
+    return result.rowCount;
+};
+
 const importContacts = async (campaignId, contacts, deduplicationConfig) => {
     const client = await pool.connect();
     const valids = [];
@@ -276,6 +284,7 @@ module.exports = {
     getCampaigns,
     saveCampaign,
     deleteCampaign,
+    deleteContacts,
     importContacts,
     getNextContactForCampaign,
     qualifyContact,

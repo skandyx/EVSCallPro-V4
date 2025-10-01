@@ -53,6 +53,8 @@ function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
                     averageTalkTime: 0,
                     pauseCount: 0,
                     totalPauseTime: 0,
+                    totalTrainingTime: 0,
+                    totalConnectedTime: 0,
                 }));
             const initialCampaignStates: CampaignState[] = action.payload.campaigns.map(c => ({
                 id: c.id, name: c.name, status: c.isActive ? 'running' : 'stopped',
@@ -66,7 +68,7 @@ function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
                 agentStates: state.agentStates.map(agent => {
                     if (agent.id !== action.payload.agentId) return agent;
                     
-                    const isEnteringPause = (action.payload.status === 'En Pause' || action.payload.status === 'Formation') && agent.status !== 'En Pause' && agent.status !== 'Formation';
+                    const isEnteringPause = action.payload.status === 'En Pause' && agent.status !== 'En Pause';
                     
                     return {
                         ...agent,
@@ -87,7 +89,9 @@ function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
                 agentStates: state.agentStates.map(a => ({
                     ...a,
                     statusDuration: a.statusDuration + 1,
-                    totalPauseTime: (a.status === 'En Pause' || a.status === 'Formation') ? a.totalPauseTime + 1 : a.totalPauseTime,
+                    totalPauseTime: a.status === 'En Pause' ? a.totalPauseTime + 1 : a.totalPauseTime,
+                    totalTrainingTime: a.status === 'Formation' ? a.totalTrainingTime + 1 : a.totalTrainingTime,
+                    totalConnectedTime: a.status !== 'Déconnecté' ? a.totalConnectedTime + 1 : a.totalConnectedTime,
                 })),
                 activeCalls: state.activeCalls.map(c => ({ ...c, duration: c.duration + 1 })),
             };
@@ -394,6 +398,19 @@ const AppContent: React.FC = () => {
         }
     };
 
+    const handleDeleteContacts = async (contactIds: string[]) => {
+        try {
+            await apiClient.post('/contacts/bulk-delete', { contactIds });
+            await fetchApplicationData(); 
+            showAlert('Contacts supprimés avec succès.', 'success');
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.error || 'Échec de la suppression des contacts.';
+            console.error(`Failed to delete contacts:`, error);
+            showAlert(errorMessage, 'error');
+            throw error;
+        }
+    };
+
     const handleSaveVisibilitySettings = (visibility: ModuleVisibility) => {
         setAllData(prevData => ({
             ...prevData,
@@ -613,6 +630,8 @@ const AppContent: React.FC = () => {
             onSaveCampaign: (campaign: Campaign) => handleSaveOrUpdate('campaigns', campaign),
             onDeleteCampaign: (id: string) => handleDelete('campaigns', id),
             onImportContacts: handleImportContacts,
+            onUpdateContact: handleUpdateContact,
+            onDeleteContacts: handleDeleteContacts,
             onSaveQualification: (q: Qualification) => handleSaveOrUpdate('qualifications', q),
             onDeleteQualification: (id: string) => handleDelete('qualifications', id),
             onSaveQualificationGroup: (group: QualificationGroup, assignedQualIds: string[]) => handleSaveOrUpdate('qualification-groups', { ...group, assignedQualIds }, '/qualification-groups/groups'),

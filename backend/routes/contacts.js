@@ -1,8 +1,18 @@
-
 // backend/routes/contacts.js
 const express = require('express');
 const router = express.Router();
 const db = require('../services/db');
+const logger = require('../services/logger');
+
+// Middleware to check for Admin/SuperAdmin role
+const isAdmin = (req, res, next) => {
+    if (req.user && (req.user.role === 'Administrateur' || req.user.role === 'SuperAdmin')) {
+        next();
+    } else {
+        res.status(403).json({ error: 'Accès non autorisé.' });
+    }
+};
+
 
 /**
  * @openapi
@@ -169,6 +179,48 @@ router.get('/:id/history', async (req, res) => {
     } catch (error) {
         console.error('Error fetching contact history:', error);
         res.status(500).json({ error: 'Failed to fetch contact history' });
+    }
+});
+
+/**
+ * @openapi
+ * /contacts/bulk-delete:
+ *   post:
+ *     summary: Supprime plusieurs contacts en masse.
+ *     tags: [Contacts]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               contactIds:
+ *                 type: array
+ *                 items: { type: string }
+ *     responses:
+ *       '200':
+ *         description: "Contacts supprimés avec succès."
+ */
+router.post('/bulk-delete', isAdmin, async (req, res) => {
+    const { contactIds } = req.body;
+    if (!contactIds || !Array.isArray(contactIds) || contactIds.length === 0) {
+        return res.status(400).json({ error: 'Un tableau de contactIds est requis.' });
+    }
+
+    try {
+        const deletedCount = await db.deleteContacts(contactIds);
+        
+        // Log the action
+        logger.logSystem('INFO', 'Contact Management', `User ${req.user.id} (${req.user.role}) deleted ${deletedCount} contacts.`);
+        
+        res.json({ message: `${deletedCount} contacts supprimés avec succès.` });
+    } catch (error) {
+        console.error('Error bulk deleting contacts:', error);
+        logger.logSystem('ERROR', 'Contact Management', `Failed to delete contacts for user ${req.user.id}. Error: ${error.message}`);
+        res.status(500).json({ error: 'Échec de la suppression des contacts.' });
     }
 });
 

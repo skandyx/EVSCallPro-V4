@@ -261,6 +261,7 @@ interface OutboundCampaignsManagerProps {
     onImportContacts: (campaignId: string, contacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => Promise<any>;
     onUpdateContact: (contact: Contact) => void;
     onDeleteContacts: (contactIds: string[]) => void;
+    currentUser: User;
 }
 
 const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props) => {
@@ -279,7 +280,8 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
         onDeleteCampaign, 
         onImportContacts, 
         onUpdateContact, 
-        onDeleteContacts 
+        onDeleteContacts,
+        currentUser
     } = props;
     
     const [view, setView] = useState<'list' | 'detail'>('list');
@@ -310,7 +312,11 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
     };
 
     const handleSave = (campaign: Campaign) => {
-        onSaveCampaign(campaign);
+        // FIX: The 'contacts' array is destructured from the campaign object before saving.
+        // This prevents the huge contact list from being sent in the PUT request,
+        // thus solving the "413 Payload Too Large" error.
+        const { contacts, ...campaignToSave } = campaign;
+        onSaveCampaign(campaignToSave as Campaign);
         setIsModalOpen(false);
         setEditingCampaign(null);
     };
@@ -353,6 +359,7 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
                 users={users}
                 contactNotes={contactNotes}
                 userGroups={userGroups}
+                currentUser={currentUser}
             />
         )
     }

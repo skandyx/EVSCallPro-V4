@@ -1,7 +1,5 @@
-
-
 import React, { useState, useMemo, useCallback } from 'react';
-import type { Campaign, SavedScript, Contact, CallHistoryRecord, Qualification, User, ContactNote, UserGroup, QualificationGroup } from '../types';
+import type { Campaign, SavedScript, Contact, CallHistoryRecord, Qualification, User, ContactNote, UserGroup, QualificationGroup } from '../types.ts';
 import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon } from './Icons';
 import ContactHistoryModal from './ContactHistoryModal.tsx';
 
@@ -19,6 +17,7 @@ interface CampaignDetailViewProps {
     qualificationGroups: QualificationGroup[];
     savedScripts: SavedScript[];
     userGroups: UserGroup[];
+    currentUser: User;
 }
 
 type DetailTab = 'contacts' | 'dashboard' | 'settings';
@@ -31,7 +30,7 @@ const KpiCard: React.FC<{ title: string; value: string | number; }> = ({ title, 
 );
 
 const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
-    const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts, contactNotes } = props;
+    const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts, contactNotes, currentUser } = props;
     const [activeTab, setActiveTab] = useState<DetailTab>('contacts');
     
     const [searchTerm, setSearchTerm] = useState('');
@@ -39,6 +38,8 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
     
     const [historyModal, setHistoryModal] = useState<{ isOpen: boolean, contact: Contact | null }>({ isOpen: false, contact: null });
+
+    const canDelete = currentUser.role === 'Administrateur' || currentUser.role === 'SuperAdmin';
 
     const campaignCallHistory = useMemo(() => callHistory.filter(c => c.campaignId === campaign.id), [callHistory, campaign.id]);
 
@@ -118,7 +119,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
 
     const handleDeleteSelected = () => {
         if (selectedContactIds.length === 0) return;
-        if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${selectedContactIds.length} contact(s) ?`)) {
+        if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${selectedContactIds.length} contact(s) ? Cette action est irréversible.`)) {
             onDeleteContacts(selectedContactIds);
             setSelectedContactIds([]);
         }
@@ -152,7 +153,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                         <div>
                             <div className="flex justify-between items-center mb-4">
                                 <input type="search" placeholder="Rechercher un contact..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full max-w-sm p-2 border border-slate-300 rounded-md"/>
-                                {selectedContactIds.length > 0 && <button onClick={handleDeleteSelected} className="bg-red-100 text-red-700 font-bold py-2 px-4 rounded-lg inline-flex items-center gap-2"><TrashIcon className="w-5 h-5"/>Supprimer la sélection ({selectedContactIds.length})</button>}
+                                {canDelete && selectedContactIds.length > 0 && <button onClick={handleDeleteSelected} className="bg-red-100 text-red-700 font-bold py-2 px-4 rounded-lg inline-flex items-center gap-2"><TrashIcon className="w-5 h-5"/>Supprimer la sélection ({selectedContactIds.length})</button>}
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-slate-200"><thead className="bg-slate-50"><tr>

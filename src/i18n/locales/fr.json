@@ -115,6 +115,8 @@
     "callsHandled": "Appels Traités",
     "pauseCount": "Nb Pauses",
     "totalPauseTime": "Temps Total en Pause",
+    "totalTrainingTime": "Temps Total en Formation",
+    "totalConnectedTime": "Temps Total Connecté",
     "pause": "Pause",
     "ready": "Prêt",
     "statuses": {
