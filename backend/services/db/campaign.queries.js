@@ -52,7 +52,9 @@ const saveCampaign = async (campaign, id) => {
         // Sync assigned agents
         await client.query('DELETE FROM campaign_agents WHERE campaign_id = $1', [campaignId]);
         if (assignedUserIds && assignedUserIds.length > 0) {
-            for (const userId of assignedUserIds) {
+            // FIX: Ensure assignedUserIds are unique before inserting to prevent duplicate key errors.
+            const uniqueUserIds = [...new Set(assignedUserIds)];
+            for (const userId of uniqueUserIds) {
                 await client.query('INSERT INTO campaign_agents (campaign_id, user_id) VALUES ($1, $2)', [campaignId, userId]);
             }
         }
