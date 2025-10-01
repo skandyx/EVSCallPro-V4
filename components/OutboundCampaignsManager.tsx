@@ -46,6 +46,12 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
         maxCallDuration: 3600, quotaRules: [], filterRules: [],
     });
 
+    const WEEK_DAYS = [
+        { label: 'Lundi', value: 1 }, { label: 'Mardi', value: 2 }, { label: 'Mercredi', value: 3 },
+        { label: 'Jeudi', value: 4 }, { label: 'Vendredi', value: 5 }, { label: 'Samedi', value: 6 },
+        { label: 'Dimanche', value: 7 },
+    ];
+
     // --- Validation Logic for LEDs ---
     const isNameValid = !!formData.name.trim();
     const isQualifGroupValid = !!formData.qualificationGroupId;
@@ -91,6 +97,18 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
         if (name === 'scriptId') setFormData(prev => ({ ...prev, scriptId: value === '' ? null : value }));
         else if (e.target.getAttribute('type') === 'number') setFormData(prev => ({ ...prev, [name]: isNaN(parseInt(value, 10)) ? 0 : parseInt(value, 10) }));
         else setFormData(prev => ({ ...prev, [name]: value }));
+    };
+    
+    const handleCallingDayChange = (dayValue: number, isEnabled: boolean) => {
+        setFormData(prev => {
+            const currentDays = new Set(prev.callingDays || []);
+            if (isEnabled) {
+                currentDays.add(dayValue);
+            } else {
+                currentDays.delete(dayValue);
+            }
+            return { ...prev, callingDays: Array.from(currentDays).sort() };
+        });
     };
     
     const handleAgentAssignment = (agentId: string, isChecked: boolean) => {
@@ -155,9 +173,9 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
                         </h3>
                     </div>
                     <div className="border-b px-4"><nav className="-mb-px flex space-x-4">
-                        {['general', 'quotas', 'filters'].map(tab => (
+                        {['general', 'planning', 'quotas', 'filters'].map(tab => (
                             <button type="button" key={tab} onClick={() => setActiveTab(tab)} className={`py-3 px-1 border-b-2 font-medium text-sm ${activeTab === tab ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
-                                {tab === 'general' ? 'Général' : tab === 'quotas' ? 'Quotas' : 'Inclusion/Exclusion'}
+                                {tab === 'general' ? 'Général' : tab === 'planning' ? 'Planing' : tab === 'quotas' ? 'Quotas' : 'Inclusion/Exclusion'}
                             </button>
                         ))}
                     </nav></div>
@@ -217,6 +235,37 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
                                 />
                             </div>
                         </>}
+                        {activeTab === 'planning' && (
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700">Jours d'activité</label>
+                                    <div className="mt-2 space-y-2 rounded-md border border-slate-300 p-3 bg-slate-50">
+                                        {WEEK_DAYS.map(day => (
+                                            <div key={day.value} className="flex items-center justify-between">
+                                                <label htmlFor={`day-${day.value}`} className="font-medium text-slate-800">{day.label}</label>
+                                                <ToggleSwitch
+                                                    enabled={formData.callingDays.includes(day.value)}
+                                                    onChange={(isEnabled) => handleCallingDayChange(day.value, isEnabled)}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700">Plage horaire</label>
+                                    <div className="mt-2 grid grid-cols-2 gap-4">
+                                         <div>
+                                            <label className="block text-xs font-medium text-slate-500">Heure de début</label>
+                                            <input type="time" name="callingStartTime" value={formData.callingStartTime} onChange={handleChange} className="mt-1 block w-full p-2 border rounded-md" />
+                                         </div>
+                                         <div>
+                                            <label className="block text-xs font-medium text-slate-500">Heure de fin</label>
+                                            <input type="time" name="callingEndTime" value={formData.callingEndTime} onChange={handleChange} className="mt-1 block w-full p-2 border rounded-md" />
+                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         {activeTab === 'quotas' && <div className="space-y-3">
                             {formData.quotaRules.map((rule, index) => <div key={rule.id} className="grid grid-cols-12 gap-2 items-center">
                                 <select value={rule.contactField} onChange={e => handleRuleChange('quota', index, 'contactField', e.target.value)} className="col-span-3 p-1.5 border bg-white rounded-md text-sm">

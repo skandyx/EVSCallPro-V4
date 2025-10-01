@@ -138,7 +138,9 @@ CREATE TABLE campaigns (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     dialing_mode dialing_mode NOT NULL,
     priority INTEGER NOT NULL DEFAULT 5,
-    -- Autres champs de configuration de la campagne
+    calling_days INTEGER[] NOT NULL DEFAULT ARRAY[1,2,3,4,5],
+    calling_start_time TIME NOT NULL DEFAULT '09:00:00',
+    calling_end_time TIME NOT NULL DEFAULT '20:00:00',
     wrap_up_time INTEGER NOT NULL DEFAULT 10,
     quota_rules JSONB DEFAULT '[]'::jsonb,
     filter_rules JSONB DEFAULT '[]'::jsonb,
