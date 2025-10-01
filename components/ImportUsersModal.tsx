@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import type { User, UserRole } from '../types.ts';
 import { ArrowUpTrayIcon, CheckIcon, XMarkIcon, ArrowRightIcon } from './Icons.tsx';
@@ -33,6 +32,7 @@ const ImportUsersModal: React.FC<ImportUsersModalProps> = ({ onClose, onImport, 
     const [csvData, setCsvData] = useState<CsvRow[]>([]);
     const [mappings, setMappings] = useState<Record<string, string>>({}); // { [fieldId]: csvHeader }
     const [summary, setSummary] = useState<{ total: number; valids: User[]; invalids: { row: CsvRow; reason: string }[] } | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const MAPPING_FIELDS = [
         { id: 'loginId', name: 'Identifiant / Extension' },
@@ -146,10 +146,18 @@ const ImportUsersModal: React.FC<ImportUsersModalProps> = ({ onClose, onImport, 
         setStep(3);
     };
 
-    const handleFinalImport = () => {
-        if (!summary) return;
-        onImport(summary.valids);
-        setStep(4);
+    const handleFinalImport = async () => {
+        if (!summary || isProcessing) return;
+        setIsProcessing(true);
+        try {
+            await onImport(summary.valids);
+            setStep(4);
+        } catch (error) {
+            console.error("Importation échouée:", error);
+            // L'alerte d'erreur est gérée dans App.tsx
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const isNextDisabled = useMemo(() => {
@@ -257,7 +265,9 @@ const ImportUsersModal: React.FC<ImportUsersModalProps> = ({ onClose, onImport, 
                         {step < 3 && <button onClick={() => step === 1 ? setStep(2) : processAndGoToSummary()} disabled={isNextDisabled} className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-indigo-700 disabled:bg-indigo-300">
                             {step === 1 ? 'Suivant' : 'Valider les données'} <ArrowRightIcon className="w-4 h-4"/>
                         </button>}
-                        {step === 3 && <button onClick={handleFinalImport} className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-green-700">Confirmer et Importer</button>}
+                        {step === 3 && <button onClick={handleFinalImport} disabled={isProcessing} className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-green-700 disabled:opacity-50">
+                            {isProcessing ? "Importation en cours..." : "Confirmer et Importer"}
+                        </button>}
                         {step === 4 && <button onClick={onClose} className="rounded-md bg-indigo-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-indigo-700">Terminer</button>}
                     </div>
                 </div>
