@@ -64,27 +64,40 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     
     const columnsToDisplay = useMemo(() => {
         const baseColumns = [
-            { fieldName: 'first_name', name: 'Prénom' }, { fieldName: 'last_name', name: 'Nom' },
-            { fieldName: 'phone_number', name: 'Téléphone' }, { fieldName: 'postal_code', name: 'Code Postal' },
+            { fieldName: 'first_name', name: 'Prénom', isStandard: true },
+            { fieldName: 'last_name', name: 'Nom', isStandard: true },
+            { fieldName: 'phone_number', name: 'Téléphone', isStandard: true },
+            { fieldName: 'postal_code', name: 'Code Postal', isStandard: true },
         ];
         
         if (!script) {
-            return baseColumns.map(c => ({...c, isStandard: true}));
+            return baseColumns;
         }
+
+        const visibleStandardBlocks = script.pages
+            .flatMap(p => p.blocks)
+            .filter(b => b.isStandard && b.isVisible !== false);
         
-        const visibleStandardFields = new Set(script.pages.flatMap(p => p.blocks).filter(b => b.isStandard && b.isVisible !== false).map(b => b.fieldName));
-            
+        const visibleStandardFieldNames = new Set(visibleStandardBlocks.map(b => b.fieldName));
+        const finalStandardColumns = baseColumns
+            .filter(c => visibleStandardFieldNames.has(c.fieldName))
+            .map(c => {
+                const scriptBlock = visibleStandardBlocks.find(b => b.fieldName === c.fieldName);
+                return { ...c, name: scriptBlock?.name || c.name }; // Use script name if available
+            });
+
         const customColumns = script.pages.flatMap(p => p.blocks)
             .filter(b => !b.isStandard && ['input', 'textarea', 'email', 'phone', 'date', 'time', 'radio', 'checkbox', 'dropdown'].includes(b.type))
             .map(b => ({ fieldName: b.fieldName, name: b.name, isStandard: false }));
 
-        const uniqueCustomColumns = customColumns.filter((v, i, a) => a.findIndex(t => (t.fieldName === v.fieldName)) === i);
+        const uniqueCustomColumns = customColumns.filter((v, i, a) => 
+            a.findIndex(t => (t.fieldName === v.fieldName)) === i &&
+            !finalStandardColumns.some(sc => sc.fieldName === v.fieldName)
+        );
         
-        return [ 
-            ...baseColumns.filter(c => visibleStandardFields.has(c.fieldName)).map(c => ({...c, isStandard: true})), 
-            ...uniqueCustomColumns 
-        ];
+        return [ ...finalStandardColumns, ...uniqueCustomColumns ];
     }, [script]);
+
 
     const filteredContacts = useMemo(() => {
         return campaign.contacts.filter(contact => {
