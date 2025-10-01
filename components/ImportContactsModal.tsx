@@ -354,7 +354,7 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
                 <div className="bg-slate-50 px-6 py-4 flex justify-between rounded-b-lg">
                     <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-700">Fermer</button>
                     <div className="flex gap-3">
-                        {step > 1 && step < 5 && <button onClick={() => setStep(s => s - 1)} className="rounded-md border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50">Retour</button>}
+                        {step > 1 && step < 4 && <button onClick={() => setStep(s => s - 1)} className="rounded-md border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50">Retour</button>}
                         {step < 3 && <button onClick={() => setStep(s => s + 1)} disabled={isNextDisabled} className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-indigo-700 disabled:bg-indigo-300">
                             Suivant <ArrowRightIcon className="w-4 h-4"/>
                         </button>}
