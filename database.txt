@@ -170,7 +170,9 @@ CREATE TABLE contacts (
     status contact_status NOT NULL DEFAULT 'pending',
     custom_fields JSONB, -- Pour stocker les champs additionnels du script
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    -- FIX: Ajout d'une contrainte d'unicité pour empêcher l'importation de doublons (même numéro dans la même campagne).
+    CONSTRAINT unique_contact_in_campaign UNIQUE (campaign_id, phone_number)
 );
 COMMENT ON TABLE contacts IS 'Liste des contacts à appeler pour chaque campagne.';
 CREATE INDEX idx_contacts_campaign_id_status ON contacts(campaign_id, status);

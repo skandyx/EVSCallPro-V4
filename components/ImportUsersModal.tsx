@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import type { User, UserRole } from '../types.ts';
 import { ArrowUpTrayIcon, CheckIcon, XMarkIcon, ArrowRightIcon } from './Icons.tsx';
 
@@ -33,6 +33,7 @@ const ImportUsersModal: React.FC<ImportUsersModalProps> = ({ onClose, onImport, 
     const [mappings, setMappings] = useState<Record<string, string>>({}); // { [fieldId]: csvHeader }
     const [summary, setSummary] = useState<{ total: number; valids: User[]; invalids: { row: CsvRow; reason: string }[] } | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const isProcessingRef = useRef(false);
 
     const MAPPING_FIELDS = [
         { id: 'loginId', name: 'Identifiant / Extension' },
@@ -147,7 +148,8 @@ const ImportUsersModal: React.FC<ImportUsersModalProps> = ({ onClose, onImport, 
     };
 
     const handleFinalImport = async () => {
-        if (!summary || isProcessing) return;
+        if (!summary || isProcessingRef.current) return;
+        isProcessingRef.current = true;
         setIsProcessing(true);
         try {
             await onImport(summary.valids);
@@ -157,6 +159,7 @@ const ImportUsersModal: React.FC<ImportUsersModalProps> = ({ onClose, onImport, 
             // L'alerte d'erreur est gérée dans App.tsx
         } finally {
             setIsProcessing(false);
+            isProcessingRef.current = false;
         }
     };
 

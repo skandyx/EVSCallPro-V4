@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import type { Campaign, SavedScript, Contact, ScriptBlock } from '../types.ts';
 import { ArrowUpTrayIcon, CheckIcon, XMarkIcon, ArrowRightIcon, InformationCircleIcon, ArrowDownTrayIcon } from './Icons.tsx';
 
@@ -34,6 +34,7 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
     const [deduplicationConfig, setDeduplicationConfig] = useState({ enabled: true, fieldIds: ['phoneNumber'] });
     const [summary, setSummary] = useState<{ total: number; valids: number; invalids: { row: CsvRow; reason: string }[] } | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const isProcessingRef = useRef(false);
 
     const availableFieldsForImport = useMemo(() => {
         const standardFieldMap: Record<string, { id: keyof Contact | (string & {}), name: string, required: boolean }> = {
@@ -163,6 +164,9 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
     };
     
     const processAndGoToSummary = async () => {
+        if (isProcessingRef.current) return;
+        
+        isProcessingRef.current = true;
         setIsProcessing(true);
         const getVal = (row: CsvRow, fieldId: string) => (mappings[fieldId] ? row[mappings[fieldId]] : '') || '';
 
@@ -200,6 +204,7 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
             alert("Une erreur est survenue pendant la validation. Veuillez réessayer.");
         } finally {
             setIsProcessing(false);
+            isProcessingRef.current = false;
         }
     };
 
