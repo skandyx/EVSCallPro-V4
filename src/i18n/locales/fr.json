@@ -116,6 +116,7 @@
     "pauseCount": "Nb Pauses",
     "totalPauseTime": "Temps Total en Pause",
     "totalTrainingTime": "Temps Total en Formation",
+    "trainingCount": "Nb Formations",
     "totalConnectedTime": "Temps Total Connecté",
     "pause": "Pause",
     "ready": "Prêt",

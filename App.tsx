@@ -52,6 +52,7 @@ function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
                     averageHandlingTime: 0,
                     averageTalkTime: 0,
                     pauseCount: 0,
+                    trainingCount: 0,
                     totalPauseTime: 0,
                     totalTrainingTime: 0,
                     totalConnectedTime: 0,
@@ -69,12 +70,14 @@ function liveDataReducer(state: LiveState, action: LiveAction): LiveState {
                     if (agent.id !== action.payload.agentId) return agent;
                     
                     const isEnteringPause = action.payload.status === 'En Pause' && agent.status !== 'En Pause';
+                    const isEnteringTraining = action.payload.status === 'Formation' && agent.status !== 'Formation';
                     
                     return {
                         ...agent,
                         status: action.payload.status,
                         statusDuration: 0, // Reset timer on status change
                         pauseCount: isEnteringPause ? agent.pauseCount + 1 : agent.pauseCount,
+                        trainingCount: isEnteringTraining ? (agent.trainingCount || 0) + 1 : (agent.trainingCount || 0),
                     };
                 }),
             };

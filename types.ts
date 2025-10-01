@@ -310,6 +310,7 @@ export interface AgentState extends User {
     averageHandlingTime: number;
     averageTalkTime: number;
     pauseCount: number;
+    trainingCount: number;
     totalPauseTime: number;
     totalTrainingTime: number;
     totalConnectedTime: number;

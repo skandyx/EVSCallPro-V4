@@ -116,6 +116,7 @@
     "pauseCount": "Pause Count",
     "totalPauseTime": "Total Pause Time",
     "totalTrainingTime": "Total Training Time",
+    "trainingCount": "Training Count",
     "totalConnectedTime": "Total Connected Time",
     "pause": "Pause",
     "ready": "Ready",
