@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Contact, CallHistoryRecord, User, Qualification, ContactNote } from '../types.ts';
 // FIX: Replaced ClockIcon with TimeIcon as ClockIcon is not an exported member.

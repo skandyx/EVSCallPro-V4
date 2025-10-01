@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import type { Feature, CallHistoryRecord, User, Campaign, Qualification } from '../types.ts';
 import { InformationCircleIcon } from './Icons.tsx';

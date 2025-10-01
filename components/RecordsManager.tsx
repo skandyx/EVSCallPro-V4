@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo, useRef } from 'react';
 import type { Feature, CallHistoryRecord, User, Campaign } from '../types.ts';
 import { InformationCircleIcon, PlayIcon, PauseIcon, ArrowDownTrayIcon, ChevronDownIcon } from './Icons.tsx';
