@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { Campaign, SavedScript, Contact, CallHistoryRecord, Qualification, User, ContactNote, UserGroup, QualificationGroup } from '../types.ts';
-import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon, ChevronDownIcon } from './Icons';
+import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon, ChevronDownIcon } from './Icons.tsx';
 import ContactHistoryModal from './ContactHistoryModal.tsx';
 
 // Déclaration pour Chart.js via CDN
@@ -146,7 +146,6 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         campaignCallHistory.forEach(call => {
             const qual = qualifications.find(q => q.id === call.qualificationId);
             if (qual?.type === 'positive') {
-// FIX: Property 'timestamp' does not exist on type 'CallHistoryRecord'. Did you mean 'startTime'?
                 const hour = new Date(call.startTime).getHours();
                 hours[hour]++;
             }
@@ -335,7 +334,6 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                 </tr></thead>
                                 <tbody className="bg-white divide-y divide-slate-200 text-sm">
                                     {paginatedContacts.map(contact => {
-// FIX: Property 'timestamp' does not exist on type 'CallHistoryRecord'. Did you mean 'startTime'?
                                         const lastCall = [...campaignCallHistory].filter(c => c.contactId === contact.id).sort((a,b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())[0];
                                         const lastNote = [...contactNotes].filter(n => n.contactId === contact.id).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
                                         return (

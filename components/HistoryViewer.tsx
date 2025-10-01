@@ -29,7 +29,6 @@ const HistoryViewer: React.FC<HistoryViewerProps> = ({ feature, callHistory, use
 
     const filteredHistory = useMemo(() => {
         return callHistory.filter(record => {
-// FIX: Property 'timestamp' does not exist on type 'CallHistoryRecord'. Did you mean 'startTime'?
             const recordDate = new Date(record.startTime);
 
             if (filters.direction !== 'all' && record.direction !== filters.direction) {
@@ -50,14 +49,12 @@ const HistoryViewer: React.FC<HistoryViewerProps> = ({ feature, callHistory, use
                 const agentName = users.find(u => u.id === record.agentId)?.firstName.toLowerCase() || '';
                 const campaignName = campaigns.find(c => c.id === record.campaignId)?.name.toLowerCase() || '';
                 return (
-// FIX: Property 'callerNumber' does not exist on type 'CallHistoryRecord'. Did you mean 'destination'?
                     record.destination.includes(lowerSearchTerm) ||
                     agentName.includes(lowerSearchTerm) ||
                     campaignName.includes(lowerSearchTerm)
                 );
             }
             return true;
-// FIX: Property 'timestamp' does not exist on type 'CallHistoryRecord'. Did you mean 'startTime'?
         }).sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
     }, [callHistory, searchTerm, filters, users, campaigns]);
     
@@ -112,10 +109,8 @@ const HistoryViewer: React.FC<HistoryViewerProps> = ({ feature, callHistory, use
                         <tbody className="bg-white divide-y divide-slate-200 text-sm">
                             {filteredHistory.map(record => (
                                 <tr key={record.id}>
-{/* FIX: Property 'timestamp' does not exist on type 'CallHistoryRecord'. Did you mean 'startTime'? */}
                                     <td className="px-6 py-4 text-slate-600">{new Date(record.startTime).toLocaleString('fr-FR')}</td>
                                     <td className="px-6 py-4"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${record.direction === 'inbound' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{record.direction}</span></td>
-{/* FIX: Property 'callerNumber' does not exist on type 'CallHistoryRecord'. Did you mean 'destination'? */}
                                     <td className="px-6 py-4 font-mono text-slate-800">{record.destination}</td>
                                     <td className="px-6 py-4 font-medium">{findEntityName(record.agentId, users)}</td>
                                     <td className="px-6 py-4">{findEntityName(record.campaignId, campaigns)}</td>

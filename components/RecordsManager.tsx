@@ -26,7 +26,6 @@ const findEntityName = (id: string | null, collection: Array<{id: string, name?:
 
 const RecordsManager: React.FC<RecordsManagerProps> = ({ feature, callHistory, users, campaigns }) => {
     const [searchTerm, setSearchTerm] = useState('');
-// FIX: Type '"timestamp"' is not assignable to type 'keyof CallHistoryRecord'. Did you mean 'startTime'?
     const [sortConfig, setSortConfig] = useState<{ key: keyof CallHistoryRecord; direction: 'ascending' | 'descending' }>({ key: 'startTime', direction: 'descending' });
     const [playingRecordId, setPlayingRecordId] = useState<string | null>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -41,7 +40,6 @@ const RecordsManager: React.FC<RecordsManagerProps> = ({ feature, callHistory, u
                 const agentName = (findEntityName(record.agentId, users) as string)?.toLowerCase() || '';
                 const campaignName = (findEntityName(record.campaignId, campaigns) as string)?.toLowerCase() || '';
                 return (
-// FIX: Property 'callerNumber' does not exist on type 'CallHistoryRecord'. Did you mean 'destination'?
                     record.destination.includes(lowerCaseSearchTerm) ||
                     agentName.includes(lowerCaseSearchTerm) ||
                     campaignName.includes(lowerCaseSearchTerm)
@@ -54,7 +52,6 @@ const RecordsManager: React.FC<RecordsManagerProps> = ({ feature, callHistory, u
             const aValue = a[key];
             const bValue = b[key];
 
-// FIX: This comparison appears to be unintentional because the types 'keyof CallHistoryRecord' and '"timestamp"' have no overlap. Did you mean 'startTime'?
             if (key === 'startTime') {
                 return (new Date(bValue as string).getTime() - new Date(aValue as string).getTime()) * (sortConfig.direction === 'ascending' ? -1 : 1);
             }
@@ -123,9 +120,7 @@ const RecordsManager: React.FC<RecordsManagerProps> = ({ feature, callHistory, u
                         <thead className="bg-slate-50">
                             <tr>
                                 <th className="px-4 py-2"></th>
-{/* FIX: Type '"timestamp"' is not assignable to type 'keyof CallHistoryRecord'. Did you mean 'startTime'? */}
                                 <SortableHeader sortKey="startTime" label="Date & Heure" />
-{/* FIX: Type '"callerNumber"' is not assignable to type 'keyof CallHistoryRecord'. Did you mean 'destination'? */}
                                 <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Numéro</th>
                                 <SortableHeader sortKey="agentId" label="Agent" />
                                 <SortableHeader sortKey="campaignId" label="Campagne" />
@@ -143,9 +138,7 @@ const RecordsManager: React.FC<RecordsManagerProps> = ({ feature, callHistory, u
                                                 : <PlayIcon className="w-5 h-5 text-slate-500" />}
                                         </button>
                                     </td>
-{/* FIX: Property 'timestamp' does not exist on type 'CallHistoryRecord'. Did you mean 'startTime'? */}
                                     <td className="px-4 py-2 text-slate-600">{new Date(record.startTime).toLocaleString('fr-FR')}</td>
-{/* FIX: Property 'callerNumber' does not exist on type 'CallHistoryRecord'. Did you mean 'destination'? */}
                                     <td className="px-4 py-2 font-mono">{record.destination}</td>
                                     <td className="px-4 py-2 font-medium">{findEntityName(record.agentId, users)}</td>
                                     <td className="px-4 py-2">{findEntityName(record.campaignId, campaigns)}</td>
