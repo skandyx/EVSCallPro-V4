@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { User, UserRole } from '../types.ts';
 import { ArrowUpTrayIcon, CheckIcon, XMarkIcon, ArrowRightIcon } from './Icons.tsx';
 
@@ -33,7 +33,6 @@ const ImportUsersModal: React.FC<ImportUsersModalProps> = ({ onClose, onImport, 
     const [mappings, setMappings] = useState<Record<string, string>>({}); // { [fieldId]: csvHeader }
     const [summary, setSummary] = useState<{ total: number; valids: User[]; invalids: { row: CsvRow; reason: string }[] } | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    const isProcessingRef = useRef(false);
 
     const MAPPING_FIELDS = [
         { id: 'loginId', name: 'Identifiant / Extension' },
@@ -43,69 +42,56 @@ const ImportUsersModal: React.FC<ImportUsersModalProps> = ({ onClose, onImport, 
         { id: 'role', name: 'Rôle' },
     ];
 
-    const handleFileSelect = (selectedFile: File) => {
+    const handleFileSelect = async (selectedFile: File) => {
         setFile(selectedFile);
         
-        const reader = new FileReader();
-        
-        reader.onload = (e) => {
-            try {
-                const fileContent = e.target?.result;
-                if (!fileContent) throw new Error("Le contenu du fichier est vide.");
+        try {
+            const fileContent = selectedFile.name.toLowerCase().endsWith('.xlsx')
+                ? await selectedFile.arrayBuffer()
+                : await selectedFile.text();
 
-                let headers: string[] = [];
-                let data: CsvRow[] = [];
-                const fileNameLower = selectedFile.name.toLowerCase();
+            let headers: string[] = [];
+            let data: CsvRow[] = [];
+            const fileNameLower = selectedFile.name.toLowerCase();
 
-                if (fileNameLower.endsWith('.xlsx')) {
-                    const workbook = XLSX.read(fileContent, { type: 'binary' });
-                    const sheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[sheetName];
-                    // Fix: Remove type argument from untyped function call and use type assertion.
-                    data = XLSX.utils.sheet_to_json(worksheet, { defval: "" }) as CsvRow[];
-                    if (data.length > 0) headers = Object.keys(data[0]);
-                } else { // Handle CSV and TXT with Papaparse
-                    const result = Papa.parse(fileContent as string, {
-                        header: true,
-                        skipEmptyLines: true,
-                        encoding: "UTF-8",
-                    });
-                    
-                    if (result.errors.length > 0) console.warn("Erreurs de parsing:", result.errors);
-                    headers = result.meta.fields || [];
-                    data = result.data as CsvRow[];
-                }
-
-                setCsvHeaders(headers);
-                setCsvData(data);
-                
-                // Auto-map obvious fields
-                const initialMappings: Record<string, string> = {};
-                const usedHeaders = new Set<string>();
-
-                MAPPING_FIELDS.forEach(field => {
-                    const fieldNameLower = field.name.toLowerCase().replace(/[\s/]+/g, '');
-                    const foundHeader = headers.find(h => !usedHeaders.has(h) && h.toLowerCase().replace(/[\s\-_]+/g, '') === fieldNameLower);
-
-                    if (foundHeader) {
-                        initialMappings[field.id] = foundHeader;
-                        usedHeaders.add(foundHeader);
-                    }
+            if (fileNameLower.endsWith('.xlsx')) {
+                const workbook = XLSX.read(fileContent, { type: 'buffer' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                data = XLSX.utils.sheet_to_json(worksheet, { defval: "" }) as CsvRow[];
+                if (data.length > 0) headers = Object.keys(data[0]);
+            } else { // Handle CSV and TXT with Papaparse
+                const result = Papa.parse(fileContent as string, {
+                    header: true,
+                    skipEmptyLines: true,
                 });
-                setMappings(initialMappings);
-
-            } catch (error) {
-                console.error("Erreur lors de la lecture du fichier:", error);
-                alert("Une erreur est survenue lors de la lecture du fichier. Assurez-vous qu'il est valide et non corrompu.");
+                
+                if (result.errors.length > 0) console.warn("Erreurs de parsing:", result.errors);
+                headers = result.meta.fields || [];
+                data = result.data as CsvRow[];
             }
-        };
 
-        reader.onerror = () => alert("Impossible de lire le fichier.");
+            setCsvHeaders(headers);
+            setCsvData(data);
+            
+            // Auto-map obvious fields
+            const initialMappings: Record<string, string> = {};
+            const usedHeaders = new Set<string>();
 
-        if (selectedFile.name.toLowerCase().endsWith('.xlsx')) {
-            reader.readAsBinaryString(selectedFile);
-        } else {
-            reader.readAsText(selectedFile, 'UTF-8');
+            MAPPING_FIELDS.forEach(field => {
+                const fieldNameLower = field.name.toLowerCase().replace(/[\s/]+/g, '');
+                const foundHeader = headers.find(h => !usedHeaders.has(h) && h.toLowerCase().replace(/[\s\-_]+/g, '') === fieldNameLower);
+
+                if (foundHeader) {
+                    initialMappings[field.id] = foundHeader;
+                    usedHeaders.add(foundHeader);
+                }
+            });
+            setMappings(initialMappings);
+
+        } catch (error) {
+            console.error("Erreur lors de la lecture du fichier:", error);
+            alert("Une erreur est survenue lors de la lecture du fichier. Assurez-vous qu'il est valide et non corrompu.");
         }
     };
     
@@ -148,8 +134,7 @@ const ImportUsersModal: React.FC<ImportUsersModalProps> = ({ onClose, onImport, 
     };
 
     const handleFinalImport = async () => {
-        if (!summary || isProcessingRef.current) return;
-        isProcessingRef.current = true;
+        if (!summary || isProcessing) return;
         setIsProcessing(true);
         try {
             await onImport(summary.valids);
@@ -159,7 +144,6 @@ const ImportUsersModal: React.FC<ImportUsersModalProps> = ({ onClose, onImport, 
             // L'alerte d'erreur est gérée dans App.tsx
         } finally {
             setIsProcessing(false);
-            isProcessingRef.current = false;
         }
     };
 

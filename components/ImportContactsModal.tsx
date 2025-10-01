@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Campaign, SavedScript, Contact, ScriptBlock } from '../types.ts';
 import { ArrowUpTrayIcon, CheckIcon, XMarkIcon, ArrowRightIcon, InformationCircleIcon, ArrowDownTrayIcon } from './Icons.tsx';
 
@@ -34,7 +34,6 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
     const [deduplicationConfig, setDeduplicationConfig] = useState({ enabled: true, fieldIds: ['phoneNumber'] });
     const [summary, setSummary] = useState<{ total: number; valids: number; invalids: { row: CsvRow; reason: string }[] } | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    const isProcessingRef = useRef(false);
 
     const availableFieldsForImport = useMemo(() => {
         const standardFieldMap: Record<string, { id: keyof Contact | (string & {}), name: string, required: boolean }> = {
@@ -93,80 +92,70 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
         });
     };
 
-    const handleFileSelect = (selectedFile: File) => {
+    const handleFileSelect = async (selectedFile: File) => {
         setFile(selectedFile);
         
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const fileContent = e.target?.result;
-                if (!fileContent) throw new Error("Le contenu du fichier est vide.");
+        try {
+            const fileNameLower = selectedFile.name.toLowerCase();
+            const fileContent = fileNameLower.endsWith('.xlsx')
+                ? await selectedFile.arrayBuffer()
+                : await selectedFile.text();
 
-                let headers: string[] = [];
-                let parsedData: any[] = [];
-                const fileNameLower = selectedFile.name.toLowerCase();
-
-                if (fileNameLower.endsWith('.xlsx')) {
-                    const workbook = XLSX.read(fileContent, { type: 'binary' });
-                    const sheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[sheetName];
-                    parsedData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-                } else {
-                    const result = Papa.parse(fileContent as string, { header: true, skipEmptyLines: true, encoding: "UTF-8" });
-                    if (result.errors.length > 0) console.warn("Erreurs de parsing:", result.errors);
-                    parsedData = result.data;
-                }
-
-                // --- DATA NORMALIZATION STEP ---
-                // Crucial fix: Ensure all values are strings to prevent type mismatches (e.g., numbers from Excel).
-                const normalizedData = parsedData.map(row => 
-                    Object.fromEntries(
-                        Object.entries(row).map(([key, value]) => [key, String(value).trim()])
-                    )
-                );
-
-                if (normalizedData.length > 0) {
-                    headers = Object.keys(normalizedData[0]);
-                }
-
-                setCsvHeaders(headers);
-                setCsvData(normalizedData as CsvRow[]);
-                
-                const initialMappings: Record<string, string> = {};
-                const usedHeaders = new Set<string>();
-
-                availableFieldsForImport.forEach(field => {
-                    const fieldNameLower = field.name.toLowerCase().replace(/[\s/]+/g, '').replace(/[^\w]/g, '');
-                    let foundHeader = headers.find(h => !usedHeaders.has(h) && h.toLowerCase().replace(/[\s\-_]+/g, '').replace(/[^\w]/g, '') === fieldNameLower);
-                    if (!foundHeader) {
-                        const flexibleMatches: { [key: string]: string[] } = { phoneNumber: ['telephone', 'phone', 'numero'], firstName: ['prenom', 'first'], lastName: ['nom', 'last'], postalCode: ['cp', 'postal', 'zip'] };
-                        const alternatives = flexibleMatches[field.id] || [];
-                        for(const alt of alternatives) {
-                            foundHeader = headers.find(h => !usedHeaders.has(h) && h.toLowerCase().replace(/[\s\-_]+/g, '').replace(/[^\w]/g, '').includes(alt));
-                            if(foundHeader) break;
-                        }
-                    }
-                    if (foundHeader) {
-                        initialMappings[field.id] = foundHeader;
-                        usedHeaders.add(foundHeader);
-                    }
-                });
-                setMappings(initialMappings);
-
-            } catch (error) {
-                console.error("Erreur lors de la lecture du fichier:", error);
-                alert("Une erreur est survenue lors de la lecture du fichier. Assurez-vous qu'il est valide et non corrompu.");
+            let headers: string[] = [];
+            let parsedData: any[] = [];
+            
+            if (fileNameLower.endsWith('.xlsx')) {
+                const workbook = XLSX.read(fileContent, { type: 'buffer' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                parsedData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            } else {
+                const result = Papa.parse(fileContent as string, { header: true, skipEmptyLines: true });
+                if (result.errors.length > 0) console.warn("Erreurs de parsing:", result.errors);
+                parsedData = result.data;
             }
-        };
-        reader.onerror = () => alert("Impossible de lire le fichier.");
-        if (selectedFile.name.toLowerCase().endsWith('.xlsx')) reader.readAsBinaryString(selectedFile);
-        else reader.readAsText(selectedFile, 'UTF-8');
+
+            const normalizedData = parsedData.map(row => 
+                Object.fromEntries(
+                    Object.entries(row).map(([key, value]) => [key, String(value).trim()])
+                )
+            );
+
+            if (normalizedData.length > 0) {
+                headers = Object.keys(normalizedData[0]);
+            }
+
+            setCsvHeaders(headers);
+            setCsvData(normalizedData as CsvRow[]);
+            
+            const initialMappings: Record<string, string> = {};
+            const usedHeaders = new Set<string>();
+
+            availableFieldsForImport.forEach(field => {
+                const fieldNameLower = field.name.toLowerCase().replace(/[\s/]+/g, '').replace(/[^\w]/g, '');
+                let foundHeader = headers.find(h => !usedHeaders.has(h) && h.toLowerCase().replace(/[\s\-_]+/g, '').replace(/[^\w]/g, '') === fieldNameLower);
+                if (!foundHeader) {
+                    const flexibleMatches: { [key: string]: string[] } = { phoneNumber: ['telephone', 'phone', 'numero'], firstName: ['prenom', 'first'], lastName: ['nom', 'last'], postalCode: ['cp', 'postal', 'zip'] };
+                    const alternatives = flexibleMatches[field.id] || [];
+                    for(const alt of alternatives) {
+                        foundHeader = headers.find(h => !usedHeaders.has(h) && h.toLowerCase().replace(/[\s\-_]+/g, '').replace(/[^\w]/g, '').includes(alt));
+                        if(foundHeader) break;
+                    }
+                }
+                if (foundHeader) {
+                    initialMappings[field.id] = foundHeader;
+                    usedHeaders.add(foundHeader);
+                }
+            });
+            setMappings(initialMappings);
+
+        } catch (error) {
+            console.error("Erreur lors de la lecture du fichier:", error);
+            alert("Une erreur est survenue lors de la lecture du fichier. Assurez-vous qu'il est valide et non corrompu.");
+        }
     };
     
     const processAndGoToSummary = async () => {
-        if (isProcessingRef.current) return;
-        
-        isProcessingRef.current = true;
         setIsProcessing(true);
         const getVal = (row: CsvRow, fieldId: string) => (mappings[fieldId] ? row[mappings[fieldId]] : '') || '';
 
@@ -204,7 +193,6 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
             alert("Une erreur est survenue pendant la validation. Veuillez réessayer.");
         } finally {
             setIsProcessing(false);
-            isProcessingRef.current = false;
         }
     };
 
