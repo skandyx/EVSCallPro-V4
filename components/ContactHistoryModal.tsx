@@ -1,8 +1,10 @@
+
+
 import React, { useState, useEffect, useMemo } from 'react';
-import type { Contact, CallHistoryRecord, User, Qualification, ContactNote } from '../types.ts';
+import type { Contact, CallHistoryRecord, User, Qualification, ContactNote } from '../types';
 // FIX: Replaced ClockIcon with TimeIcon as ClockIcon is not an exported member.
-import { XMarkIcon, PhoneIcon, ChartBarIcon, TimeIcon, UsersIcon } from './Icons.tsx';
-import apiClient from '../src/lib/axios.ts';
+import { XMarkIcon, PhoneIcon, ChartBarIcon, TimeIcon, UsersIcon } from './Icons';
+import apiClient from '../src/lib/axios';
 
 interface ContactHistoryModalProps {
     isOpen: boolean;
@@ -60,7 +62,8 @@ const ContactHistoryModal: React.FC<ContactHistoryModalProps> = ({ isOpen, onClo
     const timeline = useMemo(() => {
         const callEvents = history.calls.map(call => ({
             type: 'call' as const,
-            date: new Date(call.startTime),
+// FIX: Changed call.startTime to call.timestamp to match the CallHistoryRecord type.
+            date: new Date(call.timestamp),
             data: call,
         }));
         const noteEvents = history.notes.map(note => ({
@@ -107,27 +110,24 @@ const ContactHistoryModal: React.FC<ContactHistoryModalProps> = ({ isOpen, onClo
                             <h4 className="font-semibold text-slate-800 mb-4">Chronologie des Interactions</h4>
                             {timeline.length > 0 ? (
                                 <div className="space-y-4">
-                                    {timeline.map((item, index) => {
-                                        const qual = item.type === 'call' ? qualifications.find(q => q.id === item.data.qualificationId) : null;
-                                        return (
-                                            <div key={index} className="p-3 bg-slate-50 rounded-md border">
-                                                <div className="flex justify-between items-baseline text-xs text-slate-500 mb-1">
-                                                    <p className="font-semibold">
-                                                        {item.type === 'call' ? `Appel par ${findEntityName(item.data.agentId, users)}` : `Note par ${findEntityName(item.data.agentId, users)}`}
-                                                    </p>
-                                                    <p>{!isNaN(item.date.getTime()) ? item.date.toLocaleString('fr-FR') : 'Date invalide'}</p>
-                                                </div>
-                                                {item.type === 'call' ? (
-                                                    <div className="text-sm grid grid-cols-2 gap-x-4">
-                                                        <p><strong>Durée:</strong> {formatDuration(item.data.duration)}</p>
-                                                        <p><strong>Qualification:</strong> {qual ? `${qual.description}` : 'N/A'}</p>
-                                                    </div>
-                                                ) : (
-                                                    <p className="text-sm text-slate-700 whitespace-pre-wrap">{item.data.note}</p>
-                                                )}
+                                    {timeline.map((item, index) => (
+                                        <div key={index} className="p-3 bg-slate-50 rounded-md border">
+                                            <div className="flex justify-between items-baseline text-xs text-slate-500 mb-1">
+                                                <p className="font-semibold">
+                                                    {item.type === 'call' ? `Appel par ${findEntityName(item.data.agentId, users)}` : `Note par ${findEntityName(item.data.agentId, users)}`}
+                                                </p>
+                                                <p>{item.date.toLocaleString('fr-FR')}</p>
                                             </div>
-                                        )
-                                    })}
+                                            {item.type === 'call' ? (
+                                                <div className="text-sm grid grid-cols-2 gap-x-4">
+                                                    <p><strong>Durée:</strong> {formatDuration(item.data.duration)}</p>
+                                                    <p><strong>Qualification:</strong> {findEntityName(item.data.qualificationId, qualifications)}</p>
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-slate-700 whitespace-pre-wrap">{item.data.note}</p>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             ) : (
                                 <p className="text-center text-slate-500 pt-8">Aucun historique d'interaction pour ce contact.</p>

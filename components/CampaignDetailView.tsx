@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { Campaign, SavedScript, Contact, CallHistoryRecord, Qualification, User, ContactNote, UserGroup, QualificationGroup } from '../types.ts';
-import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon, ChevronDownIcon } from './Icons.tsx';
+import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon, ChevronDownIcon } from './Icons';
 import ContactHistoryModal from './ContactHistoryModal.tsx';
 
 // Déclaration pour Chart.js via CDN
@@ -146,7 +146,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         campaignCallHistory.forEach(call => {
             const qual = qualifications.find(q => q.id === call.qualificationId);
             if (qual?.type === 'positive') {
-                const hour = new Date(call.startTime).getHours();
+                const hour = new Date(call.timestamp).getHours();
                 hours[hour]++;
             }
         });
@@ -334,7 +334,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                 </tr></thead>
                                 <tbody className="bg-white divide-y divide-slate-200 text-sm">
                                     {paginatedContacts.map(contact => {
-                                        const lastCall = [...campaignCallHistory].filter(c => c.contactId === contact.id).sort((a,b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())[0];
+                                        const lastCall = [...campaignCallHistory].filter(c => c.contactId === contact.id).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
                                         const lastNote = [...contactNotes].filter(n => n.contactId === contact.id).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
                                         return (
                                         <tr key={contact.id} onClick={() => setHistoryModal({ isOpen: true, contact })} className={`cursor-pointer hover:bg-slate-50 ${selectedContactIds.includes(contact.id) ? 'bg-indigo-50' : ''}`}>

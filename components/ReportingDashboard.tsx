@@ -1,3 +1,8 @@
+
+
+
+
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Feature, CallHistoryRecord, User, Campaign, Qualification, AgentSession } from '../types.ts';
 import { ArrowUpTrayIcon, TimeIcon, PhoneIcon, ChartBarIcon } from './Icons.tsx';
@@ -106,7 +111,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         end.setHours(23, 59, 59, 999);
         
         const calls = callHistory.filter(call => {
-            const callDate = new Date(call.startTime);
+            const callDate = new Date(call.timestamp);
             return callDate >= start && callDate <= end;
         });
 
@@ -235,7 +240,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
     const dailyVolumeData = useMemo(() => {
         const counts: { [date: string]: number } = {};
         filteredHistory.forEach(call => {
-            const date = new Date(call.startTime).toLocaleDateString('fr-FR');
+            const date = new Date(call.timestamp).toLocaleDateString('fr-FR');
             counts[date] = (counts[date] || 0) + 1;
         });
         const labels = Object.keys(counts).sort((a, b) => new Date(a.split('/').reverse().join('-')).getTime() - new Date(b.split('/').reverse().join('-')).getTime());
@@ -417,10 +422,10 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         doc.setFontSize(12);
         doc.text("Historique des Appels", 14, doc.previousAutoTable.finalY + 15);
         const callLogBody = filteredHistory.map(call => [
-            new Date(call.startTime).toLocaleString('fr-FR'),
+            new Date(call.timestamp).toLocaleString('fr-FR'),
             findEntityName(call.agentId, users, true),
             findEntityName(call.campaignId, campaigns, true),
-            call.destination,
+            call.callerNumber,
             formatDuration(call.duration),
             findEntityName(call.qualificationId, qualifications, true)
         ]);
@@ -554,10 +559,10 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                         <tbody className="bg-white divide-y divide-slate-200 text-sm">
                             {filteredHistory.map(call => (
                                 <tr key={call.id}>
-                                    <td className="px-4 py-3 text-slate-600">{new Date(call.startTime).toLocaleString('fr-FR')}</td>
+                                    <td className="px-4 py-3 text-slate-600">{new Date(call.timestamp).toLocaleString('fr-FR')}</td>
                                     <td className="px-4 py-3 font-medium text-slate-800">{findEntityName(call.agentId, users)}</td>
                                     <td className="px-4 py-3 text-slate-600">{findEntityName(call.campaignId, campaigns)}</td>
-                                    <td className="px-4 py-3 text-slate-600 font-mono">{call.destination}</td>
+                                    <td className="px-4 py-3 text-slate-600 font-mono">{call.callerNumber}</td>
                                     <td className="px-4 py-3 text-slate-600 font-mono">{formatDuration(call.duration)}</td>
                                     <td className="px-4 py-3 text-slate-600">{findEntityName(call.qualificationId, qualifications)}</td>
                                 </tr>

@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo } from 'react';
 import type { Feature, CallHistoryRecord, User, Campaign, Qualification } from '../types.ts';
 import { InformationCircleIcon } from './Icons.tsx';
@@ -27,7 +29,7 @@ const HistoryViewer: React.FC<HistoryViewerProps> = ({ feature, callHistory, use
 
     const filteredHistory = useMemo(() => {
         return callHistory.filter(record => {
-            const recordDate = new Date(record.startTime);
+            const recordDate = new Date(record.timestamp);
 
             if (filters.direction !== 'all' && record.direction !== filters.direction) {
                 return false;
@@ -47,13 +49,13 @@ const HistoryViewer: React.FC<HistoryViewerProps> = ({ feature, callHistory, use
                 const agentName = users.find(u => u.id === record.agentId)?.firstName.toLowerCase() || '';
                 const campaignName = campaigns.find(c => c.id === record.campaignId)?.name.toLowerCase() || '';
                 return (
-                    record.destination.includes(lowerSearchTerm) ||
+                    record.callerNumber.includes(lowerSearchTerm) ||
                     agentName.includes(lowerSearchTerm) ||
                     campaignName.includes(lowerSearchTerm)
                 );
             }
             return true;
-        }).sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+        }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     }, [callHistory, searchTerm, filters, users, campaigns]);
     
     const findEntityName = (id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>) => {
@@ -107,9 +109,9 @@ const HistoryViewer: React.FC<HistoryViewerProps> = ({ feature, callHistory, use
                         <tbody className="bg-white divide-y divide-slate-200 text-sm">
                             {filteredHistory.map(record => (
                                 <tr key={record.id}>
-                                    <td className="px-6 py-4 text-slate-600">{new Date(record.startTime).toLocaleString('fr-FR')}</td>
+                                    <td className="px-6 py-4 text-slate-600">{new Date(record.timestamp).toLocaleString('fr-FR')}</td>
                                     <td className="px-6 py-4"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${record.direction === 'inbound' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>{record.direction}</span></td>
-                                    <td className="px-6 py-4 font-mono text-slate-800">{record.destination}</td>
+                                    <td className="px-6 py-4 font-mono text-slate-800">{record.callerNumber}</td>
                                     <td className="px-6 py-4 font-medium">{findEntityName(record.agentId, users)}</td>
                                     <td className="px-6 py-4">{findEntityName(record.campaignId, campaigns)}</td>
                                     <td className="px-6 py-4 font-mono">{`${Math.floor(record.duration / 60)}m ${record.duration % 60}s`}</td>

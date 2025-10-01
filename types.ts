@@ -338,23 +338,15 @@ export interface CampaignState {
 
 export interface CallHistoryRecord {
     id: string;
-    startTime: string;
-    answerTime?: string | null;
-    endTime: string;
-    duration: number;
-    billableDuration: number;
+    timestamp: string;
     direction: 'inbound' | 'outbound';
-    callStatus: 'ANSWERED' | 'NO ANSWER' | 'BUSY' | 'FAILED' | 'CONGESTION';
-    source: string;
-    destination: string;
     agentId: string;
-    contactId: string;
     campaignId: string | null;
+    // FIX: Added 'contactId' to the CallHistoryRecord type to correctly link call history with contacts.
+    contactId: string;
+    callerNumber: string;
+    duration: number;
     qualificationId: string | null;
-    pbxCallId?: string;
-    recordingPath?: string;
-    channel?: string;
-    destinationChannel?: string;
 }
 
 export interface AgentSession {
