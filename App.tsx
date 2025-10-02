@@ -337,7 +337,7 @@ const AppContent: React.FC = () => {
     }, [currentUser, showAlert]);
 
 
-    const handleLoginSuccess = useCallback(async ({ user, token }: { user: User, token: string }) => {
+    const handleLoginSuccess = async ({ user, token }: { user: User, token: string }) => {
         localStorage.setItem('authToken', token);
         try {
             await fetchApplicationData();
@@ -346,9 +346,9 @@ const AppContent: React.FC = () => {
             localStorage.removeItem('authToken');
             setCurrentUser(null);
         }
-    }, [fetchApplicationData]);
+    };
 
-    const handleSaveOrUpdate = useCallback(async (dataType: string, data: any, endpoint?: string) => {
+    const handleSaveOrUpdate = async (dataType: string, data: any, endpoint?: string) => {
         try {
             const dataTypeToStateKey: { [key: string]: keyof typeof allData } = {
                 'users': 'users', 'user-groups': 'userGroups', 'scripts': 'savedScripts',
@@ -384,9 +384,9 @@ const AppContent: React.FC = () => {
             showAlert(errorMessage, 'error');
             throw error;
         }
-    }, [allData, fetchApplicationData, showAlert, t]);
+    };
     
-    const handleDelete = useCallback(async (dataType: string, id: string, endpoint?: string) => {
+    const handleDelete = async (dataType: string, id: string, endpoint?: string) => {
         if (window.confirm(t('alerts.confirmDelete'))) {
             try {
                 const url = endpoint || `/${dataType.toLowerCase()}`;
@@ -399,9 +399,9 @@ const AppContent: React.FC = () => {
                 showAlert(errorMessage, 'error');
             }
         }
-    }, [fetchApplicationData, showAlert, t]);
+    };
 
-    const handleDeleteContacts = useCallback(async (contactIds: string[]) => {
+    const handleDeleteContacts = async (contactIds: string[]) => {
         try {
             await apiClient.post('/contacts/bulk-delete', { contactIds });
             await fetchApplicationData(); 
@@ -412,9 +412,9 @@ const AppContent: React.FC = () => {
             showAlert(errorMessage, 'error');
             throw error;
         }
-    }, [fetchApplicationData, showAlert]);
+    };
     
-    const handleRecycleContacts = useCallback(async (campaignId: string, qualificationId: string) => {
+    const handleRecycleContacts = async (campaignId: string, qualificationId: string) => {
         try {
             await apiClient.post(`/campaigns/${campaignId}/recycle`, { qualificationId });
             // The WebSocket event will trigger the data refresh automatically.
@@ -425,17 +425,17 @@ const AppContent: React.FC = () => {
             showAlert(errorMessage, 'error');
             throw error;
         }
-    }, [showAlert]);
+    };
 
-    const handleSaveVisibilitySettings = useCallback((visibility: ModuleVisibility) => {
+    const handleSaveVisibilitySettings = (visibility: ModuleVisibility) => {
         setAllData(prevData => ({
             ...prevData,
             moduleVisibility: visibility,
         }));
         showAlert(t('alerts.visibilitySettingsUpdated'), 'success');
-    }, [showAlert, t]);
+    };
 
-    const handleSaveSmtpSettings = useCallback(async (settings: SystemSmtpSettings, password?: string) => {
+    const handleSaveSmtpSettings = async (settings: SystemSmtpSettings, password?: string) => {
         try {
             const payload: any = { ...settings };
             if (password) {
@@ -449,9 +449,9 @@ const AppContent: React.FC = () => {
             showAlert(errorMessage, 'error');
             throw error;
         }
-    }, [fetchApplicationData, showAlert, t]);
+    };
     
-    const handleSaveAppSettings = useCallback(async (settings: SystemAppSettings) => {
+    const handleSaveAppSettings = async (settings: SystemAppSettings) => {
         try {
             await apiClient.put('/system/app-settings', settings);
             setAllData(prevData => ({
@@ -464,9 +464,13 @@ const AppContent: React.FC = () => {
             showAlert(errorMessage, 'error');
             throw error;
         }
-    }, [showAlert, t]);
+    };
 
-    const handleBulkUsers = useCallback(async (users: User[], successMessage: string) => {
+    const handleSaveUser = async (user: User, groupIds: string[]) => {
+       await handleSaveOrUpdate('users', { ...user, groupIds });
+    };
+
+    const handleBulkUsers = async (users: User[], successMessage: string) => {
         try {
             await apiClient.post('/users/bulk', { users });
             await fetchApplicationData();
@@ -477,17 +481,17 @@ const AppContent: React.FC = () => {
             showAlert(errorMessage, 'error');
             throw error;
         }
-    }, [fetchApplicationData, showAlert, t]);
+    };
     
-    const handleGenerateUsers = useCallback(async (users: User[]) => {
+    const handleGenerateUsers = async (users: User[]) => {
         await handleBulkUsers(users, t('alerts.usersGenerated', { count: users.length }));
-    }, [handleBulkUsers, t]);
+    };
 
-    const handleImportUsers = useCallback(async (users: User[]) => {
+    const handleImportUsers = async (users: User[]) => {
         await handleBulkUsers(users, t('alerts.usersImported', { count: users.length }));
-    }, [handleBulkUsers, t]);
+    };
 
-    const handleImportContacts = useCallback(async (campaignId: string, contacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => {
+    const handleImportContacts = async (campaignId: string, contacts: Contact[], deduplicationConfig: { enabled: boolean; fieldIds: string[] }) => {
         try {
             const response = await apiClient.post(`/campaigns/${campaignId}/contacts`, { contacts, deduplicationConfig });
             await fetchApplicationData();
@@ -497,17 +501,13 @@ const AppContent: React.FC = () => {
             showAlert(errorMessage, 'error');
             throw new Error(errorMessage);
         }
-    }, [fetchApplicationData, showAlert, t]);
+    };
 
-    const handleUpdateContact = useCallback(async (contact: Contact) => {
+    const handleUpdateContact = async (contact: Contact) => {
         await handleSaveOrUpdate('contacts', contact);
-    }, [handleSaveOrUpdate]);
+    };
 
-    const handleSaveUser = useCallback(async (user: User, groupIds: string[]) => {
-       await handleSaveOrUpdate('users', { ...user, groupIds });
-    }, [handleSaveOrUpdate]);
-
-    const handleUpdatePassword = useCallback(async (passwordData: any) => {
+    const handleUpdatePassword = async (passwordData: any) => {
         try {
             await apiClient.put('/users/me/password', passwordData);
             showAlert(t('alerts.passwordUpdateSuccess'), 'success');
@@ -518,9 +518,9 @@ const AppContent: React.FC = () => {
             showAlert(errorMessage, 'error');
             throw error; 
         }
-    }, [showAlert, t]);
+    };
 
-    const handleUpdateProfilePicture = useCallback(async (base64DataUrl: string) => {
+    const handleUpdateProfilePicture = async (base64DataUrl: string) => {
         try {
             await apiClient.put('/users/me/picture', { pictureUrl: base64DataUrl });
             showAlert(t('alerts.profilePictureUpdateSuccess'), 'success');
@@ -530,7 +530,7 @@ const AppContent: React.FC = () => {
             showAlert(errorMessage, 'error');
             throw error; 
         }
-    }, [fetchApplicationData, showAlert, t]);
+    };
 
     // FIX: Changed the type of 'status' to AgentStatus to allow for a wider range of statuses to be passed from the AgentView, fixing type errors.
     const handleAgentStatusChange = useCallback((status: AgentStatus) => {
