@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { User } from '../types.ts';
 import { LogoIcon } from './Icons.tsx';
-import apiClient from '../src/lib/axios.ts';
+import { publicApiClient } from '../src/lib/axios.ts';
 
 interface LoginScreenProps {
     onLoginSuccess: (data: { user: User, token: string }) => Promise<void>;
@@ -21,7 +21,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, appLogoUrl, a
         setIsLoading(true);
 
         try {
-            const response = await apiClient.post('/auth/login', { loginId, password });
+            // Use the public client to avoid token refresh interceptor on login
+            const response = await publicApiClient.post('/auth/login', { loginId, password });
             const data = response.data;
 
             if (data.user && data.user.isActive) {

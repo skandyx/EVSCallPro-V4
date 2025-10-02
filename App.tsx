@@ -7,7 +7,7 @@ import AgentView from './components/AgentView.tsx';
 import Header from './components/Header.tsx';
 import MonitoringDashboard from './components/MonitoringDashboard.tsx';
 import UserProfileModal from './components/UserProfileModal.tsx'; // Import the new modal
-import apiClient from './src/lib/axios.ts'; // Utilisation de l'instance Axios configurée
+import apiClient, { publicApiClient } from './src/lib/axios.ts'; // Utilisation de l'instance Axios configurée
 import wsClient from './src/services/wsClient.ts';
 import { I18nProvider, useI18n } from './src/i18n/index.tsx';
 
@@ -199,8 +199,9 @@ const AppContent: React.FC = () => {
         } finally {
             localStorage.removeItem('authToken');
             setCurrentUser(null);
-            // We keep appSettings in allData so the login screen displays correctly
-            setAllData(prev => ({ appSettings: prev.appSettings }));
+            // Instead of trying to partially clear state, we force a full page reload
+            // to ensure a clean state for the login screen.
+            window.location.assign('/');
         }
     }, []);
 
@@ -212,7 +213,8 @@ const AppContent: React.FC = () => {
             
             // 1. Always fetch public settings first for the login screen.
             try {
-                const configResponse = await apiClient.get('/public-config');
+                // Use the public client which doesn't have interceptors
+                const configResponse = await publicApiClient.get('/public-config');
                 const settings = configResponse.data.appSettings;
                 setAllData(prev => ({ ...prev, appSettings: settings }));
                 
@@ -237,7 +239,9 @@ const AppContent: React.FC = () => {
                     const meResponse = await apiClient.get('/auth/me');
                     setCurrentUser(meResponse.data.user);
                 } catch (error) {
-                    console.error("Session check failed:", error);
+                    // This is the critical fix: if token is invalid, log out completely.
+                    console.error("Session check failed, forcing logout:", error);
+                    handleLogout();
                 }
             }
             
@@ -245,7 +249,7 @@ const AppContent: React.FC = () => {
         };
 
         loadApp();
-    }, [fetchApplicationData, setLanguage]);
+    }, [fetchApplicationData, setLanguage, handleLogout]);
     
     // This effect ensures agent status is correctly initialized AFTER data is loaded.
     useEffect(() => {
