@@ -3,7 +3,6 @@ import type { Campaign, SavedScript, Contact, CallHistoryRecord, Qualification, 
 import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon, ChevronDownIcon } from './Icons';
 import ContactHistoryModal from './ContactHistoryModal.tsx';
 import { useI18n } from '../src/i18n/index.tsx';
-import wsClient from '../src/services/wsClient';
 
 // Déclaration pour Chart.js via CDN
 declare var Chart: any;
@@ -36,30 +35,32 @@ const KpiCard: React.FC<{ title: string; value: string | number; }> = ({ title, 
     </div>
 );
 
-const ChartComponent: React.FC<{ type: string; data: any; options: any; chartRef?: React.MutableRefObject<any | null> }> = ({ type, data, options, chartRef: passedRef }) => {
-    const internalRef = useRef<HTMLCanvasElement>(null);
-    const chartRef = passedRef || internalRef;
+const ChartComponent: React.FC<{ type: string; data: any; options: any; }> = ({ type, data, options }) => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const chartRef = useRef<any>(null);
 
     useEffect(() => {
-        const canvas = internalRef.current;
-        if (canvas) {
+        if (canvasRef.current) {
             if (chartRef.current) {
                 chartRef.current.destroy();
             }
-            const ctx = canvas.getContext('2d');
+            const ctx = canvasRef.current.getContext('2d');
             if (ctx) {
-                chartRef.current = new Chart(ctx, { type, data, options });
+                chartRef.current = new Chart(ctx, {
+                    type,
+                    data,
+                    options,
+                });
             }
         }
         return () => {
             if (chartRef.current) {
                 chartRef.current.destroy();
-                chartRef.current = null;
             }
         };
-    }, [type, data, options, chartRef]);
+    }, [type, data, options]);
 
-    return <canvas ref={internalRef}></canvas>;
+    return <canvas ref={canvasRef}></canvas>;
 };
 
 const formatDuration = (seconds: number) => {
@@ -83,37 +84,13 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
 
     const canDelete = currentUser.role === 'Administrateur' || currentUser.role === 'SuperAdmin';
 
-    const qualifChartRef = useRef<any>(null);
-    
-    // FIX: Deduplicate contacts to prevent React key errors and incorrect counts.
-    const uniqueContacts = useMemo(() => 
-        Array.from(new Map(campaign.contacts.map(c => [c.id, c])).values()),
-        [campaign.contacts]
-    );
-
     const campaignCallHistory = useMemo(() => callHistory.filter(c => c.campaignId === campaign.id), [callHistory, campaign.id]);
 
-    useEffect(() => {
-        const handleMessage = (event: any) => {
-            if (event.type === 'qualificationRepUpdated' && event.payload.campaignId === campaign.id) {
-                const chart = qualifChartRef.current;
-                const { positive, neutral, negative } = event.payload.data;
-                if (chart) {
-                    chart.data.datasets[0].data = [positive, neutral, negative];
-                    chart.update('none');
-                }
-            }
-        };
-
-        const unsubscribe = wsClient.onMessage(handleMessage);
-        return () => unsubscribe();
-    }, [campaign.id]);
-
     const campaignStats = useMemo(() => {
-        const totalContacts = uniqueContacts.length;
+        const totalContacts = campaign.contacts.length;
         if (totalContacts === 0) return { total: 0, processed: 0, pending: 0, completionRate: 0, totalCalls: 0, contacted: 0, contactRate: 0, positive: 0, conversionRate: 0, hitRate: 0, avgDuration: 0 };
         
-        const processedContacts = uniqueContacts.filter(c => c.status !== 'pending').length;
+        const processedContacts = campaign.contacts.filter(c => c.status !== 'pending').length;
         const pendingContacts = totalContacts - processedContacts;
         const completionRate = (processedContacts / totalContacts) * 100;
         
@@ -147,7 +124,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             hitRate: hitRate,
             avgDuration: avgDuration
         };
-    }, [uniqueContacts, campaignCallHistory, qualifications]);
+    }, [campaign.contacts, campaignCallHistory, qualifications]);
     
     const qualificationDistribution = useMemo(() => {
         const counts = { positive: 0, neutral: 0, negative: 0 };
@@ -245,13 +222,13 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     }, [script, t]);
 
     const filteredContacts = useMemo(() => {
-        return uniqueContacts.filter(contact => {
+        return campaign.contacts.filter(contact => {
             if (!searchTerm) return true;
             const term = searchTerm.toLowerCase();
             return Object.values(contact).some(val => String(val).toLowerCase().includes(term)) ||
                    (contact.customFields && Object.values(contact.customFields).some(val => String(val).toLowerCase().includes(term)));
         });
-    }, [uniqueContacts, searchTerm]);
+    }, [campaign.contacts, searchTerm]);
 
     const sortedAndFilteredContacts = useMemo(() => {
         return [...filteredContacts].sort((a, b) => {
@@ -335,7 +312,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
 
             <div className="bg-white rounded-lg shadow-sm border border-slate-200">
                 <div className="border-b border-slate-200"><nav className="-mb-px flex space-x-4 px-6">
-                    <TabButton tab="contacts" label={t('campaignDetail.tabs.contacts', { count: uniqueContacts.length })} icon={UsersIcon} />
+                    <TabButton tab="contacts" label={t('campaignDetail.tabs.contacts', { count: campaign.contacts.length })} icon={UsersIcon} />
                     <TabButton tab="dashboard" label={t('campaignDetail.tabs.dashboard')} icon={ChartBarIcon} />
                     <TabButton tab="settings" label={t('campaignDetail.tabs.settings')} icon={Cog6ToothIcon} />
                 </nav></div>
@@ -432,7 +409,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t">
                                 <div>
                                     <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.charts.qualifDistributionTitle')}</h3>
-                                    <div className="h-64"><ChartComponent type="doughnut" data={qualificationDistribution} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }} }} chartRef={qualifChartRef} /></div>
+                                    <div className="h-64"><ChartComponent type="doughnut" data={qualificationDistribution} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }} }} /></div>
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.charts.successByHourTitle')}</h3>
