@@ -36,7 +36,7 @@ const KpiCard: React.FC<{ title: string; value: string | number; }> = ({ title, 
     </div>
 );
 
-const ChartComponent: React.FC<{ type: string; data: any; options: any; chartRef?: React.RefObject<any> }> = ({ type, data, options, chartRef: passedRef }) => {
+const ChartComponent: React.FC<{ type: string; data: any; options: any; chartRef?: React.MutableRefObject<any | null> }> = ({ type, data, options, chartRef: passedRef }) => {
     const internalRef = useRef<HTMLCanvasElement>(null);
     const chartRef = passedRef || internalRef;
 
