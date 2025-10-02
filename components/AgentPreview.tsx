@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { SavedScript, ScriptBlock, DisplayCondition, Page, ButtonAction, Contact, ContactNote, User, Campaign } from '../types.ts';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface AgentPreviewProps {
   script: SavedScript;
@@ -31,6 +32,7 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
     contactNotes = [], users = [], newNote = '', setNewNote = () => {}, onSaveNote = () => {},
     campaign = null, onInsertContact = async () => {}, onUpdateContact = async () => {}, onClearContact = () => {}
 }) => {
+  const { t } = useI18n();
   const [formValues, setFormValues] = useState<Record<string, any>>({});
   const [currentPageId, setCurrentPageId] = useState<string>(script.startPageId);
 
@@ -104,19 +106,19 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
                     }
                 }
                 await onUpdateContact(updatedContact);
-                alert('Données enregistrées !');
+                alert(t('agentPreview.dataSaved'));
 
             } else if (onInsertContact && campaign) {
                 // This is a new contact, we use the insert logic.
                 const phoneBlock = script.pages.flatMap(p => p.blocks).find(b => b.fieldName === 'phone_number');
                 const phoneNumber = phoneBlock ? dataToSave[phoneBlock.fieldName] : '';
                  if (!phoneNumber || !/^\d{10,}$/.test(phoneNumber.replace(/\s/g, ''))) {
-                    alert("Veuillez renseigner un numéro de téléphone valide pour le nouveau contact.");
+                    alert(t('agentPreview.invalidPhone'));
                     return;
                 }
                 onInsertContact(campaign.id, dataToSave, phoneNumber)
-                    .then(() => alert('Nouvelle fiche contact insérée avec succès !'))
-                    .catch(err => alert(`Erreur lors de l'insertion : ${err.message}`));
+                    .then(() => alert(t('agentPreview.contactInserted')))
+                    .catch(err => alert(t('agentPreview.insertError', { message: err.message })));
             }
             break;
         }
@@ -208,7 +210,7 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
             };
             return (
                 <div {...commonContainerProps}>
-                    <h4 className="font-semibold mb-2 border-b pb-1 text-slate-700 flex-shrink-0">Historique des remarques</h4>
+                    <h4 className="font-semibold mb-2 border-b pb-1 text-slate-700 flex-shrink-0">{t('agentPreview.notesHistory')}</h4>
                     <div className="space-y-3 overflow-y-auto text-xs flex-1 pr-1">
                         {contactNotes.length > 0 ? [...contactNotes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((note) => (
                              <div key={note.id} className="p-2 rounded bg-slate-50">
@@ -218,18 +220,18 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
                                  </div>
                                  <p className="text-slate-800 whitespace-pre-wrap">{note.note}</p>
                              </div>
-                        )) : <p className="text-center italic text-slate-400 pt-4">Aucune remarque pour ce contact.</p>}
+                        )) : <p className="text-center italic text-slate-400 pt-4">{t('agentPreview.noNotes')}</p>}
                     </div>
                     <div className="mt-2 pt-2 border-t flex-shrink-0">
                         <textarea
-                            placeholder="Ajouter une nouvelle note..."
+                            placeholder={t('agentPreview.addNotePlaceholder')}
                             className="w-full p-2 border rounded-md text-sm"
                             rows={3}
                             value={newNote}
                             onChange={e => setNewNote(e.target.value)}
                         />
                         <button onClick={onSaveNote} className="mt-2 w-full text-sm bg-indigo-100 text-indigo-700 font-semibold py-1.5 px-3 rounded-md hover:bg-indigo-200 disabled:opacity-50" disabled={!newNote.trim()}>
-                            Enregistrer la note
+                            {t('agentPreview.saveNote')}
                         </button>
                     </div>
                 </div>
@@ -273,7 +275,7 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
                         onChange={e => handleValueChange(block.fieldName, e.target.value)}
                         disabled={block.readOnly}
                     >
-                        <option value="">-- Sélectionnez --</option>
+                        <option value="">{t('agentPreview.selectOption')}</option>
                         {block.content.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                 </div>
@@ -355,7 +357,7 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
                 </div>
             );
         default:
-            return <div {...commonContainerProps}>Type de bloc non supporté: {block.type}</div>
+            return <div {...commonContainerProps}>{t('agentPreview.unsupportedBlock', { type: block.type })}</div>
     }
   }
   
@@ -383,7 +385,7 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
       <div className="h-full w-full flex flex-col">
         <header className="p-3 border-b border-slate-200 flex-shrink-0">
             <h2 className="text-base font-bold text-slate-800 truncate">{script.name}</h2>
-            <p className="text-xs text-slate-500">Page: {currentPage?.name}</p>
+            <p className="text-xs text-slate-500">{t('agentPreview.embedded.page')} {currentPage?.name}</p>
         </header>
         <div className="flex-1 overflow-hidden p-2 bg-slate-50">
           {ScriptCanvas}
@@ -398,11 +400,11 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
       <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] flex flex-col">
         <header className="p-4 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-slate-800">Prévisualisation Agent - {script.name}</h2>
-            <p className="text-sm text-slate-500">Page Actuelle: {currentPage?.name}</p>
+            <h2 className="text-xl font-bold text-slate-800">{t('agentPreview.modal.title', { scriptName: script.name })}</h2>
+            <p className="text-sm text-slate-500">{t('agentPreview.modal.currentPage', { pageName: currentPage?.name })}</p>
           </div>
           <button onClick={onClose} className="bg-slate-100 text-slate-800 font-bold py-2 px-4 rounded-lg hover:bg-slate-200">
-            Retour à l'éditeur
+            {t('agentPreview.modal.backToEditor')}
           </button>
         </header>
 

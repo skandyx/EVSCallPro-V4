@@ -86,12 +86,12 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
 
         const firstPage: Page = {
             id: `page-${now}`,
-            name: "Page 1",
+            name: t('scriptManager.newPageName', { number: 1 }),
             blocks: standardBlocks
         };
         setActiveScript({
             id: `script-${now}`,
-            name: "Nouveau Script",
+            name: t('scriptManager.newScriptName'),
             pages: [firstPage],
             startPageId: firstPage.id,
             backgroundColor: '#f1f5f9'
@@ -151,20 +151,20 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
             
             <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-semibold text-slate-800">Scripts Sauvegardés</h2>
+                    <h2 className="text-2xl font-semibold text-slate-800">{t('scriptManager.title')}</h2>
                     <button
                         onClick={handleCreateNew}
                         className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md transition-colors inline-flex items-center"
                     >
                         <PlusIcon className="w-5 h-5 mr-2" />
-                        Créer un nouveau script
+                        {t('scriptManager.createScript')}
                     </button>
                 </div>
 
                 <div className="mb-4">
                     <input
                         type="text"
-                        placeholder="Rechercher par nom ou ID de script..."
+                        placeholder={t('scriptManager.searchPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full max-w-lg p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
@@ -176,9 +176,9 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
                         <table className="min-w-full divide-y divide-slate-200">
                             <thead className="bg-slate-50">
                                 <tr>
-                                    <SortableHeader sortKey="id" label="ID" />
-                                    <SortableHeader sortKey="name" label="Nom du Script" />
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                                    <SortableHeader sortKey="id" label={t('scriptManager.headers.id')} />
+                                    <SortableHeader sortKey="name" label={t('scriptManager.headers.name')} />
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{t('common.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-slate-200">
@@ -187,9 +187,9 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono">{script.id}</td>
                                         <td className="px-6 py-4 whitespace-nowrap font-medium text-slate-800">{script.name}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                                            <button onClick={() => handleEdit(script)} className="text-link hover:underline inline-flex items-center"><EditIcon className="w-4 h-4 mr-1"/> Modifier</button>
-                                            <button onClick={() => onDuplicateScript(script.id)} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 inline-flex items-center"><DuplicateIcon className="w-4 h-4 mr-1"/> Dupliquer</button>
-                                            <button onClick={() => onDeleteScript(script.id)} className="text-red-600 hover:text-red-900 inline-flex items-center"><TrashIcon className="w-4 h-4 mr-1"/> Supprimer</button>
+                                            <button onClick={() => handleEdit(script)} className="text-link hover:underline inline-flex items-center"><EditIcon className="w-4 h-4 mr-1"/> {t('common.edit')}</button>
+                                            <button onClick={() => onDuplicateScript(script.id)} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 inline-flex items-center"><DuplicateIcon className="w-4 h-4 mr-1"/> {t('common.duplicate')}</button>
+                                            <button onClick={() => onDeleteScript(script.id)} className="text-red-600 hover:text-red-900 inline-flex items-center"><TrashIcon className="w-4 h-4 mr-1"/> {t('common.delete')}</button>
                                         </td>
                                     </tr>
                                 ))}
@@ -197,7 +197,7 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
                         </table>
                     </div>
                 ) : (
-                    <p className="text-slate-500 text-center py-8">Aucun script ne correspond à votre recherche ou aucun script n'a été créé.</p>
+                    <p className="text-slate-500 text-center py-8">{t('scriptManager.noScripts')}</p>
                 )}
             </div>
         </div>

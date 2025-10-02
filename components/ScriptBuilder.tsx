@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { SavedScript, Page, ScriptBlock, BlockType } from '../types.ts';
 import {
     PlusIcon, TrashIcon, EyeIcon, SettingsIcon, PaletteIcon, XMarkIcon, ArrowLeftIcon, ArrowRightIcon,
@@ -6,6 +7,7 @@ import {
     PhoneIcon, EmailIcon, TimeIcon, ButtonIcon, LabelIcon, GroupIcon, MinusIcon, ResetViewIcon,
     AlignLeftIcon, AlignCenterIcon, AlignRightIcon, TextareaIcon, UserJourneyIcon as HistoryIcon
 } from './Icons.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 // Props definition
 interface ScriptBuilderProps {
@@ -14,23 +16,6 @@ interface ScriptBuilderProps {
     onClose: () => void;
     onPreview: (script: SavedScript) => void;
 }
-
-const BLOCK_PALETTE: { type: BlockType; icon: React.FC<any>; label: string; default: Partial<ScriptBlock> }[] = [
-    { type: 'group', icon: GroupIcon, label: 'Groupe', default: { width: 400, height: 250, backgroundColor: 'rgba(226, 232, 240, 0.5)', content: {} } },
-    { type: 'label', icon: LabelIcon, label: 'Titre', default: { width: 300, height: 40, content: { text: 'Titre' }, fontSize: 18, textAlign: 'left' } },
-    { type: 'text', icon: TextBlockIcon, label: 'Texte', default: { width: 300, height: 80, content: { text: 'Paragraphe de texte...' }, textAlign: 'left' } },
-    { type: 'input', icon: InputIcon, label: 'Champ de Saisie', default: { width: 300, height: 70, content: { placeholder: 'Saisir ici', format: 'text' }, readOnly: false } },
-    { type: 'textarea', icon: TextareaIcon, label: 'Texte Multi-ligne', default: { width: 300, height: 120, content: { placeholder: 'Saisir ici...' }, readOnly: false } },
-    { type: 'email', icon: EmailIcon, label: 'Email', default: { width: 300, height: 70, content: { placeholder: 'email@example.com' }, readOnly: false } },
-    { type: 'phone', icon: PhoneIcon, label: 'Téléphone', default: { width: 300, height: 70, content: { placeholder: '0123456789' }, readOnly: false } },
-    { type: 'date', icon: DateIcon, label: 'Date', default: { width: 200, height: 70, content: { }, readOnly: false } },
-    { type: 'time', icon: TimeIcon, label: 'Heure', default: { width: 200, height: 70, content: { }, readOnly: false } },
-    { type: 'radio', icon: RadioIcon, label: 'Choix Unique', default: { width: 300, height: 120, content: { question: 'Question ?', options: ['Option 1', 'Option 2'] }, readOnly: false } },
-    { type: 'checkbox', icon: CheckboxIcon, label: 'Choix Multiples', default: { width: 300, height: 120, content: { question: 'Question ?', options: ['Option A', 'Option B'] }, readOnly: false } },
-    { type: 'dropdown', icon: DropdownIcon, label: 'Liste Déroulante', default: { width: 300, height: 70, content: { options: ['Valeur 1', 'Valeur 2'] }, readOnly: false } },
-    { type: 'button', icon: ButtonIcon, label: 'Bouton', default: { width: 200, height: 50, content: { text: 'Cliquer', action: { type: 'none' } }, backgroundColor: '#4f46e5', textColor: '#ffffff', textAlign: 'center' } },
-    { type: 'history', icon: HistoryIcon, label: 'Historique', default: { width: 400, height: 200, content: {} } },
-];
 
 const FONT_FAMILIES = ['Arial', 'Verdana', 'Georgia', 'Times New Roman', 'Courier New'];
 
@@ -66,6 +51,7 @@ const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) =>
 );
 
 const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, onPreview }) => {
+    const { t } = useI18n();
     const [editedScript, setEditedScript] = useState<SavedScript>(() => JSON.parse(JSON.stringify(script)));
     const [activePageId, setActivePageId] = useState<string>(script.startPageId);
     const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -78,6 +64,26 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
     const [viewTransform, setViewTransform] = useState({ x: 0, y: 0, zoom: 1 });
     const isPanning = useRef(false);
     const panStart = useRef({ x: 0, y: 0 });
+
+    const BLOCK_PALETTE = useMemo(() => [
+        { type: 'group' as BlockType, icon: GroupIcon, label: t('scriptBuilder.palette.group'), default: { width: 400, height: 250, backgroundColor: 'rgba(226, 232, 240, 0.5)', content: {} } },
+        // FIX: Added 'as const' to ensure TypeScript infers a literal type for 'textAlign', resolving a type error.
+        { type: 'label' as BlockType, icon: LabelIcon, label: t('scriptBuilder.palette.label'), default: { width: 300, height: 40, content: { text: t('scriptBuilder.defaults.label') }, fontSize: 18, textAlign: 'left' as const } },
+        // FIX: Added 'as const' to ensure TypeScript infers a literal type for 'textAlign', resolving a type error.
+        { type: 'text' as BlockType, icon: TextBlockIcon, label: t('scriptBuilder.palette.text'), default: { width: 300, height: 80, content: { text: t('scriptBuilder.defaults.text') }, textAlign: 'left' as const } },
+        { type: 'input' as BlockType, icon: InputIcon, label: t('scriptBuilder.palette.input'), default: { width: 300, height: 70, content: { placeholder: t('scriptBuilder.defaults.placeholder'), format: 'text' }, readOnly: false } },
+        { type: 'textarea' as BlockType, icon: TextareaIcon, label: t('scriptBuilder.palette.textarea'), default: { width: 300, height: 120, content: { placeholder: t('scriptBuilder.defaults.placeholder') }, readOnly: false } },
+        { type: 'email' as BlockType, icon: EmailIcon, label: t('scriptBuilder.palette.email'), default: { width: 300, height: 70, content: { placeholder: t('scriptBuilder.defaults.emailPlaceholder') }, readOnly: false } },
+        { type: 'phone' as BlockType, icon: PhoneIcon, label: t('scriptBuilder.palette.phone'), default: { width: 300, height: 70, content: { placeholder: t('scriptBuilder.defaults.phonePlaceholder') }, readOnly: false } },
+        { type: 'date' as BlockType, icon: DateIcon, label: t('scriptBuilder.palette.date'), default: { width: 200, height: 70, content: {}, readOnly: false } },
+        { type: 'time' as BlockType, icon: TimeIcon, label: t('scriptBuilder.palette.time'), default: { width: 200, height: 70, content: {}, readOnly: false } },
+        { type: 'radio' as BlockType, icon: RadioIcon, label: t('scriptBuilder.palette.radio'), default: { width: 300, height: 120, content: { question: t('scriptBuilder.defaults.question'), options: [t('scriptBuilder.defaults.radioOption1'), t('scriptBuilder.defaults.radioOption2')] }, readOnly: false } },
+        { type: 'checkbox' as BlockType, icon: CheckboxIcon, label: t('scriptBuilder.palette.checkbox'), default: { width: 300, height: 120, content: { question: t('scriptBuilder.defaults.question'), options: [t('scriptBuilder.defaults.checkboxOptionA'), t('scriptBuilder.defaults.checkboxOptionB')] }, readOnly: false } },
+        { type: 'dropdown' as BlockType, icon: DropdownIcon, label: t('scriptBuilder.palette.dropdown'), default: { width: 300, height: 70, content: { options: [t('scriptBuilder.defaults.dropdownValue1'), t('scriptBuilder.defaults.dropdownValue2')] }, readOnly: false } },
+        // FIX: Added 'as const' to ensure TypeScript infers a literal type for 'textAlign', resolving a type error.
+        { type: 'button' as BlockType, icon: ButtonIcon, label: t('scriptBuilder.palette.button'), default: { width: 200, height: 50, content: { text: t('scriptBuilder.defaults.buttonText'), action: { type: 'none' } }, backgroundColor: '#4f46e5', textColor: '#ffffff', textAlign: 'center' as const } },
+        { type: 'history' as BlockType, icon: HistoryIcon, label: t('scriptBuilder.palette.history'), default: { width: 400, height: 200, content: {} } },
+    ], [t]);
 
 
     const activePage = editedScript.pages.find(p => p.id === activePageId);
@@ -317,7 +323,7 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
             if (page) {
                 const block = page.blocks.find(b => b.id === blockId);
                 if (block && Array.isArray(block.content.options)) {
-                    block.content.options.push(`Nouvelle Option`);
+                    block.content.options.push(t('scriptBuilder.properties.newOption'));
                 }
             }
         });
@@ -347,7 +353,7 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
         });
     };
 
-    if (!activePage) return <div>Erreur: Page active non trouvée.</div>;
+    if (!activePage) return <div>{t('scriptBuilder.pageNotFound')}</div>;
 
     const renderPropertiesPanel = () => {
         if (selectedBlock) {
@@ -365,7 +371,7 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
 
                 const isNameTaken = activePage.blocks.some(b => b.id !== selectedBlock.id && b.name === trimmedName);
                 if (isNameTaken) {
-                    alert(`Le nom de bloc "${trimmedName}" est déjà utilisé sur cette page.`);
+                    alert(t('scriptBuilder.nameAlreadyExists', { name: trimmedName }));
                     setTempBlockName(selectedBlock.name);
                     return;
                 }
@@ -373,7 +379,7 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                 const newFieldName = sanitizeForTechnicalName(trimmedName);
                 const isFieldNameTaken = activePage.blocks.some(b => b.id !== selectedBlock.id && b.fieldName === newFieldName);
                 if (isFieldNameTaken) {
-                    alert(`Ce nom génère un identifiant technique ("${newFieldName}") qui est déjà utilisé. Veuillez choisir un nom légèrement différent.`);
+                    alert(t('scriptBuilder.technicalNameAlreadyExists', { fieldName: newFieldName }));
                     setTempBlockName(selectedBlock.name);
                 } else {
                     handleBlockUpdate(selectedBlock.id, { name: trimmedName, fieldName: newFieldName });
@@ -384,7 +390,7 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
              return (
                 <div className="flex flex-col h-full">
                      <div>
-                        <label className="font-medium text-xs text-slate-500">Nom du bloc (visible par l'agent)</label>
+                        <label className="font-medium text-xs text-slate-500">{t('scriptBuilder.properties.blockNameLabel')}</label>
                         <input
                             type="text"
                             value={tempBlockName}
@@ -392,13 +398,13 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                             onBlur={e => handleNameChangeValidation(e.target.value)}
                             className="w-full mt-1 p-1 border rounded-md font-bold text-lg text-slate-800 focus:ring-2 focus:ring-indigo-300"
                         />
-                         <p className="text-xs text-slate-400 mt-1">Nom technique: <span className="font-mono bg-slate-100 p-0.5 rounded">{selectedBlock.fieldName}</span></p>
+                         <p className="text-xs text-slate-400 mt-1">{t('scriptBuilder.properties.technicalName')} <span className="font-mono bg-slate-100 p-0.5 rounded">{selectedBlock.fieldName}</span></p>
                     </div>
 
                     <div className="border-b border-slate-200 mt-3">
                         <nav className="-mb-px flex space-x-4">
-                            <button onClick={() => setPropertiesTab('content')} className={`py-2 px-1 border-b-2 font-medium text-sm ${propertiesTab === 'content' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>Contenu</button>
-                            <button onClick={() => setPropertiesTab('style')} className={`py-2 px-1 border-b-2 font-medium text-sm ${propertiesTab === 'style' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>Style</button>
+                            <button onClick={() => setPropertiesTab('content')} className={`py-2 px-1 border-b-2 font-medium text-sm ${propertiesTab === 'content' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{t('scriptBuilder.properties.tabs.content')}</button>
+                            <button onClick={() => setPropertiesTab('style')} className={`py-2 px-1 border-b-2 font-medium text-sm ${propertiesTab === 'style' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>{t('scriptBuilder.properties.tabs.style')}</button>
                         </nav>
                     </div>
                     <div className="py-4 space-y-4 flex-1 overflow-y-auto text-sm">
@@ -407,8 +413,8 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                            { selectedBlock.isStandard && (
                                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-md border">
                                     <div>
-                                        <label className="font-medium">Afficher ce champ dans le script</label>
-                                        <p className="text-xs text-slate-400">Masque le champ pour l'agent.</p>
+                                        <label className="font-medium">{t('scriptBuilder.properties.showField')}</label>
+                                        <p className="text-xs text-slate-400">{t('scriptBuilder.properties.showFieldHelp')}</p>
                                     </div>
                                     <ToggleSwitch 
                                         enabled={selectedBlock.isVisible !== false} 
@@ -418,12 +424,12 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                            )}
                            {/* FIX: The textarea for editing block content now uses a temporary state ('tempContentText') and updates on blur. This prevents the input from feeling "locked" or unresponsive due to re-renders on every keystroke. */}
                            { (selectedBlock.type === 'label' || selectedBlock.type === 'text') && <textarea value={tempContentText} onChange={(e) => setTempContentText(e.target.value)} onBlur={(e) => handleBlockContentUpdate(selectedBlockId!, { text: e.target.value })} className="w-full p-2 border rounded-md" rows={4}/> }
-                           { (selectedBlock.type === 'input' || selectedBlock.type === 'email' || selectedBlock.type === 'phone' || selectedBlock.type === 'textarea') && <div className="space-y-4"><div><label className="font-medium">Placeholder</label><input type="text" value={selectedBlock.content.placeholder} onChange={e=>handleBlockContentUpdate(selectedBlockId!, {placeholder: e.target.value})} className="w-full mt-1 p-2 border rounded-md"/></div> {selectedBlock.type === 'input' && <div><label className="font-medium">Format</label><select value={selectedBlock.content.format} onChange={e => handleBlockContentUpdate(selectedBlockId!, { format: e.target.value })} className="w-full mt-1 p-2 border rounded-md bg-white"><option value="text">Texte</option><option value="number">Nombre</option><option value="password">Mot de passe</option></select></div>}</div>}
-                           { (selectedBlock.type === 'button') && <><div><label className="font-medium">Texte du bouton</label><input type="text" value={selectedBlock.content.text} onChange={e=>handleBlockContentUpdate(selectedBlockId!, {text: e.target.value})} className="w-full mt-1 p-2 border rounded-md"/></div></> }
+                           { (selectedBlock.type === 'input' || selectedBlock.type === 'email' || selectedBlock.type === 'phone' || selectedBlock.type === 'textarea') && <div className="space-y-4"><div><label className="font-medium">{t('scriptBuilder.properties.placeholder')}</label><input type="text" value={selectedBlock.content.placeholder} onChange={e=>handleBlockContentUpdate(selectedBlockId!, {placeholder: e.target.value})} className="w-full mt-1 p-2 border rounded-md"/></div> {selectedBlock.type === 'input' && <div><label className="font-medium">{t('scriptBuilder.properties.format')}</label><select value={selectedBlock.content.format} onChange={e => handleBlockContentUpdate(selectedBlockId!, { format: e.target.value })} className="w-full mt-1 p-2 border rounded-md bg-white"><option value="text">{t('scriptBuilder.properties.formats.text')}</option><option value="number">{t('scriptBuilder.properties.formats.number')}</option><option value="password">{t('scriptBuilder.properties.formats.password')}</option></select></div>}</div>}
+                           { (selectedBlock.type === 'button') && <><div><label className="font-medium">{t('scriptBuilder.properties.buttonText')}</label><input type="text" value={selectedBlock.content.text} onChange={e=>handleBlockContentUpdate(selectedBlockId!, {text: e.target.value})} className="w-full mt-1 p-2 border rounded-md"/></div></> }
                            { (selectedBlock.type === 'radio' || selectedBlock.type === 'checkbox') && (
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="font-medium">Question</label>
+                                        <label className="font-medium">{t('scriptBuilder.properties.question')}</label>
                                         <input 
                                             type="text" 
                                             value={selectedBlock.content.question} 
@@ -432,7 +438,7 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                                         />
                                     </div>
                                     <div>
-                                        <label className="font-medium block">Options</label>
+                                        <label className="font-medium block">{t('scriptBuilder.properties.options')}</label>
                                         <div className="space-y-2 mt-1">
                                             {(selectedBlock.content.options || []).map((option: string, index: number) => (
                                                 <div key={index} className="flex items-center gap-2">
@@ -449,14 +455,14 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                                             ))}
                                         </div>
                                         <button onClick={() => handleAddOption(selectedBlockId!)} className="text-sm font-medium text-indigo-600 hover:text-indigo-700 mt-2 inline-flex items-center gap-1">
-                                            <PlusIcon className="w-4 h-4" /> Ajouter une option
+                                            <PlusIcon className="w-4 h-4" /> {t('scriptBuilder.properties.addOption')}
                                         </button>
                                     </div>
                                 </div>
                             )}
                             { selectedBlock.type === 'dropdown' && (
                                 <div>
-                                    <label className="font-medium block">Options</label>
+                                    <label className="font-medium block">{t('scriptBuilder.properties.options')}</label>
                                     <div className="space-y-2 mt-1">
                                         {(selectedBlock.content.options || []).map((option: string, index: number) => (
                                             <div key={index} className="flex items-center gap-2">
@@ -466,14 +472,14 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                                         ))}
                                     </div>
                                     <button onClick={() => handleAddOption(selectedBlockId!)} className="text-sm font-medium text-indigo-600 hover:text-indigo-700 mt-2 inline-flex items-center gap-1">
-                                        <PlusIcon className="w-4 h-4" /> Ajouter une option
+                                        <PlusIcon className="w-4 h-4" /> {t('scriptBuilder.properties.addOption')}
                                     </button>
                                 </div>
                             )}
-                            { selectedBlock.type === 'history' && <p className="text-slate-500 italic text-center p-4">Ce bloc n'a pas de propriétés configurables. Il affichera l'historique des appels du contact.</p>}
+                            { selectedBlock.type === 'history' && <p className="text-slate-500 italic text-center p-4">{t('scriptBuilder.properties.historyHelp')}</p>}
                            { selectedBlock.type === 'group' && (
                                 <div>
-                                    <h4 className="font-medium text-slate-700 mb-2">Blocs dans le groupe</h4>
+                                    <h4 className="font-medium text-slate-700 mb-2">{t('scriptBuilder.properties.blocksInGroup')}</h4>
                                     {(() => {
                                         const childBlocks = activePage.blocks.filter(b => b.parentId === selectedBlock.id);
                                         if (childBlocks.length > 0) {
@@ -482,7 +488,7 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                                                     {childBlocks.map(child => (
                                                         <li key={child.id} className="flex items-center justify-between bg-slate-50 p-2 rounded-md hover:bg-slate-100">
                                                             <span className="text-slate-800 truncate text-xs">{child.name}</span>
-                                                            <button onClick={() => handleDeleteBlock(child.id)} className="text-slate-400 hover:text-red-600 p-1" title={`Supprimer le bloc ${child.name}`}>
+                                                            <button onClick={() => handleDeleteBlock(child.id)} className="text-slate-400 hover:text-red-600 p-1" title={t('scriptBuilder.properties.deleteBlockTooltip', { name: child.name })}>
                                                                 <TrashIcon className="w-4 h-4" />
                                                             </button>
                                                         </li>
@@ -490,7 +496,7 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                                                 </ul>
                                             );
                                         } else {
-                                            return <p className="text-slate-500 italic text-center text-xs py-4">Faites glisser des blocs ici.</p>;
+                                            return <p className="text-slate-500 italic text-center text-xs py-4">{t('scriptBuilder.properties.dragBlocksHere')}</p>;
                                         }
                                     })()}
                                 </div>
@@ -498,8 +504,8 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                            {isInputType && (
                                 <div className="flex items-center justify-between pt-4 border-t">
                                     <div>
-                                        <label className="font-medium">Lecture seule</label>
-                                        <p className="text-xs text-slate-400">L'agent ne pourra pas modifier ce champ.</p>
+                                        <label className="font-medium">{t('scriptBuilder.properties.readOnly')}</label>
+                                        <p className="text-xs text-slate-400">{t('scriptBuilder.properties.readOnlyHelp')}</p>
                                     </div>
                                     <ToggleSwitch 
                                         enabled={!!selectedBlock.readOnly} 
@@ -513,59 +519,59 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                              <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="font-medium">Largeur (px)</label>
+                                        <label className="font-medium">{t('scriptBuilder.properties.width')}</label>
                                         <input type="number" value={Math.round(selectedBlock.width)} onChange={e => handleBlockUpdate(selectedBlockId!, { width: parseInt(e.target.value) })} className="w-full mt-1 p-2 border rounded-md"/>
                                     </div>
                                     <div>
-                                        <label className="font-medium">Hauteur (px)</label>
+                                        <label className="font-medium">{t('scriptBuilder.properties.height')}</label>
                                         <input type="number" value={Math.round(selectedBlock.height)} onChange={e => handleBlockUpdate(selectedBlockId!, { height: parseInt(e.target.value) })} className="w-full mt-1 p-2 border rounded-md"/>
                                     </div>
                                 </div>
                                 {['label', 'text', 'button', 'input', 'email', 'phone', 'textarea'].includes(selectedBlock.type) &&
                                 <>
-                                <div><label className="font-medium">Police</label><select value={selectedBlock.fontFamily || 'Arial'} onChange={e => handleBlockUpdate(selectedBlockId!, { fontFamily: e.target.value })} className="w-full mt-1 p-2 border rounded-md bg-white">{FONT_FAMILIES.map(f => <option key={f}>{f}</option>)}</select></div>
+                                <div><label className="font-medium">{t('scriptBuilder.properties.font')}</label><select value={selectedBlock.fontFamily || 'Arial'} onChange={e => handleBlockUpdate(selectedBlockId!, { fontFamily: e.target.value })} className="w-full mt-1 p-2 border rounded-md bg-white">{FONT_FAMILIES.map(f => <option key={f}>{f}</option>)}</select></div>
                                 <div>
-                                    <label className="font-medium">Taille (px)</label>
+                                    <label className="font-medium">{t('scriptBuilder.properties.size')}</label>
                                     <input type="number" value={selectedBlock.fontSize || 14} onChange={e => handleBlockUpdate(selectedBlockId!, { fontSize: parseInt(e.target.value) })} className="w-full mt-1 p-2 border rounded-md"/>
                                 </div>
                                 <div>
-                                <label className="font-medium block mb-1">Alignement</label>
+                                <label className="font-medium block mb-1">{t('scriptBuilder.properties.alignment')}</label>
                                 <div className="flex items-center gap-1 rounded-md bg-slate-100 p-1">{['left', 'center', 'right'].map(align => <button key={align} onClick={() => handleBlockUpdate(selectedBlockId!, { textAlign: align as any })} className={`p-1.5 rounded w-full flex justify-center ${selectedBlock.textAlign === align ? 'bg-white shadow-sm' : 'hover:bg-slate-200'}`}>{align === 'left' ? <AlignLeftIcon className="w-5 h-5"/> : align === 'center' ? <AlignCenterIcon className="w-5 h-5"/> : <AlignRightIcon className="w-5 h-5"/>}</button>)}</div>
                                 </div>
                                 </>
                                 }
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div><label className="font-medium">Fond</label><input type="color" value={selectedBlock.backgroundColor || (selectedBlock.type === 'group' ? 'transparent' : '#ffffff')} onChange={e => handleBlockUpdate(selectedBlockId!, { backgroundColor: e.target.value })} className="w-full h-8 p-1 mt-1 border rounded" /></div>
-                                    <div><label className="font-medium">Texte</label><input type="color" value={selectedBlock.textColor || '#000000'} onChange={e => handleBlockUpdate(selectedBlockId!, { textColor: e.target.value })} className="w-full h-8 p-1 mt-1 border rounded" /></div>
+                                    <div><label className="font-medium">{t('scriptBuilder.properties.background')}</label><input type="color" value={selectedBlock.backgroundColor || (selectedBlock.type === 'group' ? 'transparent' : '#ffffff')} onChange={e => handleBlockUpdate(selectedBlockId!, { backgroundColor: e.target.value })} className="w-full h-8 p-1 mt-1 border rounded" /></div>
+                                    <div><label className="font-medium">{t('scriptBuilder.properties.text')}</label><input type="color" value={selectedBlock.textColor || '#000000'} onChange={e => handleBlockUpdate(selectedBlockId!, { textColor: e.target.value })} className="w-full h-8 p-1 mt-1 border rounded" /></div>
                                 </div>
                                 {selectedBlock.type === 'button' && (
                                     <div className="pt-4 border-t">
-                                        <h4 className="font-medium text-slate-700 mb-2">Action du Bouton</h4>
+                                        <h4 className="font-medium text-slate-700 mb-2">{t('scriptBuilder.properties.buttonAction')}</h4>
                                         <div>
-                                            <label className="font-medium">Action</label>
+                                            <label className="font-medium">{t('scriptBuilder.properties.action')}</label>
                                             <select 
                                                 value={selectedBlock.content.action.type} 
                                                 onChange={e => handleBlockContentUpdate(selectedBlockId!, { action: { ...selectedBlock.content.action, type: e.target.value } })} 
                                                 className="w-full mt-1 p-2 border rounded-md bg-white"
                                             >
-                                                <option value="none">Aucune action</option>
-                                                <option value="next">Page suivante</option>
-                                                <option value="previous">Page précédente</option>
-                                                <option value="navigate">Aller à la page...</option>
-                                                <option value="save">Enregistrer les données</option>
-                                                <option value="insert_contact">Insérer une fiche</option>
+                                                <option value="none">{t('scriptBuilder.actions.none')}</option>
+                                                <option value="next">{t('scriptBuilder.actions.next')}</option>
+                                                <option value="previous">{t('scriptBuilder.actions.previous')}</option>
+                                                <option value="navigate">{t('scriptBuilder.actions.navigate')}</option>
+                                                <option value="save">{t('scriptBuilder.actions.save')}</option>
+                                                <option value="insert_contact">{t('scriptBuilder.actions.insertContact')}</option>
                                             </select>
                                         </div>
 
                                         {selectedBlock.content.action.type === 'navigate' && (
                                             <div className="mt-2">
-                                                <label className="font-medium">Page de destination</label>
+                                                <label className="font-medium">{t('scriptBuilder.properties.destinationPage')}</label>
                                                 <select 
                                                     value={selectedBlock.content.action.pageId || ''}
                                                     onChange={e => handleBlockContentUpdate(selectedBlockId!, { action: { ...selectedBlock.content.action, pageId: e.target.value } })}
                                                     className="w-full mt-1 p-2 border rounded-md bg-white"
                                                 >
-                                                    <option value="">Sélectionner une page</option>
+                                                    <option value="">{t('scriptBuilder.properties.selectPage')}</option>
                                                     {editedScript.pages.filter(p => p.id !== activePageId).map(p => (
                                                         <option key={p.id} value={p.id}>{p.name}</option>
                                                     ))}
@@ -581,7 +587,7 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                         <div className="mt-auto pt-4 border-t border-slate-200">
                             <button onClick={() => handleDeleteBlock(selectedBlock.id)} className="w-full flex items-center justify-center gap-2 text-sm text-red-600 font-semibold bg-red-50 hover:bg-red-100 p-2 rounded-md transition-colors">
                                 <TrashIcon className="w-4 h-4" />
-                                Supprimer "{selectedBlock.name}"
+                                {t('scriptBuilder.properties.deleteBlockButton', { name: selectedBlock.name })}
                             </button>
                         </div>
                     }
@@ -623,7 +629,7 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                 case 'text': return <div className="h-full flex flex-col justify-center"><p className="whitespace-pre-wrap break-words">{block.content.text}</p></div>;
                 case 'input': case 'email': case 'phone': return <div><label className="block font-semibold mb-1">{block.name}</label><input type="text" placeholder={block.content.placeholder} disabled className="w-full p-2 border rounded-md bg-slate-100"/></div>
                 case 'textarea': return <div className="h-full flex flex-col"><label className="block font-semibold mb-1 flex-shrink-0">{block.name}</label><textarea placeholder={block.content.placeholder} disabled className="w-full p-2 border rounded-md bg-slate-100 flex-1 resize-none"/></div>
-                case 'history': return <div className="h-full flex flex-col"><label className="block font-semibold text-xs border-b pb-1">Historique des appels</label><div className="text-xs text-slate-400 italic flex-1 flex items-center justify-center">Aperçu de l'historique</div></div>
+                case 'history': return <div className="h-full flex flex-col"><label className="block font-semibold text-xs border-b pb-1">{t('scriptBuilder.palette.history')}</label><div className="text-xs text-slate-400 italic flex-1 flex items-center justify-center">{t('scriptBuilder.canvas.historyPreview')}</div></div>
                 case 'date': case 'time': return <div><label className="block font-semibold mb-1">{block.name}</label><input type={block.type} disabled className="w-full p-2 border rounded-md bg-slate-100"/></div>
                 case 'dropdown': return <div><label className="block font-semibold mb-1">{block.name}</label><select disabled className="w-full p-2 border rounded-md bg-slate-100"><option>{block.content.options[0] || 'Option'}</option></select></div>
                 case 'radio': return <div><p className="font-semibold mb-2">{block.content.question}</p><div className="space-y-1">{(block.content.options || []).slice(0, 2).map((opt: string) => (<div key={opt} className="flex items-center"><input type="radio" disabled className="mr-2"/><label className="truncate">{opt}</label></div>))}</div></div>
@@ -650,7 +656,7 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                             <button
                                 onClick={(e) => { e.stopPropagation(); handleDeleteBlock(block.id); }}
                                 className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow-sm"
-                                title="Supprimer le bloc"
+                                title={t('scriptBuilder.canvas.deleteBlock')}
                             >
                                 <TrashIcon className="w-3 h-3" />
                             </button>
@@ -667,27 +673,27 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                 <div className="flex items-center gap-4">
                     <input type="text" value={editedScript.name} onChange={e => updateScript(d => { d.name = e.target.value; })} className="text-xl font-bold p-1 border-b-2 border-transparent focus:border-indigo-500 outline-none"/>
                     <div className="flex items-center gap-2">
-                        <label htmlFor="script-bg-color" className="text-sm font-medium text-slate-600">Fond:</label>
+                        <label htmlFor="script-bg-color" className="text-sm font-medium text-slate-600">{t('scriptBuilder.background')}</label>
                         <input
                             id="script-bg-color"
                             type="color"
                             value={editedScript.backgroundColor}
                             onChange={e => updateScript(d => { d.backgroundColor = e.target.value; })}
                             className="w-8 h-8 p-0 border rounded-md bg-transparent cursor-pointer"
-                            title="Changer la couleur de fond du script"
+                            title={t('scriptBuilder.changeBackgroundColor')}
                         />
                     </div>
                 </div>
                 <div className="space-x-2">
-                    <button onClick={() => onPreview(editedScript)} className="font-semibold py-2 px-4 rounded-lg inline-flex items-center bg-slate-200 hover:bg-slate-300"><EyeIcon className="w-5 h-5 mr-2" /> Prévisualiser</button>
-                    <button onClick={onClose} className="font-semibold py-2 px-4 rounded-lg">Fermer</button>
-                    <button onClick={() => onSave(editedScript)} className="font-bold py-2 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white">Enregistrer</button>
+                    <button onClick={() => onPreview(editedScript)} className="font-semibold py-2 px-4 rounded-lg inline-flex items-center bg-slate-200 hover:bg-slate-300"><EyeIcon className="w-5 h-5 mr-2" /> {t('scriptBuilder.preview')}</button>
+                    <button onClick={onClose} className="font-semibold py-2 px-4 rounded-lg">{t('common.close')}</button>
+                    <button onClick={() => onSave(editedScript)} className="font-bold py-2 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white">{t('common.save')}</button>
                 </div>
             </header>
             <main className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
                 {/* Left Panel */}
                 <aside className="col-span-2 bg-white p-3 border-r flex flex-col gap-4">
-                    <h3 className="font-semibold">Éléments</h3>
+                    <h3 className="font-semibold">{t('scriptBuilder.elements')}</h3>
                     <div className="grid grid-cols-2 gap-2">
                         {BLOCK_PALETTE.map(item => (
                             <div key={item.type} draggable onDragStart={e => e.dataTransfer.setData('blockType', item.type)} className="p-2 bg-slate-50 hover:bg-slate-100 rounded-md cursor-grab flex flex-col items-center text-center">
@@ -720,16 +726,16 @@ const ScriptBuilder: React.FC<ScriptBuilderProps> = ({ script, onSave, onClose, 
                     {/* Page Tabs & Zoom controls */}
                     <div className="absolute bottom-4 left-4 z-10 bg-white rounded-lg shadow-md flex items-center border divide-x">
                         <button onClick={() => {}} className="p-2 hover:bg-slate-100 disabled:opacity-50"><ArrowLeftIcon className="w-5 h-5"/></button>
-                        <span className="font-medium text-sm px-3">Page 1 / 1</span>
+                        <span className="font-medium text-sm px-3">{t('scriptBuilder.page_of_pages', { currentPage: 1, totalPages: 1 })}</span>
                         <button onClick={() => {}} className="p-2 hover:bg-slate-100 disabled:opacity-50"><ArrowRightIcon className="w-5 h-5"/></button>
                         <button onClick={handleAddPage} className="p-2 hover:bg-slate-100"><PlusIcon className="w-5 h-5"/></button>
                         <button onClick={() => {}} className="p-2 hover:bg-red-100 disabled:opacity-50 text-slate-600 hover:text-red-600"><TrashIcon className="w-5 h-5"/></button>
                     </div>
                     <div className="absolute bottom-4 right-4 z-10 bg-white rounded-lg shadow-md flex items-center border">
-                        <button onClick={() => setViewTransform(v => ({...v, zoom: v.zoom * 1.2}))} className="p-2 hover:bg-slate-100" title="Zoom avant"><PlusIcon className="w-5 h-5"/></button>
+                        <button onClick={() => setViewTransform(v => ({...v, zoom: v.zoom * 1.2}))} className="p-2 hover:bg-slate-100" title={t('scriptBuilder.zoomIn')}><PlusIcon className="w-5 h-5"/></button>
                         <span className="text-sm font-semibold p-2 w-16 text-center">{Math.round(viewTransform.zoom * 100)}%</span>
-                        <button onClick={() => setViewTransform(v => ({...v, zoom: v.zoom / 1.2}))} className="p-2 hover:bg-slate-100 border-x" title="Zoom arrière"><MinusIcon className="w-5 h-5"/></button>
-                        <button onClick={() => setViewTransform({x:20, y:20, zoom:1})} className="p-2 hover:bg-slate-100" title="Réinitialiser la vue"><ResetViewIcon className="w-5 h-5"/></button>
+                        <button onClick={() => setViewTransform(v => ({...v, zoom: v.zoom / 1.2}))} className="p-2 hover:bg-slate-100 border-x" title={t('scriptBuilder.zoomOut')}><MinusIcon className="w-5 h-5"/></button>
+                        <button onClick={() => setViewTransform({x:20, y:20, zoom:1})} className="p-2 hover:bg-slate-100" title={t('scriptBuilder.resetView')}><ResetViewIcon className="w-5 h-5"/></button>
                     </div>
                 </div>
 

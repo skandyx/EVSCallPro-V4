@@ -268,7 +268,125 @@
       "id": "ID",
       "name": "Nom du Script"
     },
-    "noScripts": "Aucun script ne correspond à votre recherche ou aucun script n'a été créé."
+    "noScripts": "Aucun script ne correspond à votre recherche ou aucun script n'a été créé.",
+    "newScriptName": "Nouveau Script",
+    "newPageName": "Page {number}"
+  },
+  "agentPreview": {
+    "notesHistory": "Historique des remarques",
+    "noNotes": "Aucune remarque pour ce contact.",
+    "addNotePlaceholder": "Ajouter une nouvelle note...",
+    "saveNote": "Enregistrer la note",
+    "dataSaved": "Données enregistrées !",
+    "invalidPhone": "Veuillez renseigner un numéro de téléphone valide pour le nouveau contact.",
+    "contactInserted": "Nouvelle fiche contact insérée avec succès !",
+    "insertError": "Erreur lors de l'insertion : {message}",
+    "selectOption": "-- Sélectionnez --",
+    "unsupportedBlock": "Type de bloc non supporté: {type}",
+    "modal": {
+      "title": "Prévisualisation Agent - {scriptName}",
+      "currentPage": "Page Actuelle: {pageName}",
+      "backToEditor": "Retour à l'éditeur"
+    },
+    "embedded": {
+      "page": "Page:"
+    }
+  },
+  "scriptBuilder": {
+    "elements": "Éléments",
+    "preview": "Prévisualiser",
+    "background": "Fond:",
+    "changeBackgroundColor": "Changer la couleur de fond du script",
+    "page_of_pages": "Page {currentPage} / {totalPages}",
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "resetView": "Réinitialiser la vue",
+    "pageNotFound": "Erreur: Page active non trouvée.",
+    "nameAlreadyExists": "Le nom de bloc \"{name}\" est déjà utilisé sur cette page.",
+    "technicalNameAlreadyExists": "Ce nom génère un identifiant technique (\"{fieldName}\") qui est déjà utilisé. Veuillez choisir un nom légèrement différent.",
+    "palette": {
+      "group": "Groupe",
+      "label": "Titre",
+      "text": "Texte",
+      "input": "Champ de Saisie",
+      "textarea": "Texte Multi-ligne",
+      "email": "Email",
+      "phone": "Téléphone",
+      "date": "Date",
+      "time": "Heure",
+      "radio": "Choix Unique",
+      "checkbox": "Choix Multiples",
+      "dropdown": "Liste Déroulante",
+      "button": "Bouton",
+      "history": "Historique"
+    },
+    "defaults": {
+      "label": "Titre",
+      "text": "Paragraphe de texte...",
+      "placeholder": "Saisir ici...",
+      "emailPlaceholder": "email@example.com",
+      "phonePlaceholder": "0123456789",
+      "question": "Question ?",
+      "radioOption1": "Option 1",
+      "radioOption2": "Option 2",
+      "checkboxOptionA": "Option A",
+      "checkboxOptionB": "Option B",
+      "dropdownValue1": "Valeur 1",
+      "dropdownValue2": "Valeur 2",
+      "buttonText": "Cliquer"
+    },
+    "properties": {
+      "blockNameLabel": "Nom du bloc (visible par l'agent)",
+      "technicalName": "Nom technique:",
+      "tabs": {
+        "content": "Contenu",
+        "style": "Style"
+      },
+      "showField": "Afficher ce champ dans le script",
+      "showFieldHelp": "Masque le champ pour l'agent.",
+      "placeholder": "Placeholder",
+      "format": "Format",
+      "formats": {
+        "text": "Texte",
+        "number": "Nombre",
+        "password": "Mot de passe"
+      },
+      "buttonText": "Texte du bouton",
+      "question": "Question",
+      "options": "Options",
+      "addOption": "Ajouter une option",
+      "newOption": "Nouvelle Option",
+      "historyHelp": "Ce bloc n'a pas de propriétés configurables. Il affichera l'historique des appels du contact.",
+      "blocksInGroup": "Blocs dans le groupe",
+      "dragBlocksHere": "Faites glisser des blocs ici.",
+      "deleteBlockTooltip": "Supprimer le bloc {name}",
+      "readOnly": "Lecture seule",
+      "readOnlyHelp": "L'agent ne pourra pas modifier ce champ.",
+      "width": "Largeur (px)",
+      "height": "Hauteur (px)",
+      "font": "Police",
+      "size": "Taille (px)",
+      "alignment": "Alignement",
+      "background": "Fond",
+      "text": "Texte",
+      "buttonAction": "Action du Bouton",
+      "action": "Action",
+      "destinationPage": "Page de destination",
+      "selectPage": "Sélectionner une page",
+      "deleteBlockButton": "Supprimer \"{name}\""
+    },
+    "actions": {
+      "none": "Aucune action",
+      "next": "Page suivante",
+      "previous": "Page précédente",
+      "navigate": "Aller à la page...",
+      "save": "Enregistrer les données",
+      "insertContact": "Insérer une fiche"
+    },
+    "canvas": {
+      "historyPreview": "Aperçu de l'historique",
+      "deleteBlock": "Supprimer le bloc"
+    }
   },
   "ivrManager": {
     "title": "Flux SVI Sauvegardés",

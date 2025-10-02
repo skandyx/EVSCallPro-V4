@@ -268,7 +268,125 @@
       "id": "ID",
       "name": "Script Name"
     },
-    "noScripts": "No scripts match your search or no scripts have been created."
+    "noScripts": "No scripts match your search or no scripts have been created.",
+    "newScriptName": "New Script",
+    "newPageName": "Page {number}"
+  },
+  "agentPreview": {
+    "notesHistory": "Notes History",
+    "noNotes": "No notes for this contact.",
+    "addNotePlaceholder": "Add a new note...",
+    "saveNote": "Save Note",
+    "dataSaved": "Data saved!",
+    "invalidPhone": "Please provide a valid phone number for the new contact.",
+    "contactInserted": "New contact record inserted successfully!",
+    "insertError": "Error during insertion: {message}",
+    "selectOption": "-- Select --",
+    "unsupportedBlock": "Unsupported block type: {type}",
+    "modal": {
+      "title": "Agent Preview - {scriptName}",
+      "currentPage": "Current Page: {pageName}",
+      "backToEditor": "Back to editor"
+    },
+    "embedded": {
+      "page": "Page:"
+    }
+  },
+  "scriptBuilder": {
+    "elements": "Elements",
+    "preview": "Preview",
+    "background": "Background:",
+    "changeBackgroundColor": "Change script background color",
+    "page_of_pages": "Page {currentPage} / {totalPages}",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "resetView": "Reset view",
+    "pageNotFound": "Error: Active page not found.",
+    "nameAlreadyExists": "The block name \"{name}\" is already in use on this page.",
+    "technicalNameAlreadyExists": "This name generates a technical ID (\"{fieldName}\") that is already in use. Please choose a slightly different name.",
+    "palette": {
+      "group": "Group",
+      "label": "Title",
+      "text": "Text",
+      "input": "Input Field",
+      "textarea": "Multi-line Text",
+      "email": "Email",
+      "phone": "Phone",
+      "date": "Date",
+      "time": "Time",
+      "radio": "Single Choice",
+      "checkbox": "Multiple Choice",
+      "dropdown": "Dropdown List",
+      "button": "Button",
+      "history": "History"
+    },
+    "defaults": {
+      "label": "Title",
+      "text": "Paragraph of text...",
+      "placeholder": "Enter here...",
+      "emailPlaceholder": "email@example.com",
+      "phonePlaceholder": "0123456789",
+      "question": "Question?",
+      "radioOption1": "Option 1",
+      "radioOption2": "Option 2",
+      "checkboxOptionA": "Option A",
+      "checkboxOptionB": "Option B",
+      "dropdownValue1": "Value 1",
+      "dropdownValue2": "Value 2",
+      "buttonText": "Click"
+    },
+    "properties": {
+      "blockNameLabel": "Block name (agent visible)",
+      "technicalName": "Technical name:",
+      "tabs": {
+        "content": "Content",
+        "style": "Style"
+      },
+      "showField": "Show this field in the script",
+      "showFieldHelp": "Hides the field from the agent.",
+      "placeholder": "Placeholder",
+      "format": "Format",
+      "formats": {
+        "text": "Text",
+        "number": "Number",
+        "password": "Password"
+      },
+      "buttonText": "Button text",
+      "question": "Question",
+      "options": "Options",
+      "addOption": "Add option",
+      "newOption": "New Option",
+      "historyHelp": "This block has no configurable properties. It will display the contact's call history.",
+      "blocksInGroup": "Blocks in group",
+      "dragBlocksHere": "Drag blocks here.",
+      "deleteBlockTooltip": "Delete block {name}",
+      "readOnly": "Read only",
+      "readOnlyHelp": "The agent will not be able to edit this field.",
+      "width": "Width (px)",
+      "height": "Height (px)",
+      "font": "Font",
+      "size": "Size (px)",
+      "alignment": "Alignment",
+      "background": "Background",
+      "text": "Text",
+      "buttonAction": "Button Action",
+      "action": "Action",
+      "destinationPage": "Destination page",
+      "selectPage": "Select a page",
+      "deleteBlockButton": "Delete \"{name}\""
+    },
+    "actions": {
+      "none": "No action",
+      "next": "Next page",
+      "previous": "Previous page",
+      "navigate": "Go to page...",
+      "save": "Save data",
+      "insertContact": "Insert contact"
+    },
+    "canvas": {
+      "historyPreview": "History Preview",
+      "deleteBlock": "Delete block"
+    }
   },
   "ivrManager": {
     "title": "Saved IVR Flows",
