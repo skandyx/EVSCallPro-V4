@@ -1,3 +1,4 @@
+// backend/services/db/qualification.queries.js
 const pool = require('./connection');
 const { keysToCamel } = require('./utils');
 
@@ -58,6 +59,34 @@ const saveQualificationGroup = async (group, assignedQualIds, id) => {
 
 const deleteQualificationGroup = async (id) => await pool.query('DELETE FROM qualification_groups WHERE id=$1', [id]);
 
+const getQualificationRepartitionForCampaign = async (campaignId) => {
+    const query = `
+        SELECT
+            q.type,
+            COUNT(ch.id)::int as count
+        FROM call_history ch
+        JOIN qualifications q ON ch.qualification_id = q.id
+        WHERE ch.campaign_id = $1
+        GROUP BY q.type;
+    `;
+    const res = await pool.query(query, [campaignId]);
+    
+    const repartition = {
+        positive: 0,
+        neutral: 0,
+        negative: 0,
+    };
+
+    res.rows.forEach(row => {
+        if (repartition.hasOwnProperty(row.type)) {
+            repartition[row.type] = row.count;
+        }
+    });
+
+    return repartition;
+};
+
+
 module.exports = {
     getQualifications,
     getQualificationGroups,
@@ -65,4 +94,5 @@ module.exports = {
     deleteQualification,
     saveQualificationGroup,
     deleteQualificationGroup,
+    getQualificationRepartitionForCampaign,
 };

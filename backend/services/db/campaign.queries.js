@@ -2,7 +2,8 @@
 
 const pool = require('./connection');
 const { keysToCamel } = require('./utils');
-const { broadcast } = require('../webSocketServer');
+const { broadcast, broadcastToRoom } = require('../webSocketServer');
+const { getQualificationRepartitionForCampaign } = require('./qualification.queries');
 
 const getCampaigns = async () => {
     // This query now correctly fetches assigned user IDs along with contacts.
@@ -263,12 +264,22 @@ const qualifyContact = async (contactId, qualificationId, campaignId, agentId) =
 
         await client.query('COMMIT');
         
-        // --- Step 4: After commit, fetch and broadcast the updated campaign state ---
+        // --- Step 4: After commit, fetch and broadcast updates ---
         const updatedCampaign = await getCampaignById(campaignId);
         broadcast({
             type: 'campaignUpdate',
             payload: updatedCampaign
         });
+        
+        const repartitionData = await getQualificationRepartitionForCampaign(campaignId);
+        broadcastToRoom('superviseur', {
+            type: 'qualificationRepUpdated',
+            payload: {
+                campaignId: campaignId,
+                data: repartitionData,
+            }
+        });
+
 
     } catch (error) {
         await client.query('ROLLBACK');

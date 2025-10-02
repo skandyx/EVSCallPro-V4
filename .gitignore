@@ -22,8 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-# Backup / copy files
-*.copy
-*.bak
-* (1)*
-* (2)*
