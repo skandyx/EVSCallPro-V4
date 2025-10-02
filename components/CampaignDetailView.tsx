@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import type { Campaign, SavedScript, Contact, CallHistoryRecord, Qualification, User, ContactNote, UserGroup, QualificationGroup } from '../types.ts';
 import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon, ChevronDownIcon } from './Icons';
 import ContactHistoryModal from './ContactHistoryModal.tsx';
+import { useI18n } from '../src/i18n/index.tsx';
 
 // Déclaration pour Chart.js via CDN
 declare var Chart: any;
@@ -71,6 +72,7 @@ const formatDuration = (seconds: number) => {
 
 const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts, onRecycleContacts, contactNotes, currentUser } = props;
+    const { t } = useI18n();
     const [activeTab, setActiveTab] = useState<DetailTab>('dashboard');
     
     const [searchTerm, setSearchTerm] = useState('');
@@ -133,13 +135,13 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             }
         });
         return {
-            labels: ['Positives', 'Neutres', 'Négatives'],
+            labels: [t('qualifications.types.positive'), t('qualifications.types.neutral'), t('qualifications.types.negative')],
             datasets: [{
                 data: [counts.positive, counts.neutral, counts.negative],
                 backgroundColor: ['#10b981', '#64748b', '#ef4444'],
             }]
         };
-    }, [campaignCallHistory, qualifications]);
+    }, [campaignCallHistory, qualifications, t]);
 
     const callsByHour = useMemo(() => {
         const hours = Array(24).fill(0);
@@ -153,12 +155,12 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         return {
             labels: Array.from({length: 24}, (_, i) => `${i}h`),
             datasets: [{
-                label: 'Conversions',
+                label: t('campaignDetail.dashboard.charts.conversionsLabel'),
                 data: hours,
                 backgroundColor: 'rgba(79, 70, 229, 0.7)',
             }]
         };
-    }, [campaignCallHistory, qualifications]);
+    }, [campaignCallHistory, qualifications, t]);
 
     const agentPerformance = useMemo(() => {
         const perf: {[key: string]: { name: string, calls: number, conversions: number }} = {};
@@ -196,10 +198,10 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
 
     const columnsToDisplay = useMemo(() => {
         const standardColumns: { id: ContactSortKeys; name: string }[] = [
-            { id: 'lastName', name: 'NOM' },
-            { id: 'firstName', name: 'PRÉNOM' },
-            { id: 'phoneNumber', name: 'TÉLÉPHONE' },
-            { id: 'postalCode', name: 'CODE POSTAL' },
+            { id: 'lastName', name: t('campaignDetail.contacts.headers.lastName') },
+            { id: 'firstName', name: t('campaignDetail.contacts.headers.firstName') },
+            { id: 'phoneNumber', name: t('campaignDetail.contacts.headers.phone') },
+            { id: 'postalCode', name: t('campaignDetail.contacts.headers.postalCode') },
         ];
         
         const customColumns = (script?.pages || [])
@@ -214,10 +216,10 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             sortable: ['lastName', 'firstName', 'phoneNumber', 'postalCode', 'status'].includes(col.id)
         }));
 
-        finalColumns.push({ id: 'status', name: 'STATUT', sortable: true });
+        finalColumns.push({ id: 'status', name: t('campaignDetail.contacts.headers.status'), sortable: true });
         
         return finalColumns;
-    }, [script]);
+    }, [script, t]);
 
     const filteredContacts = useMemo(() => {
         return campaign.contacts.filter(contact => {
@@ -303,34 +305,34 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 <ContactHistoryModal isOpen={true} onClose={() => setHistoryModal({ isOpen: false, contact: null })} contact={historyModal.contact} users={users} qualifications={qualifications} />
             )}
             <header>
-                <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-800 mb-2"><ArrowLeftIcon className="w-5 h-5"/> Retour aux campagnes</button>
+                <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-800 mb-2"><ArrowLeftIcon className="w-5 h-5"/> {t('campaignDetail.backToCampaigns')}</button>
                 <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{campaign.name}</h1>
-                <p className="mt-1 text-lg text-slate-600">{campaign.description || `Script associé: ${script?.name || 'Aucun'}`}</p>
+                <p className="mt-1 text-lg text-slate-600">{campaign.description || t('campaignDetail.associatedScript', { scriptName: script?.name || t('common.none')})}</p>
             </header>
 
             <div className="bg-white rounded-lg shadow-sm border border-slate-200">
                 <div className="border-b border-slate-200"><nav className="-mb-px flex space-x-4 px-6">
-                    <TabButton tab="contacts" label={`Contacts (${campaign.contacts.length})`} icon={UsersIcon} />
-                    <TabButton tab="dashboard" label="Statistiques" icon={ChartBarIcon} />
-                    <TabButton tab="settings" label="Paramètres" icon={Cog6ToothIcon} />
+                    <TabButton tab="contacts" label={t('campaignDetail.tabs.contacts', { count: campaign.contacts.length })} icon={UsersIcon} />
+                    <TabButton tab="dashboard" label={t('campaignDetail.tabs.dashboard')} icon={ChartBarIcon} />
+                    <TabButton tab="settings" label={t('campaignDetail.tabs.settings')} icon={Cog6ToothIcon} />
                 </nav></div>
                 <div className="p-6">
                     {activeTab === 'contacts' && (
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <input type="search" placeholder="Rechercher un contact..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full max-w-sm p-2 border border-slate-300 rounded-md"/>
-                                {canDelete && selectedContactIds.length > 0 && <button onClick={handleDeleteSelected} className="bg-red-100 text-red-700 font-bold py-2 px-4 rounded-lg inline-flex items-center gap-2"><TrashIcon className="w-5 h-5"/>Supprimer la sélection ({selectedContactIds.length})</button>}
+                                <input type="search" placeholder={t('campaignDetail.contacts.searchPlaceholder')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full max-w-sm p-2 border border-slate-300 rounded-md"/>
+                                {canDelete && selectedContactIds.length > 0 && <button onClick={handleDeleteSelected} className="bg-red-100 text-red-700 font-bold py-2 px-4 rounded-lg inline-flex items-center gap-2"><TrashIcon className="w-5 h-5"/>{t('campaignDetail.contacts.deleteSelection', { count: selectedContactIds.length })}</button>}
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-slate-200"><thead className="bg-slate-50"><tr>
                                     <th className="p-4 w-4"><input type="checkbox" checked={isAllOnPageSelected} onChange={handleSelectAllOnPage} className="h-4 w-4 rounded" /></th>
-                                    <SortableHeader sortKey="lastName" label="Nom" />
-                                    <SortableHeader sortKey="firstName" label="Prénom" />
-                                    <SortableHeader sortKey="phoneNumber" label="Téléphone" />
+                                    <SortableHeader sortKey="lastName" label={t('campaignDetail.contacts.headers.lastName')} />
+                                    <SortableHeader sortKey="firstName" label={t('campaignDetail.contacts.headers.firstName')} />
+                                    <SortableHeader sortKey="phoneNumber" label={t('campaignDetail.contacts.headers.phone')} />
                                     <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">QUERRY</th>
-                                    <SortableHeader sortKey="status" label="Statut" />
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Dernière Qualification</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Dernière Remarque</th>
+                                    <SortableHeader sortKey="status" label={t('campaignDetail.contacts.headers.status')} />
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('campaignDetail.contacts.headers.lastQualif')}</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('campaignDetail.contacts.headers.lastNote')}</th>
                                 </tr></thead>
                                 <tbody className="bg-white divide-y divide-slate-200 text-sm">
                                     {paginatedContacts.map(contact => {
@@ -350,13 +352,13 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                     )})}
                                 </tbody>
                                 </table>
-                                {filteredContacts.length === 0 && <p className="text-center py-8 text-slate-500">Aucun contact trouvé.</p>}
+                                {filteredContacts.length === 0 && <p className="text-center py-8 text-slate-500">{t('campaignDetail.contacts.noContacts')}</p>}
                             </div>
                             {totalPages > 1 && <div className="flex justify-between items-center mt-4 text-sm">
-                                <p className="text-slate-600">Page {currentPage} sur {totalPages}</p>
+                                <p className="text-slate-600">{t('campaignDetail.contacts.pagination', { currentPage, totalPages })}</p>
                                 <div className="flex gap-2">
-                                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border rounded-md disabled:opacity-50">Précédent</button>
-                                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border rounded-md disabled:opacity-50">Suivant</button>
+                                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border rounded-md disabled:opacity-50">{t('common.previous')}</button>
+                                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border rounded-md disabled:opacity-50">{t('common.next')}</button>
                                 </div>
                             </div>}
                         </div>
@@ -364,32 +366,37 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                      {activeTab === 'dashboard' && (
                         <div className="space-y-6">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <KpiCard title="Taux d'achèvement" value={`${campaignStats.completionRate.toFixed(1)}%`} />
-                                <KpiCard title="Taux de contact" value={`${campaignStats.contactRate.toFixed(1)}%`} />
-                                <KpiCard title="Taux de conversion" value={`${campaignStats.conversionRate.toFixed(1)}%`} />
-                                <KpiCard title="DMC" value={formatDuration(campaignStats.avgDuration)} />
+                                <KpiCard title={t('campaignDetail.dashboard.kpis.completionRate')} value={`${campaignStats.completionRate.toFixed(1)}%`} />
+                                <KpiCard title={t('campaignDetail.dashboard.kpis.contactRate')} value={`${campaignStats.contactRate.toFixed(1)}%`} />
+                                <KpiCard title={t('campaignDetail.dashboard.kpis.conversionRate')} value={`${campaignStats.conversionRate.toFixed(1)}%`} />
+                                <KpiCard title={t('campaignDetail.dashboard.kpis.aht')} value={formatDuration(campaignStats.avgDuration)} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">Progression du Fichier</h3>
+                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.fileProgress.title')}</h3>
                                 <div className="w-full bg-slate-200 rounded-full h-4">
                                     <div className="bg-indigo-600 h-4 rounded-full text-center text-white text-xs font-bold" style={{ width: `${campaignStats.completionRate}%` }}>
                                         {campaignStats.completionRate.toFixed(0)}%
                                     </div>
                                 </div>
                                 <div className="flex justify-between text-sm mt-1">
-                                    <span>Traitées: {campaignStats.processed}</span>
-                                    <span>Restantes: {campaignStats.pending}</span>
+                                    <span>{t('campaignDetail.dashboard.fileProgress.processed')} {campaignStats.processed}</span>
+                                    <span>{t('campaignDetail.dashboard.fileProgress.remaining')} {campaignStats.pending}</span>
                                 </div>
                             </div>
                             {campaign.quotaRules.length > 0 && (
                                 <div>
-                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">Suivi des Quotas</h3>
+                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.quota.title')}</h3>
                                     <div className="space-y-3">
                                         {campaign.quotaRules.map(rule => (
                                             <div key={rule.id}>
                                                 <div className="flex justify-between text-sm font-medium mb-1">
-                                                    <span>Quota: {rule.contactField} commence par "{rule.value}"</span>
-                                                    <span>Réalisé: {rule.currentCount} / {rule.limit}</span>
+                                                    <span>
+                                                        {rule.operator === 'starts_with' 
+                                                            ? t('campaignDetail.dashboard.quota.ruleStartsWith', { field: rule.contactField, value: rule.value })
+                                                            : t('campaignDetail.dashboard.quota.ruleEquals', { field: rule.contactField, value: rule.value })
+                                                        }
+                                                    </span>
+                                                    <span>{t('campaignDetail.dashboard.quota.achieved')} {rule.currentCount} / {rule.limit}</span>
                                                 </div>
                                                 <div className="w-full bg-slate-200 rounded-full h-2.5">
                                                     <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${rule.limit > 0 ? (rule.currentCount / rule.limit) * 100 : 0}%` }}></div>
@@ -401,22 +408,22 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                             )}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t">
                                 <div>
-                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">Répartition des Qualifications</h3>
+                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.charts.qualifDistributionTitle')}</h3>
                                     <div className="h-64"><ChartComponent type="doughnut" data={qualificationDistribution} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }} }} /></div>
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">Heures de Succès (Conversions)</h3>
+                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.charts.successByHourTitle')}</h3>
                                     <div className="h-64"><ChartComponent type="bar" data={callsByHour} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }} /></div>
                                 </div>
                             </div>
                              <div className="pt-4 border-t">
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">Performance par Qualification</h3>
+                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.tables.qualifPerfTitle')}</h3>
                                 <div className="overflow-x-auto max-h-60 border rounded-md">
                                     <table className="min-w-full divide-y divide-slate-200 text-sm">
                                         <thead className="bg-slate-50 sticky top-0"><tr>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Qualification</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Fiches Traitées</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Taux</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.qualification')}</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.processedRecords')}</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.rate')}</th>
                                         </tr></thead>
                                         <tbody className="bg-white divide-y divide-slate-200">
                                             {qualificationPerformance.map(qual => (
@@ -431,13 +438,13 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                 </div>
                             </div>
                             <div className="pt-4 border-t">
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">Performance par Agent</h3>
+                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.tables.agentPerfTitle')}</h3>
                                 <div className="overflow-x-auto max-h-60 border rounded-md">
                                     <table className="min-w-full divide-y divide-slate-200 text-sm">
                                         <thead className="bg-slate-50 sticky top-0"><tr>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Agent</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Appels Traités</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Conversions</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.agent')}</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.processedCalls')}</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.conversions')}</th>
                                         </tr></thead>
                                         <tbody className="bg-white divide-y divide-slate-200">
                                             {agentPerformance.map(agent => (
@@ -456,14 +463,14 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                     {activeTab === 'settings' && (
                         <div className="space-y-6">
                              <div>
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">Recyclage des Fiches</h3>
-                                <p className="text-sm text-slate-500 mb-4">Réinitialisez le statut des contacts qualifiés pour les rendre de nouveau disponibles pour les agents.</p>
+                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.settings.recycling.title')}</h3>
+                                <p className="text-sm text-slate-500 mb-4">{t('campaignDetail.settings.recycling.description')}</p>
                                 <div className="overflow-x-auto max-h-96 border rounded-md">
                                     <table className="min-w-full divide-y divide-slate-200 text-sm">
                                         <thead className="bg-slate-50 sticky top-0"><tr>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Qualification</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Fiches Traitées</th>
-                                            <th className="px-4 py-2 text-right font-medium text-slate-500 uppercase">Action</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.settings.recycling.headers.qualification')}</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.settings.recycling.headers.processedRecords')}</th>
+                                            <th className="px-4 py-2 text-right font-medium text-slate-500 uppercase">{t('campaignDetail.settings.recycling.headers.action')}</th>
                                         </tr></thead>
                                         <tbody className="bg-white divide-y divide-slate-200">
                                             {qualificationPerformance.filter(q => q.count > 0).map(qual => (
@@ -475,7 +482,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                                             onClick={() => handleRecycleClick(qual.id)}
                                                             className="bg-indigo-100 text-indigo-700 font-semibold text-xs py-1 px-3 rounded-md hover:bg-indigo-200"
                                                         >
-                                                            Recycler
+                                                            {t('campaignDetail.settings.recycling.recycleButton')}
                                                         </button>
                                                     </td>
                                                 </tr>

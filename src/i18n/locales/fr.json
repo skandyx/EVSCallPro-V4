@@ -19,7 +19,10 @@
     "active": "Actif",
     "inactive": "Inactif",
     "search": "Rechercher...",
-    "all": "Tous"
+    "all": "Tous",
+    "none": "Aucun",
+    "previous": "Précédent",
+    "next": "Suivant"
   },
   "alerts": {
     "appDataLoadError": "Impossible de charger les données de l'application.",
@@ -188,7 +191,7 @@
   },
   "groupManager": {
     "modal": {
-        "noAgents": "Aucun agent actif disponible."
+      "noAgents": "Aucun agent actif disponible."
     }
   },
   "outboundCampaignsManager": {
@@ -212,6 +215,7 @@
       "notReadyTooltip": "Champs requis manquants",
       "tabs": {
         "general": "Général",
+        "planning": "Planing",
         "quotas": "Quotas",
         "filters": "Inclusion/Exclusion"
       },
@@ -219,6 +223,9 @@
       "noScript": "Aucun script",
       "qualifGroup": "Groupe de qualifications",
       "dialingMode": "Mode de numérotation",
+      "predictive": "Prédictif",
+      "progressive": "Progressif",
+      "manual": "Manuel",
       "callerId": "Numéro présenté (Caller ID)",
       "wrapUpTime": "Temps de Post-Appel (secondes)",
       "wrapUpTimeHelp": "Durée max pour l'agent en état \"Post-appel\" (max 120s).",
@@ -226,6 +233,29 @@
       "groups": "Groupes",
       "individualAgents": "Agents Individuels",
       "activeCampaign": "Campagne Active",
+      "weekdays": {
+        "monday": "Lundi",
+        "tuesday": "Mardi",
+        "wednesday": "Mercredi",
+        "thursday": "Jeudi",
+        "friday": "Vendredi",
+        "saturday": "Samedi",
+        "sunday": "Dimanche"
+      },
+      "activityDays": "Jours d'activité",
+      "timeRange": "Plage horaire",
+      "startTime": "Heure de début",
+      "endTime": "Heure de fin",
+      "operators": {
+        "equals": "est égal à",
+        "startsWith": "commence par",
+        "contains": "contient",
+        "isNotEmpty": "n'est pas vide"
+      },
+      "value": "Valeur",
+      "limit": "Limite",
+      "include": "Inclure",
+      "exclude": "Exclure",
       "addQuotaRule": "Ajouter une règle de quota",
       "addFilterRule": "Ajouter une règle de filtrage"
     }
@@ -281,13 +311,221 @@
         "status": "Statut",
         "duration": "Durée",
         "calls": "Appels",
-        "avgHandleTime": "TMC",
+        "avgHandleTime": "DMC",
         "actions": "Actions"
       },
       "actions": {
         "contact": "Message pour {agentName} :"
       },
       "noAgents": "Aucun agent connecté pour le moment."
+    }
+  },
+  "agentStatuses": {
+    "EnAttente": "Connecté",
+    "EnAppel": "En appel",
+    "EnPostAppel": "Post-appel",
+    "EnPause": "En Pause",
+    "Ringing": "Sonnerie",
+    "Déconnecté": "Déconnecté",
+    "Miseenattente": "Mise en attente",
+    "Formation": "Formation"
+  },
+  "campaignDetail": {
+    "backToCampaigns": "Retour aux campagnes",
+    "associatedScript": "Script associé: {scriptName}",
+    "tabs": {
+      "contacts": "Contacts ({count})",
+      "dashboard": "Statistiques",
+      "settings": "Paramètres"
+    },
+    "contacts": {
+      "searchPlaceholder": "Rechercher un contact...",
+      "deleteSelection": "Supprimer la sélection ({count})",
+      "headers": {
+        "lastName": "NOM",
+        "firstName": "PRÉNOM",
+        "phone": "TÉLÉPHONE",
+        "postalCode": "CODE POSTAL",
+        "status": "STATUT",
+        "lastQualif": "Dernière Qualification",
+        "lastNote": "Dernière Remarque"
+      },
+      "noContacts": "Aucun contact trouvé.",
+      "pagination": "Page {currentPage} sur {totalPages}"
+    },
+    "dashboard": {
+      "kpis": {
+        "completionRate": "Taux d'achèvement",
+        "contactRate": "Taux de contact",
+        "conversionRate": "Taux de conversion",
+        "aht": "DMC"
+      },
+      "fileProgress": {
+        "title": "Progression du Fichier",
+        "processed": "Traitées:",
+        "remaining": "Restantes:"
+      },
+      "quota": {
+        "title": "Suivi des Quotas",
+        "ruleStartsWith": "Quota: {field} commence par \"{value}\"",
+        "ruleEquals": "Quota: {field} est égal à \"{value}\"",
+        "achieved": "Réalisé:"
+      },
+      "charts": {
+        "qualifDistributionTitle": "Répartition des Qualifications",
+        "successByHourTitle": "Heures de Succès (Conversions)",
+        "conversionsLabel": "Conversions"
+      },
+      "tables": {
+        "qualifPerfTitle": "Performance par Qualification",
+        "agentPerfTitle": "Performance par Agent",
+        "headers": {
+          "qualification": "QUALIFICATION",
+          "processedRecords": "FICHES TRAITÉES",
+          "rate": "TAUX",
+          "agent": "Agent",
+          "processedCalls": "Appels Traités",
+          "conversions": "Conversions"
+        }
+      }
+    },
+    "settings": {
+      "recycling": {
+        "title": "Recyclage des Fiches",
+        "description": "Réinitialisez le statut des contacts qualifiés pour les rendre de nouveau disponibles pour les agents.",
+        "headers": {
+          "qualification": "Qualification",
+          "processedRecords": "Fiches Traitées",
+          "action": "Action"
+        },
+        "recycleButton": "Recycler"
+      }
+    }
+  },
+  "qualifications": {
+    "types": {
+      "positive": "Positives",
+      "neutral": "Neutres",
+      "negative": "Négatives"
+    }
+  },
+  "contactHistory": {
+    "title": "Historique du contact",
+    "loading": "Chargement de l'historique...",
+    "kpis": {
+      "totalCalls": "Appels Totaux",
+      "talkTime": "Temps de Com.",
+      "uniqueAgents": "Agents Uniques",
+      "positiveQuals": "Qualifications Positives"
+    },
+    "timelineTitle": "Chronologie des Interactions",
+    "callBy": "Appel par {agentName}",
+    "noteBy": "Note par {agentName}",
+    "duration": "Durée:",
+    "qualification": "Qualification:",
+    "noHistory": "Aucun historique d'interaction pour ce contact."
+  },
+  "reporting": {
+    "exportPdf": "Exporter en PDF",
+    "filters": {
+      "dateRange": "Période Prédéfinie",
+      "from": "Du",
+      "to": "Au",
+      "campaign": "Campagne",
+      "agent": "Agent",
+      "dateRanges": {
+        "last7days": "7 derniers jours",
+        "last30days": "30 derniers jours",
+        "thisMonth": "Ce mois-ci"
+      },
+      "allCampaigns": "Toutes les campagnes",
+      "allAgents": "Tous les agents"
+    },
+    "kpis": {
+      "processedCalls": "Appels Traités",
+      "totalTalkTime": "Temps Total de Conversation",
+      "avgCallDuration": "Durée Moyenne d'Appel",
+      "successRate": "Taux de Succès",
+      "occupancyRate": "Taux d'Occupation (Simulé)",
+      "activeAgents": "Agents Actifs",
+      "totalLoginTime": "Temps de Connexion Total",
+      "avgAdherence": "Adhérence Moyenne au Planning"
+    },
+    "tabs": {
+      "charts": "Graphiques",
+      "timesheet": "Feuille de Temps",
+      "campaign": "Par Campagne",
+      "agent": "Par Agent",
+      "history": "Historique des Appels"
+    },
+    "charts": {
+      "dailyVolumeTitle": "Volume d'appels par jour",
+      "callCountLabel": "Nombre d'appels",
+      "callsByCampaignTitle": "Répartition des appels par campagne",
+      "successByAgentTitle": "Taux de succès par agent",
+      "successRateLabel": "Taux de Succès (%)",
+      "adherenceByAgentTitle": "Adhérence moyenne au planning",
+      "avgAdherenceLabel": "Adhérence Moyenne (min)"
+    },
+    "tables": {
+      "campaignPerf": {
+        "title": "Performances par Campagne",
+        "headers": {
+          "campaign": "Campagne",
+          "calls": "Appels",
+          "totalDuration": "Durée Totale",
+          "avgDuration": "Durée Moyenne",
+          "successRate": "Taux de Succès"
+        }
+      },
+      "agentPerf": {
+        "titleCalls": "Performances par Agent (Appels)",
+        "titleTimesheet": "Performances par Agent (Temps de Présence)",
+        "headers": {
+          "agent": "Agent",
+          "calls": "Appels",
+          "totalDuration": "Durée Totale",
+          "avgDuration": "Durée Moyenne",
+          "successRate": "Taux de Succès",
+          "daysWorked": "Jours Travaillés",
+          "totalLoginDuration": "Durée Connexion Totale",
+          "avgAdherence": "Adhérence Moyenne"
+        }
+      },
+      "timesheet": {
+        "title": "Journal de Présence (Login/Logout)",
+        "headers": {
+          "date": "Date",
+          "agent": "Agent",
+          "firstLogin": "1er Login",
+          "lastLogout": "Dern. Logout",
+          "totalDuration": "Durée Totale",
+          "adherence": "Adhérence"
+        }
+      },
+      "callHistory": {
+        "title": "Historique des Appels",
+        "headers": {
+          "dateTime": "Date & Heure",
+          "agent": "Agent",
+          "campaign": "Campagne",
+          "number": "Numéro",
+          "duration": "Durée",
+          "qualification": "Qualification"
+        }
+      }
+    },
+    "noCallData": "Aucune donnée d'appel pour les filtres sélectionnés.",
+    "noSessionData": "Aucune donnée de session pour les filtres sélectionnés.",
+    "pdf": {
+      "title": "Rapport Analytique Détaillé",
+      "period": "Période du {startDate} au {endDate} - Généré le {today}",
+      "kpiTitle": "Indicateurs de Performance Clés (KPIs)",
+      "callKpis": "Indicateurs d'Appels",
+      "value": "Valeur",
+      "timesheetKpis": "Indicateurs de Temps de Présence",
+      "detailedAnalysis": "Analyses Détaillées",
+      "detailedLogs": "Journaux Détaillés"
     }
   },
   "systemSettings": {

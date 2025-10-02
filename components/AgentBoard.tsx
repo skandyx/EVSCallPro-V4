@@ -10,16 +10,15 @@ interface AgentBoardProps {
     onContactAgent: (agentId: string, agentName: string, message: string) => void;
 }
 
-const STATUS_CONFIG: { [key in AgentStatus]: { label: string; color: string } } = {
-    'En Attente': { label: 'Connecté', color: 'bg-green-100 text-green-800' },
-    'En Appel': { label: 'En appel', color: 'bg-red-100 text-red-800' },
-    'En Post-Appel': { label: 'Post-appel', color: 'bg-yellow-100 text-yellow-800' },
-    'En Pause': { label: 'En Pause', color: 'bg-orange-100 text-orange-800' },
-    'Ringing': { label: 'Sonnerie', color: 'bg-blue-100 text-blue-800' },
-    'Déconnecté': { label: 'Déconnecté', color: 'bg-gray-100 text-gray-800' },
-    'Mise en attente': { label: 'Mise en attente', color: 'bg-purple-100 text-purple-800' },
-    // FIX: Added 'Formation' status to resolve TypeScript error and ensure UI consistency.
-    'Formation': { label: 'Formation', color: 'bg-purple-100 text-purple-800' },
+const STATUS_CONFIG: { [key in AgentStatus]?: { labelKey: string; color: string } } = {
+    'En Attente': { labelKey: 'agentStatuses.EnAttente', color: 'bg-green-100 text-green-800' },
+    'En Appel': { labelKey: 'agentStatuses.EnAppel', color: 'bg-red-100 text-red-800' },
+    'En Post-Appel': { labelKey: 'agentStatuses.EnPostAppel', color: 'bg-yellow-100 text-yellow-800' },
+    'En Pause': { labelKey: 'agentStatuses.EnPause', color: 'bg-orange-100 text-orange-800' },
+    'Ringing': { labelKey: 'agentStatuses.Ringing', color: 'bg-blue-100 text-blue-800' },
+    'Déconnecté': { labelKey: 'agentStatuses.Déconnecté', color: 'bg-gray-100 text-gray-800' },
+    'Mise en attente': { labelKey: 'agentStatuses.Miseenattente', color: 'bg-purple-100 text-purple-800' },
+    'Formation': { labelKey: 'agentStatuses.Formation', color: 'bg-purple-100 text-purple-800' },
 };
 
 const getStatusLedColor = (status: AgentStatus): string => {
@@ -92,6 +91,7 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall, o
                         const agentFullName = `${agent.firstName} ${agent.lastName}`;
                         const canCoach = hasPermission && agent.status === 'En Appel';
                         const canForcePause = hasPermission && agent.status !== 'En Pause';
+                        const statusConfig = STATUS_CONFIG[agent.status];
                         return (
                         <tr key={agent.id}>
                             <td className="px-4 py-3">
@@ -111,8 +111,8 @@ const AgentBoard: React.FC<AgentBoardProps> = ({ agents, currentUser, apiCall, o
                                 </div>
                             </td>
                             <td className="px-4 py-3">
-                                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${STATUS_CONFIG[agent.status]?.color || 'bg-gray-100 text-gray-800'}`}>
-                                    {STATUS_CONFIG[agent.status]?.label || agent.status}
+                                <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusConfig?.color || 'bg-gray-100 text-gray-800'}`}>
+                                    {statusConfig ? t(statusConfig.labelKey) : agent.status}
                                 </span>
                             </td>
                             <td className="px-4 py-3 font-mono text-slate-600">{formatDuration(agent.statusDuration)}</td>
