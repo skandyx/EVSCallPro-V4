@@ -222,7 +222,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             }
         }]
     }), [qualificationPerformanceForChart, qualColorMap]);
-
+    
     const treemapOptions = useMemo(() => ({
         responsive: true,
         maintainAspectRatio: false,
@@ -251,6 +251,65 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         }
     }), [t]);
     
+    //
+    // --- START: DASHBOARD 2 LOGIC (FIXED) ---
+    //
+    const treemapChartData2 = useMemo(() => {
+        const qualCountsByType = qualificationPerformanceForChart.reduce((acc, qual) => {
+            if (qual.count > 0) {
+                acc[qual.type] = (acc[qual.type] || 0) + qual.count;
+            }
+            return acc;
+        }, { positive: 0, neutral: 0, negative: 0 });
+
+        const treeData = [
+            {
+                name: 'positive',
+                value: qualCountsByType.positive,
+                children: qualificationPerformanceForChart.filter(q => q.type === 'positive' && q.count > 0).map(q => ({ name: q.description, id: q.id, type: q.type, value: q.count }))
+            },
+            {
+                name: 'neutral',
+                value: qualCountsByType.neutral,
+                children: qualificationPerformanceForChart.filter(q => q.type === 'neutral' && q.count > 0).map(q => ({ name: q.description, id: q.id, type: q.type, value: q.count }))
+            },
+            {
+                name: 'negative',
+                value: qualCountsByType.negative,
+                children: qualificationPerformanceForChart.filter(q => q.type === 'negative' && q.count > 0).map(q => ({ name: q.description, id: q.id, type: q.type, value: q.count }))
+            }
+        ].filter(group => group.value > 0);
+
+        return {
+            datasets: [{
+                tree: treeData,
+                key: 'value',
+                groups: ['name'],
+                backgroundColor: (ctx: any) => {
+                    if (!ctx.raw) return '#6b7280';
+                    const node = ctx.raw;
+                    const map: Record<string, string> = { positive: '#22c55e', neutral: '#6b7280', negative: '#ef4444' };
+                    // If it's a child node (a specific qualification), use a vibrant color from the palette
+                    if (node._data.id) {
+                         // Find the original qualification to use the shared color map
+                         return qualColorMap.get(node._data.id) || map[node._data.type] || '#6b7280';
+                    }
+                    // If it's a group node, use the semantic color
+                    return map[node.g] || '#6b7280';
+                },
+                borderWidth: 1,
+                borderColor: 'white',
+                spacing: 1,
+                labels: {
+                    display: true,
+                    color: 'white',
+                    font: { weight: 'bold', size: 12 },
+                    formatter: (ctx: any) => ctx.raw._data.name,
+                }
+            }]
+        };
+    }, [qualificationPerformanceForChart, qualColorMap]);
+
     const treemapOptions2 = useMemo(() => ({
         responsive: true,
         maintainAspectRatio: false,
@@ -258,45 +317,33 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             legend: { display: false },
             tooltip: {
                 callbacks: {
-                    label: (context: any) => {
-                        const node = context.raw?._data;
-                        if (!node) return '';
-                        if (node.g) return `${t(`qualifications.types.${node.g}`)}: ${node.v} appels`;
-                        if (node.s) return `${node.s.description}: ${node.s.count} appels`;
-                        return '';
+                    label: (item: any) => {
+                        const node = item.raw;
+                        const count = node.v;
+                        const total = qualificationPerformanceForChart.reduce((sum, q) => sum + q.count, 0);
+                        const percent = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+                        return `${node._data.name}: ${count} (${percent}%)`;
                     }
                 }
             },
         },
-        onClick: (evt: any, elements: any) => {
-            if (!elements.length) return;
-            const node = elements[0].element.$context.raw._data;
-            if (node.g) {
-                setTreemapFilter2({ type: node.g, qualificationId: null });
-            } else if (node.s) {
-                setTreemapFilter2({ type: node.s.type, qualificationId: node.s.id });
+        onClick: (event: any, elems: any) => {
+            if (elems.length) {
+                const node = elems[0].element.$context.raw._data;
+                // If we clicked on a specific qualification (leaf node)
+                if (node.id) {
+                    setTreemapFilter2({ type: node.type, qualificationId: node.id });
+                }
+                // If we clicked on a group
+                else if (node.name) {
+                     setTreemapFilter2({ type: node.name, qualificationId: null });
+                }
+            } else {
+                // Clicked outside, reset filter
+                setTreemapFilter2({ type: null, qualificationId: null });
             }
-        }
-    }), [t]);
-
-    const callsByHour = useMemo(() => {
-        const hours = Array(24).fill(0);
-        filteredDataForTables.forEach(call => {
-            const qual = qualifications.find(q => q.id === call.qualificationId);
-            if (qual?.type === 'positive') {
-                const hour = new Date(call.timestamp).getHours();
-                hours[hour]++;
-            }
-        });
-        return {
-            labels: Array.from({length: 24}, (_, i) => `${i}h`),
-            datasets: [{
-                label: t('campaignDetail.dashboard.charts.conversionsLabel'),
-                data: hours,
-                backgroundColor: 'rgba(79, 70, 229, 0.7)',
-            }]
-        };
-    }, [filteredDataForTables, qualifications, t]);
+        },
+    }), [qualificationPerformanceForChart]);
     
     const getFilteredDataForDashboard2 = useMemo(() => {
         const isFilterActive = treemapFilter2.type || treemapFilter2.qualificationId;
@@ -325,7 +372,28 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         });
         return Object.values(perf).sort((a,b) => b.conversions - a.conversions || b.calls - a.calls);
     }, [getFilteredDataForDashboard2, users, qualifications]);
+    //
+    // --- END: DASHBOARD 2 LOGIC ---
+    //
 
+    const callsByHour = useMemo(() => {
+        const hours = Array(24).fill(0);
+        filteredDataForTables.forEach(call => {
+            const qual = qualifications.find(q => q.id === call.qualificationId);
+            if (qual?.type === 'positive') {
+                const hour = new Date(call.timestamp).getHours();
+                hours[hour]++;
+            }
+        });
+        return {
+            labels: Array.from({length: 24}, (_, i) => `${i}h`),
+            datasets: [{
+                label: t('campaignDetail.dashboard.charts.conversionsLabel'),
+                data: hours,
+                backgroundColor: 'rgba(79, 70, 229, 0.7)',
+            }]
+        };
+    }, [filteredDataForTables, qualifications, t]);
 
     const agentPerformance = useMemo(() => {
         const perf: {[key: string]: { name: string, calls: number, conversions: number }} = {};
@@ -640,7 +708,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                 )}
                             </div>
                             <div className="h-80 w-full bg-slate-50 p-4 rounded-lg border">
-                                <ChartComponent type="treemap" data={treemapChartData} options={treemapOptions2} />
+                                <ChartComponent type="treemap" data={treemapChartData2} options={treemapOptions2} />
                             </div>
                              <div className="pt-4 border-t">
                                 <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.tables.agentPerfTitle')}</h3>
