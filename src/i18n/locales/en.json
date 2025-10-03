@@ -196,7 +196,7 @@
   },
   "outboundCampaignsManager": {
     "title": "Campaigns",
-    "createCampaign": "Create Campaign",
+    "createCampaign": "Create a campaign",
     "headers": {
       "name": "Name",
       "id": "ID",
@@ -228,7 +228,7 @@
       "manual": "Manual",
       "callerId": "Caller ID",
       "wrapUpTime": "Wrap-up Time (seconds)",
-      "wrapUpTimeHelp": "Max duration for an agent in 'Wrap-up' state (max 120s).",
+      "wrapUpTimeHelp": "Max duration for agent in 'Wrap-up' state (max 120s).",
       "assignedAgents": "Assigned Agents & Groups",
       "groups": "Groups",
       "individualAgents": "Individual Agents",
@@ -243,9 +243,13 @@
         "sunday": "Sunday"
       },
       "activityDays": "Activity Days",
-      "timeRange": "Time Range",
-      "startTime": "Start Time",
-      "endTime": "End Time",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "fields": {
+        "postalCode": "Postal Code",
+        "phoneNumber": "Phone Number",
+        "lastName": "Last Name"
+      },
       "operators": {
         "equals": "equals",
         "startsWith": "starts with",
