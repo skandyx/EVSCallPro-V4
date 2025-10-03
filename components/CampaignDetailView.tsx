@@ -186,7 +186,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             borderColor: 'white',
             captions: {
                 display: true,
-                color: 'white',
+                color: '#475569', // slate-600
                 font: { weight: 'bold' }
             },
             labels: {
@@ -196,7 +196,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 formatter: (ctx: any) => {
                     if (!ctx.raw) return null;
                     const node = ctx.raw._data;
-                    return node.s ? node.s.description : node.g;
+                    return node.s ? node.s.description : null;
                 }
             },
             backgroundColor: (ctx: any) => {
@@ -208,6 +208,11 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 if (node.g === 'positive') return 'rgba(34, 197, 94, 0.2)';
                 if (node.g === 'negative') return 'rgba(239, 68, 68, 0.2)';
                 if (node.g === 'neutral') return 'rgba(100, 116, 139, 0.2)';
+                if (node.s) { // Standard qual color fallback
+                    if (node.s.type === 'positive') return 'rgba(34, 197, 94, 0.7)';
+                    if (node.s.type === 'negative') return 'rgba(239, 68, 68, 0.7)';
+                    return 'rgba(100, 116, 139, 0.7)';
+                }
                 return 'rgba(200, 200, 200, 0.5)';
             }
         }]
