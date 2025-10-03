@@ -1,3 +1,4 @@
+
 {
   "common": {
     "loading": "Loading",
@@ -723,7 +724,10 @@
       "selectActivity": "Select an activity",
       "start": "Start",
       "end": "End",
-      "validationError": "Please select a target (agent/group) and an activity."
+      "validationError": "Please select a target (agent/group) and an activity.",
+      "recurringEvent": "Recurring event",
+      "repeatOn": "Repeat on",
+      "recurrenceEnd": "Recurrence end"
     }
   },
   "weekdays": {
@@ -733,7 +737,16 @@
     "thursday": "Thursday",
     "friday": "Friday",
     "saturday": "Saturday",
-    "sunday": "Sunday"
+    "sunday": "Sunday",
+    "short": {
+        "monday": "M",
+        "tuesday": "T",
+        "wednesday": "W",
+        "thursday": "T",
+        "friday": "F",
+        "saturday": "S",
+        "sunday": "S"
+    }
   },
   "features": {
     "users": {

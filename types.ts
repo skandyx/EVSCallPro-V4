@@ -399,6 +399,9 @@ export interface PlanningEvent {
     activityId: string;
     startDate: string; // ISO String
     endDate: string; // ISO String
+    isRecurring?: boolean;
+    recurringDays?: number[]; // 1 for Monday, 7 for Sunday
+    recurrenceEndDate?: string; // ISO String for the end date of the recurrence
 }
 
 export interface PersonalCallback {

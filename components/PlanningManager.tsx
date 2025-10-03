@@ -16,6 +16,23 @@ interface PlanningManagerProps {
 const HOUR_HEIGHT = 60; // 60px per hour
 const HEADER_HEIGHT = 40; // h-10 -> 2.5rem -> 40px
 
+const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void; disabled?: boolean; }> = ({ enabled, onChange, disabled }) => (
+    <button
+        type="button"
+        onClick={() => !disabled && onChange(!enabled)}
+        className={`${enabled ? 'bg-primary' : 'bg-slate-200'} ${disabled ? 'cursor-not-allowed opacity-50' : ''} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`}
+        role="switch"
+        aria-checked={enabled}
+        disabled={disabled}
+    >
+        <span
+            aria-hidden="true"
+            className={`${enabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+        />
+    </button>
+);
+
+
 // --- PlanningEventModal ---
 interface PlanningEventModalProps {
     event: Partial<PlanningEvent> | null;
@@ -39,12 +56,37 @@ const PlanningEventModal: React.FC<PlanningEventModalProps> = ({ event, onSave, 
         endDate: event?.endDate || new Date().toISOString(),
     });
 
+    const [isRecurring, setIsRecurring] = useState(event?.isRecurring || false);
+    const [recurringDays, setRecurringDays] = useState<number[]>(event?.recurringDays || []);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 7);
+    const [recurrenceEndDate, setRecurrenceEndDate] = useState(
+        event?.recurrenceEndDate ? new Date(event.recurrenceEndDate).toISOString().split('T')[0] : tomorrow.toISOString().split('T')[0]
+    );
+    
+    const WEEK_DAYS_SHORT = useMemo(() => [
+        { label: t('weekdays.short.monday'), value: 1 }, { label: t('weekdays.short.tuesday'), value: 2 },
+        { label: t('weekdays.short.wednesday'), value: 3 }, { label: t('weekdays.short.thursday'), value: 4 },
+        { label: t('weekdays.short.friday'), value: 5 }, { label: t('weekdays.short.saturday'), value: 6 },
+        { label: t('weekdays.short.sunday'), value: 7 }
+    ], [t]);
+
+    const handleDayToggle = (dayValue: number) => {
+        setRecurringDays(prev => prev.includes(dayValue) ? prev.filter(d => d !== dayValue) : [...prev, dayValue]);
+    };
+
     const handleSave = () => {
         if (!targetId || !formData.activityId) {
             alert(t('planning.modal.validationError'));
             return;
         }
-        onSave(formData, targetId);
+        const saveData: Omit<PlanningEvent, 'id' | 'agentId'> = {
+            ...formData,
+            isRecurring: isRecurring && !isEditing, // Recurrence only for new events
+            recurringDays: isRecurring && !isEditing ? recurringDays : undefined,
+            recurrenceEndDate: isRecurring && !isEditing ? new Date(recurrenceEndDate).toISOString() : undefined
+        };
+        onSave(saveData, targetId);
         onClose();
     };
 
@@ -82,6 +124,30 @@ const PlanningEventModal: React.FC<PlanningEventModalProps> = ({ event, onSave, 
                                 <label className="text-sm font-medium text-slate-700">{t('planning.modal.end')}</label>
                                 <input type="datetime-local" value={new Date(new Date(formData.endDate).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} onChange={e => setFormData(f => ({...f, endDate: new Date(e.target.value).toISOString()}))} className="mt-1 w-full p-2 border rounded-md"/>
                             </div>
+                        </div>
+                        <div className="pt-4 border-t">
+                            <div className="flex items-center justify-between">
+                                <label className={`text-sm font-medium ${isEditing ? 'text-slate-400' : 'text-slate-700'}`}>{t('planning.modal.recurringEvent')}</label>
+                                <ToggleSwitch enabled={isRecurring} onChange={setIsRecurring} disabled={isEditing} />
+                            </div>
+                            {isRecurring && !isEditing && (
+                                <div className="mt-4 space-y-4">
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-700">{t('planning.modal.repeatOn')}</label>
+                                        <div className="mt-2 flex justify-between">
+                                            {WEEK_DAYS_SHORT.map(day => (
+                                                <button key={day.value} type="button" onClick={() => handleDayToggle(day.value)} className={`w-8 h-8 rounded-full font-bold text-xs transition-colors ${recurringDays.includes(day.value) ? 'bg-primary text-primary-text' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}>
+                                                    {day.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-slate-700">{t('planning.modal.recurrenceEnd')}</label>
+                                        <input type="date" value={recurrenceEndDate} onChange={e => setRecurrenceEndDate(e.target.value)} className="mt-1 w-full p-2 border rounded-md"/>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -178,48 +244,82 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
         endDate.setHours(hour + 1, 0, 0, 0);
         
         let agentId = '';
-        const [type, id] = selectedTargetId.split('-');
-        if(type === 'user') agentId = id;
+        if (selectedTargetId.startsWith('user-')) {
+            agentId = selectedTargetId.substring(5);
+        }
         
         setModalState({ isOpen: true, event: { agentId, startDate: startDate.toISOString(), endDate: endDate.toISOString() } });
     }
     
     const handleModalSave = (eventData: Omit<PlanningEvent, 'id' | 'agentId'>, targetId: string) => {
         const isEditing = !!modalState.event?.id;
-        
-        // FIX: Replaced split('-') with substring logic to correctly handle IDs that contain hyphens.
+    
+        if (isEditing && modalState.event) {
+            // FIX: Explicitly provide 'id' and 'agentId' from modalState.event to satisfy the PlanningEvent type.
+            // TypeScript couldn't infer that these properties were guaranteed to exist in an editing context.
+            const updatedEvent: PlanningEvent = {
+                ...modalState.event,
+                id: modalState.event.id!,
+                agentId: modalState.event.agentId!,
+                activityId: eventData.activityId,
+                startDate: eventData.startDate,
+                endDate: eventData.endDate,
+            };
+            onSavePlanningEvent(updatedEvent);
+            return;
+        }
+    
+        const agentsToSchedule: string[] = [];
         const type = targetId.substring(0, targetId.indexOf('-'));
         const id = targetId.substring(targetId.indexOf('-') + 1);
-
+    
         if (type === 'group') {
             const group = userGroups.find(g => g.id === id);
-            if (group) {
-                group.memberIds.forEach((memberId, index) => {
-                    const newEvent: PlanningEvent = {
-                        ...eventData,
-                        id: `plan-${Date.now() + index}`,
-                        agentId: memberId
-                    };
-                    onSavePlanningEvent(newEvent);
-                });
-            }
+            if (group) agentsToSchedule.push(...group.memberIds);
         } else if (type === 'user') {
-            if (isEditing && modalState.event) {
-                const updatedEvent: PlanningEvent = {
-                    id: modalState.event.id!,
-                    agentId: modalState.event.agentId!,
+            agentsToSchedule.push(id);
+        }
+    
+        if (agentsToSchedule.length === 0) return;
+    
+        if (eventData.isRecurring && eventData.recurringDays?.length && eventData.recurrenceEndDate) {
+            const recurrenceStart = new Date(eventData.startDate);
+            const recurrenceEnd = new Date(eventData.recurrenceEndDate);
+            recurrenceEnd.setHours(23, 59, 59, 999);
+    
+            const durationMs = new Date(eventData.endDate).getTime() - new Date(eventData.startDate).getTime();
+    
+            let currentDate = new Date(recurrenceStart);
+            while (currentDate <= recurrenceEnd) {
+                const dayOfWeek = currentDate.getDay() === 0 ? 7 : currentDate.getDay();
+    
+                if (eventData.recurringDays.includes(dayOfWeek)) {
+                    const instanceStartDate = new Date(currentDate);
+                    instanceStartDate.setHours(recurrenceStart.getHours(), recurrenceStart.getMinutes(), 0, 0);
+                    
+                    const instanceEndDate = new Date(instanceStartDate.getTime() + durationMs);
+    
+                    for (const agentId of agentsToSchedule) {
+                        onSavePlanningEvent({
+                            id: `plan-${Date.now()}-${Math.random()}`,
+                            agentId: agentId,
+                            activityId: eventData.activityId,
+                            startDate: instanceStartDate.toISOString(),
+                            endDate: instanceEndDate.toISOString(),
+                        });
+                    }
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+        } else {
+            for (const agentId of agentsToSchedule) {
+                onSavePlanningEvent({
+                    id: `plan-${Date.now()}-${Math.random()}`,
+                    agentId: agentId,
                     activityId: eventData.activityId,
                     startDate: eventData.startDate,
                     endDate: eventData.endDate,
-                };
-                onSavePlanningEvent(updatedEvent);
-            } else {
-                const newEvent: PlanningEvent = {
-                    ...eventData,
-                    id: `plan-${Date.now()}`,
-                    agentId: id,
-                };
-                onSavePlanningEvent(newEvent);
+                });
             }
         }
     };
@@ -304,10 +404,10 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
             const eventStart = new Date(event.startDate);
             if (eventEnd < weekInfo.start || eventStart > weekInfo.end) return false;
             if (selectedTargetId === 'all') return true;
-            const [type, id] = selectedTargetId.split('-');
-            if (type === 'user') return event.agentId === id;
-            if (type === 'group') {
-                const group = userGroups.find(g => g.id === id);
+            if (selectedTargetId.startsWith('user-')) return event.agentId === selectedTargetId.substring(5);
+            if (selectedTargetId.startsWith('group-')) {
+                const groupId = selectedTargetId.substring(6);
+                const group = userGroups.find(g => g.id === groupId);
                 return group ? group.memberIds.includes(event.agentId) : false;
             }
             return false;
@@ -321,12 +421,31 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
     }, [planningEvents, weekInfo, selectedTargetId, userGroups, ghostEvent]);
 
     const eventsToRender = useMemo(() => {
-        const segments: Array<{ id: string; originalEvent: PlanningEvent; startDate: Date; endDate: Date; isStart: boolean; isEnd: boolean; }> = [];
+        const segmentsWithLayout: Array<{ 
+            id: string; 
+            originalEvent: PlanningEvent; 
+            startDate: Date; 
+            endDate: Date; 
+            isStart: boolean; 
+            isEnd: boolean;
+            totalInGroup: number;
+            indexInGroup: number;
+        }> = [];
+        
         eventsToDisplay.forEach(event => {
             const start = new Date(event.startDate);
             const end = new Date(event.endDate);
             
-            // Clamp event rendering to the visible week
+            const overlaps = eventsToDisplay.filter(e => 
+                e.id !== event.id && 
+                new Date(e.startDate) < end && 
+                new Date(e.endDate) > start
+            ).sort((a,b) => a.id.localeCompare(b.id));
+
+            const collisionGroup = [event, ...overlaps];
+            const totalInGroup = collisionGroup.length;
+            const indexInGroup = collisionGroup.findIndex(e => e.id === event.id);
+
             const renderStart = start > weekInfo.start ? start : weekInfo.start;
             const renderEnd = end < weekInfo.end ? end : weekInfo.end;
 
@@ -341,19 +460,21 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                 const segmentEnd = dayEnd < renderEnd ? dayEnd : renderEnd;
 
                 if (segmentStart < segmentEnd) {
-                    segments.push({
+                    segmentsWithLayout.push({
                         id: `${event.id}-${currentDay.toISOString().split('T')[0]}`,
                         originalEvent: event,
                         startDate: segmentStart,
                         endDate: segmentEnd,
                         isStart: start.getTime() >= segmentStart.getTime() && start.getTime() < segmentEnd.getTime(),
                         isEnd: end.getTime() > segmentStart.getTime() && end.getTime() <= segmentEnd.getTime(),
+                        totalInGroup,
+                        indexInGroup,
                     });
                 }
                 currentDay.setDate(currentDay.getDate() + 1);
             }
         });
-        return segments;
+        return segmentsWithLayout;
     }, [eventsToDisplay, weekInfo.start, weekInfo.end]);
 
 
@@ -421,7 +542,7 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                         ))}
                         <div className="absolute top-[40px] left-0 right-0 bottom-0 pointer-events-none">
                            {eventsToRender.map(segment => {
-                                const { originalEvent, startDate, endDate, isStart, isEnd } = segment;
+                                const { originalEvent, startDate, endDate, isStart, isEnd, totalInGroup, indexInGroup } = segment;
                                 const isDraggingGhost = ghostEvent?.id === originalEvent.id;
                                 const startDayIndex = (startDate.getDay() + 6) % 7;
                                 const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
@@ -429,23 +550,28 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                                 
                                 const top = (startMinutes / 60) * HOUR_HEIGHT;
                                 const height = (durationMinutes / 60) * HOUR_HEIGHT;
-                                const left = `${(startDayIndex / 7) * 100}%`;
-                                const width = `${(1 / 7) * 100}%`;
+
+                                const dayBaseWidth = 100 / 7;
+                                const eventWidth = dayBaseWidth / totalInGroup;
+                                const eventLeftOffset = (indexInGroup * eventWidth);
+                                const left = `calc(${(startDayIndex * dayBaseWidth)}% + ${eventLeftOffset}%)`;
+                                const width = `${eventWidth}%`;
                                 
                                 const activity = activityTypes.find(a => a.id === originalEvent.activityId);
                                 const agent = users.find(u => u.id === originalEvent.agentId);
+                                const agentName = agent ? `${agent.firstName} ${agent.lastName}` : 'Agent inconnu';
 
                                 return (
                                     <div
                                         key={segment.id}
                                         onClick={e => { e.stopPropagation(); setModalState({ isOpen: true, event: originalEvent })}}
                                         onMouseDown={e => handleEventMouseDown(e, originalEvent, false)}
-                                        className={`absolute p-1 rounded-sm shadow-sm border overflow-hidden flex flex-col pointer-events-auto ${isDraggingGhost ? 'opacity-70 z-30' : 'cursor-grab'}`}
+                                        className={`absolute p-1 rounded-sm shadow-sm border overflow-hidden flex flex-col pointer-events-auto transition-all duration-75 ${isDraggingGhost ? 'opacity-70 z-30' : 'cursor-grab'}`}
                                         style={{ top: `${top}px`, height: `${Math.max(height, 15)}px`, left, width, backgroundColor: activity?.color || '#ccc', borderColor: activity ? `${activity.color}99` : '#bbb' }}
-                                        title={`${activity?.name} - ${agent?.firstName} ${agent?.lastName}`}
+                                        title={`${activity?.name} - ${agentName}`}
                                     >
                                         {isStart && <p className="font-bold text-white text-xs truncate">{activity?.name}</p>}
-                                        {isStart && selectedTargetId === 'all' && <p className="text-white text-xs opacity-80 truncate">{agent?.firstName}</p>}
+                                        {isStart && totalInGroup > 1 && <p className="text-white text-xs opacity-80 truncate">{agent?.firstName}</p>}
                                         {isEnd && height > 20 && (
                                             <div className="mt-auto h-3 w-full flex justify-center items-end pointer-events-auto">
                                                <div onMouseDown={e => handleEventMouseDown(e, originalEvent, true)} className="resize-handle h-1.5 w-8 bg-white opacity-50 rounded-full cursor-ns-resize"/>

@@ -1,3 +1,4 @@
+
 {
   "common": {
     "loading": "Chargement",
@@ -724,7 +725,10 @@
       "selectActivity": "Sélectionner une activité",
       "start": "Début",
       "end": "Fin",
-      "validationError": "Veuillez sélectionner une cible (agent/groupe) et une activité."
+      "validationError": "Veuillez sélectionner une cible (agent/groupe) et une activité.",
+      "recurringEvent": "Événement récurrent",
+      "repeatOn": "Répéter les jours",
+      "recurrenceEnd": "Fin de la récurrence"
     }
   },
   "weekdays": {
@@ -734,7 +738,16 @@
     "thursday": "Jeudi",
     "friday": "Vendredi",
     "saturday": "Samedi",
-    "sunday": "Dimanche"
+    "sunday": "Dimanche",
+    "short": {
+        "monday": "L",
+        "tuesday": "M",
+        "wednesday": "M",
+        "thursday": "J",
+        "friday": "V",
+        "saturday": "S",
+        "sunday": "D"
+    }
   },
   "features": {
     "users": {
