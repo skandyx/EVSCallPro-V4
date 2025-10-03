@@ -1,4 +1,3 @@
-
 {
   "common": {
     "loading": "Loading",
@@ -727,7 +726,23 @@
       "validationError": "Please select a target (agent/group) and an activity.",
       "recurringEvent": "Recurring event",
       "repeatOn": "Repeat on",
-      "recurrenceEnd": "Recurrence end"
+      "recurrenceEnd": "Recurrence end",
+      "massEditTitle": "Mass Edit",
+      "massEditDescription": "You are about to modify {eventCount} event(s) for {userCount} selected user(s) in the current week.",
+      "findActivity": "Find activity",
+      "allActivities": "All activities",
+      "replaceWith": "Replace with",
+      "validationErrorActivity": "Please select a new activity."
+    },
+    "legend": {
+        "title": "Legend & Actions",
+        "selectAll": "Select All"
+    },
+    "actions": {
+        "selection": "Selection: {count} agent(s)",
+        "massEdit": "Mass Edit",
+        "massDelete": "Mass Delete",
+        "confirmDelete": "Are you sure you want to delete {eventCount} event(s) for the {userCount} selected user(s) this week?"
     }
   },
   "weekdays": {

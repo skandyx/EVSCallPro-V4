@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import type { Feature, PlanningEvent, ActivityType, User, UserGroup } from '../types.ts';
-import { PlusIcon, ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon } from './Icons.tsx';
+import { PlusIcon, ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, TrashIcon, EditIcon } from './Icons.tsx';
 import { useI18n } from '../src/i18n/index.tsx';
 
 interface PlanningManagerProps {
@@ -163,11 +163,72 @@ const PlanningEventModal: React.FC<PlanningEventModalProps> = ({ event, onSave, 
     );
 };
 
+// --- MassEditModal ---
+interface MassEditModalProps {
+    onClose: () => void;
+    onSave: (findActivityId: string, replaceWithActivityId: string) => void;
+    activities: ActivityType[];
+    eventCount: number;
+    userCount: number;
+}
+
+const MassEditModal: React.FC<MassEditModalProps> = ({ onClose, onSave, activities, eventCount, userCount }) => {
+    const { t } = useI18n();
+    const [findActivityId, setFindActivityId] = useState('all');
+    const [replaceWithActivityId, setReplaceWithActivityId] = useState('');
+
+    const handleSave = () => {
+        if (!replaceWithActivityId) {
+            alert(t('planning.modal.validationErrorActivity'));
+            return;
+        }
+        onSave(findActivityId, replaceWithActivityId);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-slate-800 bg-opacity-75 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+                <div className="p-6">
+                    <h3 className="text-lg font-medium text-slate-900">{t('planning.modal.massEditTitle')}</h3>
+                    <p className="text-sm text-slate-500 mt-2">
+                        {t('planning.modal.massEditDescription', { eventCount, userCount })}
+                    </p>
+                    <div className="mt-4 space-y-4">
+                        <div>
+                            <label className="text-sm font-medium text-slate-700">{t('planning.modal.findActivity')}</label>
+                            <select value={findActivityId} onChange={e => setFindActivityId(e.target.value)} className="mt-1 w-full p-2 border bg-white rounded-md">
+                                <option value="all">{t('planning.modal.allActivities')}</option>
+                                {activities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-slate-700">{t('planning.modal.replaceWith')}</label>
+                            <select value={replaceWithActivityId} onChange={e => setReplaceWithActivityId(e.target.value)} className="mt-1 w-full p-2 border bg-white rounded-md">
+                                <option value="">{t('planning.modal.selectActivity')}</option>
+                                {activities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                 <div className="bg-slate-50 p-3 flex justify-end gap-2">
+                    <button onClick={onClose} className="bg-white border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50">{t('common.cancel')}</button>
+                    <button onClick={handleSave} className="bg-primary text-primary-text px-4 py-2 rounded-md hover:bg-primary-hover">{t('common.save')}</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEvents, activityTypes, users, userGroups, onSavePlanningEvent, onDeletePlanningEvent }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedTargetId, setSelectedTargetId] = useState('all');
     const [modalState, setModalState] = useState<{ isOpen: boolean; event: Partial<PlanningEvent> | null }>({ isOpen: false, event: null });
     const { t } = useI18n();
+
+    // State for mass actions
+    const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+    const [isMassEditModalOpen, setIsMassEditModalOpen] = useState(false);
 
     const WEEKDAYS = useMemo(() => [
         t('weekdays.monday'), t('weekdays.tuesday'), t('weekdays.wednesday'), t('weekdays.thursday'), t('weekdays.friday'), t('weekdays.saturday'), t('weekdays.sunday')
@@ -255,8 +316,6 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
         const isEditing = !!modalState.event?.id;
     
         if (isEditing && modalState.event) {
-            // FIX: Explicitly provide 'id' and 'agentId' from modalState.event to satisfy the PlanningEvent type.
-            // TypeScript couldn't infer that these properties were guaranteed to exist in an editing context.
             const updatedEvent: PlanningEvent = {
                 ...modalState.event,
                 id: modalState.event.id!,
@@ -477,9 +536,57 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
         return segmentsWithLayout;
     }, [eventsToDisplay, weekInfo.start, weekInfo.end]);
 
+    // --- MASS ACTIONS ---
+    const scheduledUsersInView = useMemo(() => {
+        const userIdsInView = new Set<string>();
+        planningEvents.forEach(event => {
+            const eventEnd = new Date(event.endDate);
+            const eventStart = new Date(event.startDate);
+            if (eventEnd >= weekInfo.start && eventStart <= weekInfo.end) {
+                userIdsInView.add(event.agentId);
+            }
+        });
+        return users.filter(u => userIdsInView.has(u.id)).sort((a,b) => a.lastName.localeCompare(b.lastName));
+    }, [planningEvents, users, weekInfo.start, weekInfo.end]);
+
+    const handleUserSelection = (userId: string, isSelected: boolean) => {
+        setSelectedUserIds(prev => isSelected ? [...prev, userId] : prev.filter(id => id !== userId));
+    };
+    
+    const handleSelectAll = (isSelected: boolean) => {
+        setSelectedUserIds(isSelected ? scheduledUsersInView.map(u => u.id) : []);
+    };
+
+    const eventsForSelectedUsers = useMemo(() => {
+        if (selectedUserIds.length === 0) return [];
+        return planningEvents.filter(event => {
+            const eventEnd = new Date(event.endDate);
+            const eventStart = new Date(event.startDate);
+            return selectedUserIds.includes(event.agentId) && eventEnd >= weekInfo.start && eventStart <= weekInfo.end;
+        });
+    }, [selectedUserIds, planningEvents, weekInfo.start, weekInfo.end]);
+
+    const handleMassDelete = () => {
+        if (window.confirm(t('planning.actions.confirmDelete', { eventCount: eventsForSelectedUsers.length, userCount: selectedUserIds.length }))) {
+            eventsForSelectedUsers.forEach(event => onDeletePlanningEvent(event.id));
+            setSelectedUserIds([]);
+        }
+    };
+
+    const handleMassUpdate = (findActivityId: string, replaceWithActivityId: string) => {
+        const eventsToUpdate = eventsForSelectedUsers.filter(event => findActivityId === 'all' || event.activityId === findActivityId);
+        
+        eventsToUpdate.forEach(event => {
+            onSavePlanningEvent({ ...event, activityId: replaceWithActivityId });
+        });
+        
+        setIsMassEditModalOpen(false);
+        setSelectedUserIds([]);
+    };
+
 
     return (
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="max-w-7xl mx-auto space-y-6 flex flex-col h-full">
             {modalState.isOpen && (
                 <PlanningEventModal
                     event={modalState.event}
@@ -489,6 +596,15 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                     agents={activeAgents}
                     userGroups={userGroups}
                     activities={activityTypes}
+                />
+            )}
+            {isMassEditModalOpen && (
+                <MassEditModal
+                    onClose={() => setIsMassEditModalOpen(false)}
+                    onSave={handleMassUpdate}
+                    activities={activityTypes}
+                    eventCount={eventsForSelectedUsers.length}
+                    userCount={selectedUserIds.length}
                 />
             )}
             <header>
@@ -517,8 +633,8 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                      </select>
                 </div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                <div className="h-[75vh] overflow-auto relative grid grid-cols-[auto_1fr] text-sm select-none">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden flex-1 grid grid-cols-[1fr_280px]">
+                <div className="h-full overflow-auto relative grid grid-cols-[auto_1fr] text-sm select-none">
                     <div className="sticky left-0 top-0 z-20 bg-white border-r">
                         <div className="h-10 border-b flex items-center justify-center font-semibold text-slate-500">{t('planning.hour')}</div>
                         {Array.from({ length: 24 }).map((_, hour) => (
@@ -583,7 +699,41 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                         </div>
                     </div>
                 </div>
+                 <div className="border-l bg-slate-50 flex flex-col">
+                    <h3 className="text-lg font-semibold text-slate-800 p-4 border-b flex-shrink-0">{t('planning.legend.title')}</h3>
+                    <div className="p-4 border-b text-sm">
+                        <label className="flex items-center font-medium">
+                            <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-slate-300 mr-3"
+                                checked={scheduledUsersInView.length > 0 && selectedUserIds.length === scheduledUsersInView.length}
+                                onChange={e => handleSelectAll(e.target.checked)}
+                            />
+                            {t('planning.legend.selectAll')}
+                        </label>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        {scheduledUsersInView.map(user => (
+                            <label key={user.id} className="flex items-center p-2 rounded-md hover:bg-slate-100 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    className="h-4 w-4 rounded border-slate-300 mr-3"
+                                    checked={selectedUserIds.includes(user.id)}
+                                    onChange={e => handleUserSelection(user.id, e.target.checked)}
+                                />
+                                <span className="text-sm font-medium text-slate-700">{user.lastName} {user.firstName}</span>
+                            </label>
+                        ))}
+                    </div>
+                </div>
             </div>
+             {selectedUserIds.length > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-lg shadow-2xl p-3 flex items-center gap-4 border z-40 animate-fade-in-up">
+                    <p className="font-semibold text-slate-700">{t('planning.actions.selection', { count: selectedUserIds.length })}</p>
+                    <button onClick={() => setIsMassEditModalOpen(true)} className="flex items-center gap-2 text-sm font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 py-2 px-4 rounded-md"><EditIcon className="w-4 h-4"/>{t('planning.actions.massEdit')}</button>
+                    <button onClick={handleMassDelete} className="flex items-center gap-2 text-sm font-semibold bg-red-100 hover:bg-red-200 text-red-700 py-2 px-4 rounded-md"><TrashIcon className="w-4 h-4"/>{t('planning.actions.massDelete')}</button>
+                </div>
+            )}
         </div>
     );
 };

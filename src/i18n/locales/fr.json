@@ -1,4 +1,3 @@
-
 {
   "common": {
     "loading": "Chargement",
@@ -728,7 +727,23 @@
       "validationError": "Veuillez sélectionner une cible (agent/groupe) et une activité.",
       "recurringEvent": "Événement récurrent",
       "repeatOn": "Répéter les jours",
-      "recurrenceEnd": "Fin de la récurrence"
+      "recurrenceEnd": "Fin de la récurrence",
+      "massEditTitle": "Édition de masse",
+      "massEditDescription": "Vous allez modifier {eventCount} événement(s) pour {userCount} utilisateur(s) sélectionné(s) sur la semaine en cours.",
+      "findActivity": "Trouver l'activité",
+      "allActivities": "Toutes les activités",
+      "replaceWith": "Remplacer par",
+      "validationErrorActivity": "Veuillez sélectionner une nouvelle activité."
+    },
+    "legend": {
+        "title": "Légende & Actions",
+        "selectAll": "Tout sélectionner"
+    },
+    "actions": {
+        "selection": "Sélection: {count} agent(s)",
+        "massEdit": "Éditer en masse",
+        "massDelete": "Supprimer en masse",
+        "confirmDelete": "Êtes-vous sûr de vouloir supprimer {eventCount} événement(s) pour les {userCount} utilisateur(s) sélectionné(s) cette semaine ?"
     }
   },
   "weekdays": {
