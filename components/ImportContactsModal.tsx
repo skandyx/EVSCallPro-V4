@@ -45,7 +45,7 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
 
         const standardFields = script
             ? script.pages
-                .flatMap((page) => page.blocks)
+                .flatMap((page) => page?.blocks || [])
                 .filter(block => block.isStandard && block.isVisible !== false && standardFieldMap[block.fieldName])
                 .map(block => {
                     const mapped = standardFieldMap[block.fieldName];
@@ -61,7 +61,7 @@ const ImportContactsModal: React.FC<ImportContactsModalProps> = ({ onClose, onIm
         if (!script) return standardFields;
 
         const customFieldsFromScript = script.pages
-            .flatMap(page => page.blocks)
+            .flatMap(page => page?.blocks || [])
             .filter((block: ScriptBlock) =>
                 ['input', 'email', 'phone', 'date', 'time', 'radio', 'checkbox', 'dropdown', 'textarea'].includes(block.type) &&
                 block.fieldName && !block.isStandard
