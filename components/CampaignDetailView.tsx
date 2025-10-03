@@ -133,20 +133,23 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     }, [campaign.contacts, campaignCallHistory, qualifications]);
 
     const filteredDataForTables = useMemo(() => {
-        if (!treemapFilter.type && !treemapFilter.qualificationId) {
+        const isFilterActive = treemapFilter.type || treemapFilter.qualificationId;
+        if (!isFilterActive) {
             return campaignCallHistory;
         }
+
         return campaignCallHistory.filter(call => {
             if (!call.qualificationId) return false;
             const qual = qualifications.find(q => q.id === call.qualificationId);
             if (!qual) return false;
+
             if (treemapFilter.qualificationId) {
                 return qual.id === treemapFilter.qualificationId;
             }
             if (treemapFilter.type) {
                 return qual.type === treemapFilter.type;
             }
-            return true;
+            return false;
         });
     }, [campaignCallHistory, treemapFilter, qualifications]);
     
@@ -167,7 +170,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
 
     const qualColorMap = useMemo(() => {
         const map = new Map();
-        qualifications.forEach((qual, index) => {
+        qualifications.filter(q => !q.isStandard).forEach((qual, index) => {
             map.set(qual.id, TREEMAP_COLORS[index % TREEMAP_COLORS.length]);
         });
         return map;
@@ -181,10 +184,34 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             spacing: 1,
             borderWidth: 2,
             borderColor: 'white',
-            captions: { display: true, color: 'white', font: { weight: 'bold' } },
-            labels: { display: false },
+            captions: {
+                display: true,
+                color: 'white',
+                font: { weight: 'bold' }
+            },
+            labels: {
+                display: true,
+                color: 'white',
+                font: { size: 12 },
+                formatter: (ctx: any) => {
+                    if (!ctx.raw) return null;
+                    const node = ctx.raw._data;
+                    return node.s ? node.s.description : node.g;
+                }
+            },
+            backgroundColor: (ctx: any) => {
+                if (!ctx.raw || !ctx.raw._data) return 'rgba(200, 200, 200, 0.5)';
+                const node = ctx.raw._data;
+                if (node.s && node.s.id && qualColorMap.has(node.s.id)) {
+                    return qualColorMap.get(node.s.id);
+                }
+                if (node.g === 'positive') return 'rgba(34, 197, 94, 0.2)';
+                if (node.g === 'negative') return 'rgba(239, 68, 68, 0.2)';
+                if (node.g === 'neutral') return 'rgba(100, 116, 139, 0.2)';
+                return 'rgba(200, 200, 200, 0.5)';
+            }
         }]
-    }), [qualificationPerformanceForChart]);
+    }), [qualificationPerformanceForChart, qualColorMap]);
 
     const treemapOptions = useMemo(() => ({
         responsive: true,
@@ -196,25 +223,12 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                     label: (context: any) => {
                         const node = context.raw?._data;
                         if (!node) return '';
-                        if (node.g) return `${node.g}: ${node.v} appels`;
+                        if (node.g) return `${t(`qualifications.types.${node.g}`)}: ${node.v} appels`;
                         if (node.s) return `${node.s.description}: ${node.s.count} appels`;
                         return '';
                     }
                 }
             },
-            treemap: {
-                colorizer: (ctx: any) => {
-                    if (!ctx.raw || !ctx.raw._data) return 'rgba(200, 200, 200, 0.5)';
-                    const node = ctx.raw._data;
-                    if (node.s && node.s.id && qualColorMap.has(node.s.id)) {
-                        return qualColorMap.get(node.s.id);
-                    }
-                    if (node.g === 'positive') return 'rgba(34, 197, 94, 0.2)';
-                    if (node.g === 'negative') return 'rgba(239, 68, 68, 0.2)';
-                    if (node.g === 'neutral') return 'rgba(100, 116, 139, 0.2)';
-                    return 'rgba(200, 200, 200, 0.5)';
-                },
-            }
         },
         onClick: (evt: any, elements: any) => {
             if (!elements.length) return;
@@ -225,7 +239,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 setTreemapFilter({ type: node.s.type, qualificationId: node.s.id });
             }
         }
-    }), [qualColorMap]);
+    }), [t]);
 
     const callsByHour = useMemo(() => {
         const hours = Array(24).fill(0);
