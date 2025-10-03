@@ -300,10 +300,10 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
                         {activeTab === 'planning' && (
                             <div className="space-y-4">
                                 <div className="p-3 bg-slate-50 rounded-md border">
-                                    <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-4 mb-2">
+                                    <div className="grid grid-cols-[1fr_7rem_7rem_auto] items-center gap-x-4 mb-2">
                                         <div className="text-xs font-medium text-slate-500 uppercase">{t('outboundCampaignsManager.modal.activityDays')}</div>
-                                        <div className="text-xs font-medium text-slate-500 uppercase">{t('outboundCampaignsManager.modal.startTime')}</div>
-                                        <div className="text-xs font-medium text-slate-500 uppercase">{t('outboundCampaignsManager.modal.endTime')}</div>
+                                        <div className="text-xs font-medium text-slate-500 uppercase text-center">{t('outboundCampaignsManager.modal.startTime')}</div>
+                                        <div className="text-xs font-medium text-slate-500 uppercase text-center">{t('outboundCampaignsManager.modal.endTime')}</div>
                                         <div /> {/* Empty header for toggle */}
                                     </div>
                                     <div className="space-y-2">
@@ -311,10 +311,16 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
                                             const daySchedule = formData.schedule?.find(s => s.dayOfWeek === day.value);
                                             if (!daySchedule) return null;
                                             return (
-                                                <div key={day.value} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-4 p-2 rounded-md hover:bg-slate-100">
+                                                <div key={day.value} className="grid grid-cols-[1fr_7rem_7rem_auto] items-center gap-x-4 p-2 rounded-md hover:bg-slate-100">
                                                     <label className="font-medium text-slate-800">{day.label}</label>
-                                                    <div className="relative"><input type="time" name={`startTime-${day.value}`} value={daySchedule.startTime} onChange={e => handleScheduleChange(day.value, 'startTime', e.target.value)} className="p-1.5 border rounded-md bg-white w-28 text-center" /><div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-700"><svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.18l.88-1.48a1.651 1.651 0 012.708 0l.88 1.48a1.651 1.651 0 010 1.18l-.88 1.48a1.651 1.651 0 01-2.708 0l-.88-1.48zM10 15a5 5 0 100-10 5 5 0 000 10z" clipRule="evenodd"/></svg></div></div>
-                                                    <div className="relative"><input type="time" name={`endTime-${day.value}`} value={daySchedule.endTime} onChange={e => handleScheduleChange(day.value, 'endTime', e.target.value)} className="p-1.5 border rounded-md bg-white w-28 text-center" /><div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-700"><svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.18l.88-1.48a1.651 1.651 0 012.708 0l.88 1.48a1.651 1.651 0 010 1.18l-.88 1.48a1.651 1.651 0 01-2.708 0l-.88-1.48zM10 15a5 5 0 100-10 5 5 0 000 10z" clipRule="evenodd"/></svg></div></div>
+                                                    <div className="relative">
+                                                        <input type="time" name={`startTime-${day.value}`} value={daySchedule.startTime} onChange={e => handleScheduleChange(day.value, 'startTime', e.target.value)} className="p-1.5 border rounded-md bg-white w-full text-center" />
+                                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-700"><svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.18l.88-1.48a1.651 1.651 0 012.708 0l.88 1.48a1.651 1.651 0 010 1.18l-.88 1.48a1.651 1.651 0 01-2.708 0l-.88-1.48zM10 15a5 5 0 100-10 5 5 0 000 10z" clipRule="evenodd"/></svg></div>
+                                                    </div>
+                                                    <div className="relative">
+                                                        <input type="time" name={`endTime-${day.value}`} value={daySchedule.endTime} onChange={e => handleScheduleChange(day.value, 'endTime', e.target.value)} className="p-1.5 border rounded-md bg-white w-full text-center" />
+                                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-700"><svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.18l.88-1.48a1.651 1.651 0 012.708 0l.88 1.48a1.651 1.651 0 010 1.18l-.88 1.48a1.651 1.651 0 01-2.708 0l-.88-1.48zM10 15a5 5 0 100-10 5 5 0 000 10z" clipRule="evenodd"/></svg></div>
+                                                    </div>
                                                     <ToggleSwitch
                                                         enabled={daySchedule.enabled}
                                                         onChange={(isEnabled) => handleScheduleChange(day.value, 'enabled', isEnabled)}
