@@ -27,6 +27,8 @@ interface CampaignDetailViewProps {
 
 type DetailTab = 'contacts' | 'dashboard' | 'dashboard2' | 'settings';
 type ContactSortKeys = 'firstName' | 'lastName' | 'phoneNumber' | 'postalCode' | 'status';
+type DrilldownLevel = { type: 'qualType' | 'agent' | 'qual', value: string, label: string };
+
 
 const KpiCard: React.FC<{ title: string; value: string | number; }> = ({ title, value }) => (
     <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
@@ -87,7 +89,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     
     const [historyModal, setHistoryModal] = useState<{ isOpen: boolean, contact: Contact | null }>({ isOpen: false, contact: null });
     const [treemapFilter, setTreemapFilter] = useState<{ type: Qualification['type'] | null, qualificationId: string | null }>({ type: null, qualificationId: null });
-    const [treemapFilter2, setTreemapFilter2] = useState<{ type: Qualification['type'] | null, qualificationId: string | null }>({ type: null, qualificationId: null });
+    const [drilldownPath, setDrilldownPath] = useState<DrilldownLevel[]>([]);
 
     const canDelete = currentUser.role === 'Administrateur' || currentUser.role === 'SuperAdmin';
 
@@ -252,116 +254,112 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     }), [t]);
     
     //
-    // --- START: DASHBOARD 2 LOGIC (FIXED) ---
+    // --- START: DASHBOARD 2 LOGIC ---
     //
-    const treemapChartData2 = useMemo(() => {
-        const qualCountsByType = qualificationPerformanceForChart.reduce((acc, qual) => {
-            if (qual.count > 0) {
-                acc[qual.type] = (acc[qual.type] || 0) + qual.count;
-            }
-            return acc;
-        }, { positive: 0, neutral: 0, negative: 0 });
+    const treemapDrilldownData = useMemo(() => {
+        const level = drilldownPath.length;
 
-        const treeData = [
-            {
-                name: 'positive',
-                value: qualCountsByType.positive,
-                children: qualificationPerformanceForChart.filter(q => q.type === 'positive' && q.count > 0).map(q => ({ name: q.description, id: q.id, type: q.type, value: q.count }))
-            },
-            {
-                name: 'neutral',
-                value: qualCountsByType.neutral,
-                children: qualificationPerformanceForChart.filter(q => q.type === 'neutral' && q.count > 0).map(q => ({ name: q.description, id: q.id, type: q.type, value: q.count }))
-            },
-            {
-                name: 'negative',
-                value: qualCountsByType.negative,
-                children: qualificationPerformanceForChart.filter(q => q.type === 'negative' && q.count > 0).map(q => ({ name: q.description, id: q.id, type: q.type, value: q.count }))
-            }
-        ].filter(group => group.value > 0);
+        // Level 0: Group by qualification type
+        if (level === 0) {
+            const qualCountsByType = qualificationPerformanceForChart.reduce((acc, qual) => {
+                if (qual.count > 0) acc[qual.type] = (acc[qual.type] || 0) + qual.count;
+                return acc;
+            }, {} as Record<Qualification['type'], number>);
+            
+            const treeData = Object.entries(qualCountsByType).filter(([, count]) => count > 0).map(([type, count]) => {
+                const label = t(`qualifications.types.${type}`);
+                return { name: label, value: count, _meta: { type: 'qualType', value: type, label } };
+            });
+            return { datasets: [{ tree: treeData, key: 'value' }] };
+        }
 
-        return {
-            datasets: [{
-                tree: treeData,
-                key: 'value',
-                groups: ['name'],
-                backgroundColor: (ctx: any) => {
-                    if (!ctx.raw) return '#6b7280';
-                    const node = ctx.raw;
-                    const map: Record<string, string> = { positive: '#22c55e', neutral: '#6b7280', negative: '#ef4444' };
-                    // If it's a child node (a specific qualification), use a vibrant color from the palette
-                    if (node._data.id) {
-                         // Find the original qualification to use the shared color map
-                         return qualColorMap.get(node._data.id) || map[node._data.type] || '#6b7280';
-                    }
-                    // If it's a group node, use the semantic color
-                    return map[node.g] || '#6b7280';
-                },
-                borderWidth: 1,
-                borderColor: 'white',
-                spacing: 1,
-                labels: {
-                    display: true,
-                    color: 'white',
-                    font: { weight: 'bold', size: 12 },
-                    formatter: (ctx: any) => ctx.raw._data.name,
-                }
-            }]
-        };
-    }, [qualificationPerformanceForChart, qualColorMap]);
+        // Level 1: Group by agent for the selected type
+        if (level === 1) {
+            const selectedType = drilldownPath[0].value;
+            const callsOfType = campaignCallHistory.filter(call => qualifications.find(q => q.id === call.qualificationId)?.type === selectedType);
+            const callsByAgent = callsOfType.reduce((acc, call) => {
+                acc[call.agentId] = (acc[call.agentId] || 0) + 1;
+                return acc;
+            }, {} as Record<string, number>);
+            
+            const treeData = Object.entries(callsByAgent).map(([agentId, count]) => {
+                const agent = users.find(u => u.id === agentId);
+                const label = agent ? `${agent.firstName} ${agent.lastName}` : 'Inconnu';
+                return { name: label, value: count, _meta: { type: 'agent', value: agentId, label } };
+            });
+            return { datasets: [{ tree: treeData, key: 'value' }] };
+        }
 
-    const treemapOptions2 = useMemo(() => ({
+        // Level 2: Group by qualification for the selected type and agent
+        if (level === 2) {
+            const selectedType = drilldownPath[0].value;
+            const selectedAgentId = drilldownPath[1].value;
+            const callsOfAgentAndType = campaignCallHistory.filter(call => call.agentId === selectedAgentId && qualifications.find(q => q.id === call.qualificationId)?.type === selectedType);
+            const callsByQual = callsOfAgentAndType.reduce((acc, call) => {
+                if (call.qualificationId) acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
+                return acc;
+            }, {} as Record<string, number>);
+
+            const treeData = Object.entries(callsByQual).map(([qualId, count]) => {
+                const qual = qualifications.find(q => q.id === qualId);
+                const label = qual ? qual.description : 'Inconnu';
+                return { name: label, value: count, _meta: { type: 'qual', value: qualId, label } };
+            });
+            return { datasets: [{ tree: treeData, key: 'value' }] };
+        }
+
+        return { datasets: [{ tree: [] }] };
+    }, [drilldownPath, qualificationPerformanceForChart, campaignCallHistory, qualifications, users, t]);
+
+    const treemapDrilldownOptions = useMemo(() => ({
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
             legend: { display: false },
             tooltip: {
                 callbacks: {
-                    label: (item: any) => {
-                        const node = item.raw;
-                        const count = node.v;
-                        const total = qualificationPerformanceForChart.reduce((sum, q) => sum + q.count, 0);
-                        const percent = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
-                        return `${node._data.name}: ${count} (${percent}%)`;
-                    }
-                }
+                    label: (item: any) => `${item.raw._data.name}: ${item.raw.v} appels`,
+                },
             },
         },
         onClick: (event: any, elems: any) => {
-            if (elems.length) {
+            if (elems.length && drilldownPath.length < 2) {
                 const node = elems[0].element.$context.raw._data;
-                // If we clicked on a specific qualification (leaf node)
-                if (node.id) {
-                    setTreemapFilter2({ type: node.type, qualificationId: node.id });
+                if (node._meta) {
+                    setDrilldownPath(prev => [...prev, node._meta]);
                 }
-                // If we clicked on a group
-                else if (node.name) {
-                     setTreemapFilter2({ type: node.name, qualificationId: null });
-                }
-            } else {
-                // Clicked outside, reset filter
-                setTreemapFilter2({ type: null, qualificationId: null });
+            } else if (elems.length && drilldownPath.length === 2) {
+                 const node = elems[0].element.$context.raw._data;
+                 if (node._meta) {
+                    setDrilldownPath(prev => [...prev, node._meta]);
+                 }
             }
         },
-    }), [qualificationPerformanceForChart]);
+    }), [drilldownPath.length]);
     
-    const getFilteredDataForDashboard2 = useMemo(() => {
-        const isFilterActive = treemapFilter2.type || treemapFilter2.qualificationId;
-        if (!isFilterActive) return campaignCallHistory;
+    const filteredCallsForDrilldown = useMemo(() => {
+        if (drilldownPath.length === 0) return campaignCallHistory;
         
-        return campaignCallHistory.filter(call => {
-            if (!call.qualificationId) return false;
-            const qual = qualifications.find(q => q.id === call.qualificationId);
-            if (!qual) return false;
-            if (treemapFilter2.qualificationId) return qual.id === treemapFilter2.qualificationId;
-            if (treemapFilter2.type) return qual.type === treemapFilter2.type;
-            return false;
+        let calls = campaignCallHistory;
+        
+        drilldownPath.forEach(level => {
+            if (level.type === 'qualType') {
+                calls = calls.filter(call => qualifications.find(q => q.id === call.qualificationId)?.type === level.value);
+            }
+            if (level.type === 'agent') {
+                calls = calls.filter(call => call.agentId === level.value);
+            }
+            if (level.type === 'qual') {
+                calls = calls.filter(call => call.qualificationId === level.value);
+            }
         });
-    }, [campaignCallHistory, treemapFilter2, qualifications]);
+        return calls;
+    }, [drilldownPath, campaignCallHistory, qualifications]);
 
     const agentPerformanceForDashboard2 = useMemo(() => {
         const perf: {[key: string]: { name: string, calls: number, conversions: number }} = {};
-        getFilteredDataForDashboard2.forEach(call => {
+        
+        filteredCallsForDrilldown.forEach(call => {
             if (!perf[call.agentId]) {
                 const user = users.find(u => u.id === call.agentId);
                 perf[call.agentId] = { name: user ? `${user.firstName} ${user.lastName}` : 'Inconnu', calls: 0, conversions: 0 };
@@ -370,8 +368,38 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             const qual = qualifications.find(q => q.id === call.qualificationId);
             if(qual?.type === 'positive') perf[call.agentId].conversions++;
         });
-        return Object.values(perf).sort((a,b) => b.conversions - a.conversions || b.calls - a.calls);
-    }, [getFilteredDataForDashboard2, users, qualifications]);
+
+        const result = Object.values(perf).sort((a,b) => b.conversions - a.conversions || b.calls - a.calls);
+
+        // If an agent is selected in the drilldown, only show that agent
+        const agentInPath = drilldownPath.find(p => p.type === 'agent');
+        if (agentInPath) {
+            const agentName = agentInPath.label;
+            return result.filter(r => r.name === agentName);
+        }
+
+        return result;
+
+    }, [filteredCallsForDrilldown, users, qualifications, drilldownPath]);
+
+    const Breadcrumbs = () => (
+        <div className="flex items-center gap-2 text-sm">
+            <button onClick={() => setDrilldownPath([])} className="font-semibold text-indigo-600 hover:underline">
+                Analyse Détaillée
+            </button>
+            {drilldownPath.map((level, index) => (
+                <React.Fragment key={index}>
+                    <span className="text-slate-400">/</span>
+                    <button 
+                        onClick={() => setDrilldownPath(prev => prev.slice(0, index + 1))}
+                        className="font-semibold text-indigo-600 hover:underline"
+                    >
+                        {level.label}
+                    </button>
+                </React.Fragment>
+            ))}
+        </div>
+    );
     //
     // --- END: DASHBOARD 2 LOGIC ---
     //
@@ -698,19 +726,19 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                         </div>
                     )}
                     {activeTab === 'dashboard2' && (
-                        <div className="space-y-8">
-                            <div className="flex justify-between items-start">
-                                <h3 className="text-xl font-semibold text-slate-800">Analyse Détaillée par Qualification</h3>
-                                {(treemapFilter2.type || treemapFilter2.qualificationId) && (
-                                    <button onClick={() => setTreemapFilter2({ type: null, qualificationId: null })} className="text-sm font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1">
-                                        <XMarkIcon className="w-4 h-4" /> Réinitialiser le filtre
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center bg-slate-50 p-2 rounded-md border">
+                                <Breadcrumbs />
+                                {drilldownPath.length > 0 && (
+                                    <button onClick={() => setDrilldownPath([])} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1">
+                                        <XMarkIcon className="w-4 h-4" /> Réinitialiser
                                     </button>
                                 )}
                             </div>
                             <div className="h-80 w-full bg-slate-50 p-4 rounded-lg border">
-                                <ChartComponent type="treemap" data={treemapChartData2} options={treemapOptions2} />
+                                <ChartComponent type="treemap" data={treemapDrilldownData} options={treemapDrilldownOptions} />
                             </div>
-                             <div className="pt-4 border-t">
+                             <div className="pt-4">
                                 <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.tables.agentPerfTitle')}</h3>
                                 <div className="overflow-x-auto max-h-96 border rounded-md">
                                     <table className="min-w-full divide-y divide-slate-200 text-sm">
