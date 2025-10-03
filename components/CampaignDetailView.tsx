@@ -77,6 +77,15 @@ const TREEMAP_COLORS = [
   '#60a5fa', '#fcd34d', '#6ee7b7', '#fca5a5', '#c4b5fd', '#1d4ed8', '#d97706', '#059669', '#dc2626', '#7c3aed'
 ];
 
+// Helper function to find entity name
+const findEntityName = (id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>): string => {
+    if (!id) return 'N/A';
+    const item = collection.find(i => i.id === id);
+    if (!item) return 'Inconnu';
+    const name = item.name || `${item.firstName} ${item.lastName}` || item.description;
+    return name || '';
+};
+
 const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts, onRecycleContacts, contactNotes, currentUser } = props;
     const { t } = useI18n();
@@ -258,40 +267,45 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     //
     const treemapDrilldownData = useMemo(() => {
         const level = drilldownPath.length;
-
-        // Level 0: Group by qualification type
+        let treeData: any[] = [];
+        let backgroundColorFunc: (ctx: any) => string = () => '#ccc';
+    
         if (level === 0) {
             const qualCountsByType = qualificationPerformanceForChart.reduce((acc, qual) => {
                 if (qual.count > 0) acc[qual.type] = (acc[qual.type] || 0) + qual.count;
                 return acc;
             }, {} as Record<Qualification['type'], number>);
-            
-            const treeData = Object.entries(qualCountsByType).filter(([, count]) => count > 0).map(([type, count]) => {
+            treeData = Object.entries(qualCountsByType).filter(([, count]) => count > 0).map(([type, count]) => {
                 const label = t(`qualifications.types.${type}`);
                 return { name: label, value: count, _meta: { type: 'qualType', value: type, label } };
             });
-            return { datasets: [{ tree: treeData, key: 'value' }] };
-        }
-
-        // Level 1: Group by agent for the selected type
-        if (level === 1) {
+            backgroundColorFunc = (ctx: any) => {
+                if (!ctx.raw?._data) return '#ccc';
+                const type = ctx.raw._data._meta.value;
+                if (type === 'positive') return 'rgba(34, 197, 94, 0.8)';
+                if (type === 'negative') return 'rgba(239, 68, 68, 0.8)';
+                return 'rgba(100, 116, 139, 0.8)';
+            };
+        } else if (level === 1) {
             const selectedType = drilldownPath[0].value;
             const callsOfType = campaignCallHistory.filter(call => qualifications.find(q => q.id === call.qualificationId)?.type === selectedType);
             const callsByAgent = callsOfType.reduce((acc, call) => {
                 acc[call.agentId] = (acc[call.agentId] || 0) + 1;
                 return acc;
             }, {} as Record<string, number>);
-            
-            const treeData = Object.entries(callsByAgent).map(([agentId, count]) => {
+            treeData = Object.entries(callsByAgent).map(([agentId, count]) => {
                 const agent = users.find(u => u.id === agentId);
                 const label = agent ? `${agent.firstName} ${agent.lastName}` : 'Inconnu';
                 return { name: label, value: count, _meta: { type: 'agent', value: agentId, label } };
             });
-            return { datasets: [{ tree: treeData, key: 'value' }] };
-        }
-
-        // Level 2: Group by qualification for the selected type and agent
-        if (level === 2) {
+            const agentIds = treeData.map(d => d._meta.value);
+            backgroundColorFunc = (ctx: any) => {
+                if (!ctx.raw?._data) return '#ccc';
+                const agentId = ctx.raw._data._meta.value;
+                const agentIndex = agentIds.indexOf(agentId);
+                return TREEMAP_COLORS[agentIndex % TREEMAP_COLORS.length];
+            };
+        } else { // Level 2 and deeper
             const selectedType = drilldownPath[0].value;
             const selectedAgentId = drilldownPath[1].value;
             const callsOfAgentAndType = campaignCallHistory.filter(call => call.agentId === selectedAgentId && qualifications.find(q => q.id === call.qualificationId)?.type === selectedType);
@@ -299,17 +313,36 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 if (call.qualificationId) acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
                 return acc;
             }, {} as Record<string, number>);
-
-            const treeData = Object.entries(callsByQual).map(([qualId, count]) => {
+            treeData = Object.entries(callsByQual).map(([qualId, count]) => {
                 const qual = qualifications.find(q => q.id === qualId);
                 const label = qual ? qual.description : 'Inconnu';
                 return { name: label, value: count, _meta: { type: 'qual', value: qualId, label } };
             });
-            return { datasets: [{ tree: treeData, key: 'value' }] };
+            backgroundColorFunc = (ctx: any) => {
+                if (!ctx.raw?._data) return '#ccc';
+                const qualId = ctx.raw._data._meta.value;
+                return qualColorMap.get(qualId) || '#ccc';
+            };
         }
+    
+        return {
+            datasets: [{
+                tree: treeData,
+                key: 'value',
+                spacing: 1,
+                borderWidth: 1,
+                borderColor: 'white',
+                backgroundColor: backgroundColorFunc,
+                labels: {
+                    display: true,
+                    color: 'white',
+                    font: { size: 12, weight: 'bold' },
+                    formatter: (ctx: any) => ctx.raw?._data.name,
+                },
+            }]
+        };
+    }, [drilldownPath, qualificationPerformanceForChart, campaignCallHistory, qualifications, users, t, qualColorMap]);
 
-        return { datasets: [{ tree: [] }] };
-    }, [drilldownPath, qualificationPerformanceForChart, campaignCallHistory, qualifications, users, t]);
 
     const treemapDrilldownOptions = useMemo(() => ({
         responsive: true,
@@ -323,16 +356,11 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             },
         },
         onClick: (event: any, elems: any) => {
-            if (elems.length && drilldownPath.length < 2) {
+            if (elems.length && drilldownPath.length < 3) { // Allow drill down to level 3
                 const node = elems[0].element.$context.raw._data;
                 if (node._meta) {
                     setDrilldownPath(prev => [...prev, node._meta]);
                 }
-            } else if (elems.length && drilldownPath.length === 2) {
-                 const node = elems[0].element.$context.raw._data;
-                 if (node._meta) {
-                    setDrilldownPath(prev => [...prev, node._meta]);
-                 }
             }
         },
     }), [drilldownPath.length]);
@@ -356,31 +384,28 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         return calls;
     }, [drilldownPath, campaignCallHistory, qualifications]);
 
-    const agentPerformanceForDashboard2 = useMemo(() => {
-        const perf: {[key: string]: { name: string, calls: number, conversions: number }} = {};
-        
-        filteredCallsForDrilldown.forEach(call => {
-            if (!perf[call.agentId]) {
-                const user = users.find(u => u.id === call.agentId);
-                perf[call.agentId] = { name: user ? `${user.firstName} ${user.lastName}` : 'Inconnu', calls: 0, conversions: 0 };
+    const contactsForDrilldownTable = useMemo(() => {
+        const callHistoryByContactId = filteredCallsForDrilldown.reduce((acc, call) => {
+            if (!acc[call.contactId]) {
+                acc[call.contactId] = [];
             }
-            perf[call.agentId].calls++;
-            const qual = qualifications.find(q => q.id === call.qualificationId);
-            if(qual?.type === 'positive') perf[call.agentId].conversions++;
-        });
-
-        const result = Object.values(perf).sort((a,b) => b.conversions - a.conversions || b.calls - a.calls);
-
-        // If an agent is selected in the drilldown, only show that agent
-        const agentInPath = drilldownPath.find(p => p.type === 'agent');
-        if (agentInPath) {
-            const agentName = agentInPath.label;
-            return result.filter(r => r.name === agentName);
-        }
-
-        return result;
-
-    }, [filteredCallsForDrilldown, users, qualifications, drilldownPath]);
+            acc[call.contactId].push(call);
+            return acc;
+        }, {} as Record<string, CallHistoryRecord[]>);
+    
+        const contactIdsInHistory = Object.keys(callHistoryByContactId);
+        
+        return campaign.contacts
+            .filter(c => contactIdsInHistory.includes(c.id))
+            .map(contact => {
+                const lastCall = callHistoryByContactId[contact.id].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+                return {
+                    ...contact,
+                    lastCall,
+                };
+            }).sort((a,b) => new Date(b.lastCall.timestamp).getTime() - new Date(a.lastCall.timestamp).getTime());
+    
+    }, [filteredCallsForDrilldown, campaign.contacts]);
 
     const Breadcrumbs = () => (
         <div className="flex items-center gap-2 text-sm">
@@ -739,25 +764,29 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                 <ChartComponent type="treemap" data={treemapDrilldownData} options={treemapDrilldownOptions} />
                             </div>
                              <div className="pt-4">
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.tables.agentPerfTitle')}</h3>
+                                <h3 className="text-lg font-semibold text-slate-800 mb-2">Détail des Fiches</h3>
                                 <div className="overflow-x-auto max-h-96 border rounded-md">
                                     <table className="min-w-full divide-y divide-slate-200 text-sm">
                                         <thead className="bg-slate-50 sticky top-0"><tr>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.agent')}</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.processedCalls')}</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.conversions')}</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Contact</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Téléphone</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Agent</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Date Appel</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Qualification</th>
                                         </tr></thead>
                                         <tbody className="bg-white divide-y divide-slate-200">
-                                            {agentPerformanceForDashboard2.length > 0 ? agentPerformanceForDashboard2.map(agent => (
-                                                <tr key={agent.name}>
-                                                    <td className="px-4 py-2 font-medium">{agent.name}</td>
-                                                    <td className="px-4 py-2">{agent.calls}</td>
-                                                    <td className="px-4 py-2">{agent.conversions}</td>
+                                            {contactsForDrilldownTable.length > 0 ? contactsForDrilldownTable.map(contact => (
+                                                <tr key={contact.id}>
+                                                    <td className="px-4 py-2 font-medium">{contact.firstName} {contact.lastName}</td>
+                                                    <td className="px-4 py-2 font-mono">{contact.phoneNumber}</td>
+                                                    <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.agentId, users) : 'N/A'}</td>
+                                                    <td className="px-4 py-2">{contact.lastCall ? new Date(contact.lastCall.timestamp).toLocaleString('fr-FR') : 'N/A'}</td>
+                                                    <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.qualificationId, qualifications) : 'N/A'}</td>
                                                 </tr>
                                             )) : (
                                                 <tr>
-                                                    <td colSpan={3} className="text-center py-8 text-slate-500 italic">
-                                                        Aucune donnée à afficher pour la sélection actuelle.
+                                                    <td colSpan={5} className="text-center py-8 text-slate-500 italic">
+                                                        Aucune fiche à afficher pour la sélection actuelle.
                                                     </td>
                                                 </tr>
                                             )}
