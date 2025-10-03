@@ -22,7 +22,9 @@
     "all": "Tous",
     "none": "Aucun",
     "previous": "Précédent",
-    "next": "Suivant"
+    "next": "Suivant",
+    "notAvailable": "N/D",
+    "unknown": "Inconnu"
   },
   "alerts": {
     "appDataLoadError": "Impossible de charger les données de l'application.",
@@ -39,7 +41,7 @@
     "usersImported": "{count} utilisateurs importés avec succès.",
     "contactImportError": "Erreur lors de l'importation des contacts.",
     "passwordUpdateSuccess": "Mot de passe mis à jour avec succès.",
-    "profilePictureUpdateSuccess": "Photo de profil mise à jour.",
+    "profilePictureUpdateSuccess": "Photo de profil mis à jour.",
     "updateError": "Échec de la mise à jour."
   },
   "header": {
@@ -581,6 +583,9 @@
       "history": "Historique des Appels"
     },
     "charts": {
+      "treemapTitle": "Distribution hiérarchique",
+      "resetFilter": "Réinitialiser le filtre",
+      "successByHourTitle": "Heures de Succès (Conversions)",
       "dailyVolumeTitle": "Volume d'appels par jour",
       "callCountLabel": "Nombre d'appels",
       "callsByCampaignTitle": "Répartition des appels par campagne",
@@ -647,7 +652,8 @@
       "value": "Valeur",
       "timesheetKpis": "Indicateurs de Temps de Présence",
       "detailedAnalysis": "Analyses Détaillées",
-      "detailedLogs": "Journaux Détaillés"
+      "detailedLogs": "Journaux Détaillés",
+      "filename": "rapport_analytique"
     }
   },
   "systemSettings": {

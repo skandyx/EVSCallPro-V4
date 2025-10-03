@@ -22,7 +22,9 @@
     "all": "All",
     "none": "None",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "notAvailable": "N/A",
+    "unknown": "Unknown"
   },
   "alerts": {
     "appDataLoadError": "Could not load application data.",
@@ -581,6 +583,9 @@
       "history": "Call History"
     },
     "charts": {
+      "treemapTitle": "Hierarchical Distribution",
+      "resetFilter": "Reset filter",
+      "successByHourTitle": "Success Hours (Conversions)",
       "dailyVolumeTitle": "Daily call volume",
       "callCountLabel": "Number of calls",
       "callsByCampaignTitle": "Call distribution by campaign",
@@ -647,7 +652,8 @@
       "value": "Value",
       "timesheetKpis": "Timesheet Indicators",
       "detailedAnalysis": "Detailed Analyses",
-      "detailedLogs": "Detailed Logs"
+      "detailedLogs": "Detailed Logs",
+      "filename": "analytics_report"
     }
   },
   "systemSettings": {

@@ -39,14 +39,6 @@ const formatDuration = (seconds: number, type: 'full' | 'short' = 'short') => {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
-const findEntityName = (id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>, returnString: boolean = false): string | React.ReactNode => {
-    if (!id) return returnString ? 'N/A' : <span className="text-slate-400 italic">N/A</span>;
-    const item = collection.find(i => i.id === id);
-    if (!item) return returnString ? 'Inconnu' : <span className="text-red-500">Inconnu</span>;
-    const name = item.name || `${item.firstName} ${item.lastName}` || item.description;
-    return returnString ? (name || '') : <>{name || ''}</>;
-};
-
 type ReportTab = 'timesheet' | 'campaign' | 'agent' | 'history' | 'charts';
 
 const ChartComponent: React.FC<{ type: string; data: any; options: any; }> = ({ type, data, options }) => {
@@ -96,6 +88,14 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
     const [treemapFilter, setTreemapFilter] = useState<{ type: Qualification['type'] | null, qualificationId: string | null }>({ type: null, qualificationId: null });
     const { t } = useI18n();
 
+    const findEntityName = (id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>, returnString: boolean = false): string | React.ReactNode => {
+        if (!id) return returnString ? t('common.notAvailable') : <span className="text-slate-400 italic">{t('common.notAvailable')}</span>;
+        const item = collection.find(i => i.id === id);
+        if (!item) return returnString ? t('common.unknown') : <span className="text-red-500">{t('common.unknown')}</span>;
+        const name = item.name || `${item.firstName} ${item.lastName}` || item.description;
+        return returnString ? (name || '') : <>{name || ''}</>;
+    };
+    
     const handleDateRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const range = e.target.value;
         setFilters(f => ({
@@ -182,7 +182,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
             if(qual?.type === 'positive') report[call.campaignId].success++;
         });
         return Object.values(report);
-    }, [filteredDataForTables, campaigns, qualifications]);
+    }, [filteredDataForTables, campaigns, qualifications, findEntityName]);
 
      const agentReportData = useMemo(() => {
         const report: { [key: string]: { name: string, calls: number, totalDuration: number, success: number } } = {};
@@ -196,7 +196,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
             if(qual?.type === 'positive') report[call.agentId].success++;
         });
         return Object.values(report);
-    }, [filteredDataForTables, users, qualifications]);
+    }, [filteredDataForTables, users, qualifications, findEntityName]);
     
     const timesheetReportData = useMemo(() => {
         const dailyData: { [key: string]: { [key: string]: AgentSession[] } } = {};
@@ -240,7 +240,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         
         return report.sort((a,b) => new Date(b.date.split(' ').slice(1).join(' ')).getTime() - new Date(a.date.split(' ').slice(1).join(' ')).getTime() || a.agentName.localeCompare(b.agentName));
 
-    }, [dateFilteredData.sessions, users, filters.agentId]);
+    }, [dateFilteredData.sessions, users, filters.agentId, findEntityName]);
     
     const agentTimesheetSummary = useMemo(() => {
         const summary: { [key: string]: { name: string, totalDuration: number, totalAdherence: number, count: number } } = {};
@@ -305,36 +305,36 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         return {
             labels,
             datasets: [{
-                label: "Nombre d'appels",
+                label: t('reporting.charts.callCountLabel'),
                 data,
                 backgroundColor: 'rgba(79, 70, 229, 0.7)',
                 borderColor: 'rgba(79, 70, 229, 1)',
                 borderWidth: 1
             }]
         };
-    }, [filteredDataForTables]);
+    }, [filteredDataForTables, t]);
 
     const successRateByAgentData = useMemo(() => {
         return {
             labels: agentReportData.map(a => a.name),
             datasets: [{
-                label: 'Taux de Succès (%)',
+                label: t('reporting.charts.successRateLabel'),
                 data: agentReportData.map(a => a.calls > 0 ? (a.success / a.calls * 100) : 0),
                 backgroundColor: 'rgba(22, 163, 74, 0.7)',
             }]
         };
-    }, [agentReportData]);
+    }, [agentReportData, t]);
 
     const adherenceByAgentData = useMemo(() => {
         return {
             labels: agentTimesheetSummary.map(a => a.name),
             datasets: [{
-                label: 'Adhérence Moyenne (min)',
+                label: t('reporting.charts.avgAdherenceLabel'),
                 data: agentTimesheetSummary.map(a => a.count > 0 ? (a.totalAdherence / a.count) : 0),
                 backgroundColor: 'rgba(249, 115, 22, 0.7)',
             }]
         };
-    }, [agentTimesheetSummary]);
+    }, [agentTimesheetSummary, t]);
 
     const qualColorMap = useMemo(() => {
         const map = new Map();
@@ -431,36 +431,36 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
     const handleExportPDF = () => {
         const doc = new jspdf.jsPDF();
         const today = new Date().toLocaleDateString('fr-FR');
-        const title = `Rapport Analytique Détaillé`;
+        const title = t('reporting.pdf.title');
         
         // --- PAGE 1: SUMMARY ---
         doc.setFontSize(18);
         doc.text(title, 14, 22);
         doc.setFontSize(11);
         doc.setTextColor(100);
-        doc.text(`Période du ${filters.startDate} au ${filters.endDate} - Généré le ${today}`, 14, 30);
+        doc.text(t('reporting.pdf.period', { startDate: filters.startDate, endDate: filters.endDate, today }), 14, 30);
         
         doc.setFontSize(14);
         doc.setTextColor(0);
-        doc.text("Indicateurs de Performance Clés (KPIs)", 14, 45);
+        doc.text(t('reporting.pdf.kpiTitle'), 14, 45);
 
         const kpiBody = [
-            ['Total des Appels Traités', kpis.totalCalls.toString()],
-            ['Temps Total de Conversation', formatDuration(kpis.totalDuration, 'full')],
-            ['Durée Moyenne d\'Appel', formatDuration(kpis.avgDuration, 'full')],
-            ['Taux de Succès (Qualifications Positives)', `${kpis.successRate.toFixed(1)}%`],
-            ['Taux d\'Occupation (Simulé)', `${kpis.occupancy.toFixed(1)}%`],
+            [t('reporting.kpis.processedCalls'), kpis.totalCalls.toString()],
+            [t('reporting.kpis.totalTalkTime'), formatDuration(kpis.totalDuration, 'full')],
+            [t('reporting.kpis.avgCallDuration'), formatDuration(kpis.avgDuration, 'full')],
+            [t('reporting.kpis.successRate'), `${kpis.successRate.toFixed(1)}%`],
+            [t('reporting.kpis.occupancyRate'), `${kpis.occupancy.toFixed(1)}%`],
         ];
         
         const timesheetSummaryBody = [
-            ['Agents Actifs', agentTimesheetSummary.length.toString()],
-            ['Temps de Connexion Total', formatDuration(agentTimesheetSummary.reduce((sum, a) => sum + a.totalDuration, 0), 'full')],
-            ['Adhérence Moyenne au Planning', `${(agentTimesheetSummary.length > 0 ? agentTimesheetSummary.reduce((sum, a) => sum + (a.totalAdherence / a.count), 0) / agentTimesheetSummary.length : 0).toFixed(1)} min`],
+            [t('reporting.kpis.activeAgents'), agentTimesheetSummary.length.toString()],
+            [t('reporting.kpis.totalLoginTime'), formatDuration(agentTimesheetSummary.reduce((sum, a) => sum + a.totalDuration, 0), 'full')],
+            [t('reporting.kpis.avgAdherence'), `${(agentTimesheetSummary.length > 0 ? agentTimesheetSummary.reduce((sum, a) => sum + (a.totalAdherence / a.count), 0) / agentTimesheetSummary.length : 0).toFixed(1)} min`],
         ];
 
         doc.autoTable({
             startY: 50,
-            head: [['Indicateurs d\'Appels', 'Valeur']],
+            head: [[t('reporting.pdf.callKpis'), t('reporting.pdf.value')]],
             body: kpiBody,
             theme: 'striped',
             headStyles: { fillColor: [41, 128, 185] },
@@ -468,7 +468,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
 
         doc.autoTable({
             startY: doc.previousAutoTable.finalY + 10,
-            head: [['Indicateurs de Temps de Présence', 'Valeur']],
+            head: [[t('reporting.pdf.timesheetKpis'), t('reporting.pdf.value')]],
             body: timesheetSummaryBody,
             theme: 'striped',
             headStyles: { fillColor: [22, 160, 133] },
@@ -477,11 +477,11 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         // --- PAGE 2: ANALYSIS ---
         doc.addPage();
         doc.setFontSize(16);
-        doc.text("Analyses Détaillées", 14, 22);
+        doc.text(t('reporting.pdf.detailedAnalysis'), 14, 22);
         
         // Campaign Pivot Table
         doc.setFontSize(12);
-        doc.text("Performances par Campagne", 14, 32);
+        doc.text(t('reporting.tables.campaignPerf.title'), 14, 32);
         const campaignTableBody = campaignReportData.map(c => [
             c.name,
             c.calls,
@@ -491,7 +491,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         ]);
         doc.autoTable({
             startY: 37,
-            head: [['Campagne', 'Appels', 'Durée Totale', 'Durée Moyenne', 'Taux de Succès']],
+            head: [[t('reporting.tables.campaignPerf.headers.campaign'), t('reporting.tables.campaignPerf.headers.calls'), t('reporting.tables.campaignPerf.headers.totalDuration'), t('reporting.tables.campaignPerf.headers.avgDuration'), t('reporting.tables.campaignPerf.headers.successRate')]],
             body: campaignTableBody,
             theme: 'grid',
             headStyles: { fillColor: [22, 160, 133] }
@@ -499,7 +499,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         
         // Agent Pivot Table
         doc.setFontSize(12);
-        doc.text("Performances par Agent (Appels)", 14, doc.previousAutoTable.finalY + 15);
+        doc.text(t('reporting.tables.agentPerf.titleCalls'), 14, doc.previousAutoTable.finalY + 15);
         const agentCallTableBody = agentReportData.map(a => [
             a.name,
             a.calls,
@@ -509,14 +509,14 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         ]);
         doc.autoTable({
             startY: doc.previousAutoTable.finalY + 20,
-            head: [['Agent', 'Appels', 'Durée Totale', 'Durée Moyenne', 'Taux de Succès']],
+            head: [[t('reporting.tables.agentPerf.headers.agent'), t('reporting.tables.agentPerf.headers.calls'), t('reporting.tables.agentPerf.headers.totalDuration'), t('reporting.tables.agentPerf.headers.avgDuration'), t('reporting.tables.agentPerf.headers.successRate')]],
             body: agentCallTableBody,
             theme: 'grid',
             headStyles: { fillColor: [22, 160, 133] }
         });
         
         doc.setFontSize(12);
-        doc.text("Performances par Agent (Temps de Présence)", 14, doc.previousAutoTable.finalY + 15);
+        doc.text(t('reporting.tables.agentPerf.titleTimesheet'), 14, doc.previousAutoTable.finalY + 15);
          const agentTimeTableBody = agentTimesheetSummary.map(a => [
             a.name,
             a.count,
@@ -525,7 +525,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         ]);
         doc.autoTable({
             startY: doc.previousAutoTable.finalY + 20,
-            head: [['Agent', 'Jours Travaillés', 'Durée Connexion Totale', 'Adhérence Moyenne']],
+            head: [[t('reporting.tables.agentPerf.headers.agent'), t('reporting.tables.agentPerf.headers.daysWorked'), t('reporting.tables.agentPerf.headers.totalLoginDuration'), t('reporting.tables.agentPerf.headers.avgAdherence')]],
             body: agentTimeTableBody,
             theme: 'grid',
             headStyles: { fillColor: [22, 160, 133] }
@@ -534,11 +534,11 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         // --- PAGE 3+: DETAILED LOGS ---
         doc.addPage();
         doc.setFontSize(16);
-        doc.text("Journaux Détaillés", 14, 22);
+        doc.text(t('reporting.pdf.detailedLogs'), 14, 22);
 
         // Timesheet Log
         doc.setFontSize(12);
-        doc.text("Journal de Présence (Login/Logout)", 14, 32);
+        doc.text(t('reporting.tables.timesheet.title'), 14, 32);
         const timesheetLogBody = timesheetReportData.map(t => [
             t.date,
             t.agentName,
@@ -549,7 +549,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         ]);
          doc.autoTable({
             startY: 37,
-            head: [['Date', 'Agent', '1er Login', 'Dern. Logout', 'Durée Totale', 'Adhérence']],
+            head: [[t('reporting.tables.timesheet.headers.date'), t('reporting.tables.timesheet.headers.agent'), t('reporting.tables.timesheet.headers.firstLogin'), t('reporting.tables.timesheet.headers.lastLogout'), t('reporting.tables.timesheet.headers.totalDuration'), t('reporting.tables.timesheet.headers.adherence')]],
             body: timesheetLogBody,
             theme: 'grid',
             headStyles: { fillColor: [44, 62, 80] }
@@ -558,7 +558,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         // Call Log
         if (doc.previousAutoTable.finalY > 250) doc.addPage();
         doc.setFontSize(12);
-        doc.text("Historique des Appels", 14, doc.previousAutoTable.finalY + 15);
+        doc.text(t('reporting.tables.callHistory.title'), 14, doc.previousAutoTable.finalY + 15);
         const callLogBody = filteredHistory.map(call => [
             new Date(call.timestamp).toLocaleString('fr-FR'),
             findEntityName(call.agentId, users, true),
@@ -569,13 +569,13 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         ]);
         doc.autoTable({
             startY: doc.previousAutoTable.finalY + 20,
-            head: [['Date', 'Agent', 'Campagne', 'Numéro', 'Durée', 'Qualification']],
+            head: [[t('reporting.tables.callHistory.headers.dateTime'), t('reporting.tables.callHistory.headers.agent'), t('reporting.tables.callHistory.headers.campaign'), t('reporting.tables.callHistory.headers.number'), t('reporting.tables.callHistory.headers.duration'), t('reporting.tables.callHistory.headers.qualification')]],
             body: callLogBody,
             theme: 'grid',
             headStyles: { fillColor: [44, 62, 80] }
         });
         
-        doc.save(`rapport_analytique_${today.replace(/\//g, '-')}.pdf`);
+        doc.save(`${t('reporting.pdf.filename')}_${today.replace(/\//g, '-')}.pdf`);
     };
 
     const renderContent = () => {
@@ -586,27 +586,27 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div className="bg-white p-4 rounded-lg shadow-sm border">
                                 <div className="flex justify-between items-start">
-                                    <h3 className="font-semibold text-slate-800 mb-3">Distribution hiérarchique</h3>
+                                    <h3 className="font-semibold text-slate-800 mb-3">{t('reporting.charts.treemapTitle')}</h3>
                                     {(treemapFilter.type || treemapFilter.qualificationId) && (
                                         <button onClick={() => setTreemapFilter({ type: null, qualificationId: null })} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1">
-                                            <XMarkIcon className="w-4 h-4" /> Réinitialiser le filtre
+                                            <XMarkIcon className="w-4 h-4" /> {t('reporting.charts.resetFilter')}
                                         </button>
                                     )}
                                 </div>
                                 <div className="h-64"><ChartComponent type="treemap" data={treemapChartData} options={treemapOptions} /></div>
                             </div>
                             <div className="bg-white p-4 rounded-lg shadow-sm border">
-                                <h3 className="font-semibold text-slate-800 mb-3">Heures de Succès (Conversions)</h3>
+                                <h3 className="font-semibold text-slate-800 mb-3">{t('reporting.charts.successByHourTitle')}</h3>
                                 <div className="h-64"><ChartComponent type="bar" data={callsByHour} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }} /></div>
                             </div>
                          </div>
                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div className="bg-white p-4 rounded-lg shadow-sm border">
-                                <h3 className="font-semibold text-slate-800 mb-3">Taux de succès par agent</h3>
+                                <h3 className="font-semibold text-slate-800 mb-3">{t('reporting.charts.successByAgentTitle')}</h3>
                                 <div className="h-64"><ChartComponent type="bar" data={successRateByAgentData} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } } }} /></div>
                             </div>
                             <div className="bg-white p-4 rounded-lg shadow-sm border">
-                                <h3 className="font-semibold text-slate-800 mb-3">Adhérence moyenne au planning</h3>
+                                <h3 className="font-semibold text-slate-800 mb-3">{t('reporting.charts.adherenceByAgentTitle')}</h3>
                                 <div className="h-64"><ChartComponent type="bar" data={adherenceByAgentData} options={{ responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx: any) => `${ctx.raw.toFixed(1)} min`}}}}} /></div>
                             </div>
                          </div>
@@ -616,12 +616,12 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 return (
                      <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50"><tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Date</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Agent</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">1er Login</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Dernier Logout</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée Totale Connexion</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Adhérence Planning</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.timesheet.headers.date')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.timesheet.headers.agent')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.timesheet.headers.firstLogin')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.timesheet.headers.lastLogout')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.timesheet.headers.totalDuration')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.timesheet.headers.adherence')}</th>
                         </tr></thead>
                         <tbody className="bg-white divide-y divide-slate-200 text-sm">
                             {timesheetReportData.map((row, i) => {
@@ -648,11 +648,11 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 return (
                      <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50"><tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Campagne</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Appels</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée Totale</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée Moyenne</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Taux Succès</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.campaignPerf.headers.campaign')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.campaignPerf.headers.calls')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.campaignPerf.headers.totalDuration')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.campaignPerf.headers.avgDuration')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.campaignPerf.headers.successRate')}</th>
                         </tr></thead>
                         <tbody className="bg-white divide-y divide-slate-200 text-sm">
                            {campaignReportData.map((row, i) => (
@@ -671,11 +671,11 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 return (
                      <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50"><tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Agent</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Appels</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée Totale</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée Moyenne</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Taux Succès</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.agentPerf.headers.agent')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.agentPerf.headers.calls')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.agentPerf.headers.totalDuration')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.agentPerf.headers.avgDuration')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.agentPerf.headers.successRate')}</th>
                         </tr></thead>
                         <tbody className="bg-white divide-y divide-slate-200 text-sm">
                            {agentReportData.map((row, i) => (
@@ -694,12 +694,12 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 return (
                     <table className="min-w-full divide-y divide-slate-200">
                         <thead className="bg-slate-50"><tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Date & Heure</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Agent</th>
-                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Campagne</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Numéro Appelé</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Qualification</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.callHistory.headers.dateTime')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.callHistory.headers.agent')}</th>
+                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.callHistory.headers.campaign')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.callHistory.headers.number')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.callHistory.headers.duration')}</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('reporting.tables.callHistory.headers.qualification')}</th>
                         </tr></thead>
                         <tbody className="bg-white divide-y divide-slate-200 text-sm">
                             {filteredHistory.map(call => (
@@ -723,48 +723,46 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
          <div className="max-w-7xl mx-auto space-y-6">
             <header className="flex justify-between items-start">
                 <div>
-                    {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
                     <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
-                    {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
                     <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
                 </div>
                  <button onClick={handleExportPDF} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md inline-flex items-center">
                     <ArrowUpTrayIcon className="w-5 h-5 mr-2"/>
-                    Exporter en PDF
+                    {t('reporting.exportPdf')}
                 </button>
             </header>
 
             <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div>
-                        <label className="text-sm font-medium text-slate-600">Période Prédéfinie</label>
+                        <label className="text-sm font-medium text-slate-600">{t('reporting.filters.dateRange')}</label>
                         <select value={filters.dateRange} onChange={handleDateRangeChange} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white">
-                            <option value="last7days">7 derniers jours</option>
-                            <option value="last30days">30 derniers jours</option>
-                            <option value="thismonth">Ce mois-ci</option>
+                            <option value="last7days">{t('reporting.filters.dateRanges.last7days')}</option>
+                            <option value="last30days">{t('reporting.filters.dateRanges.last30days')}</option>
+                            <option value="thismonth">{t('reporting.filters.dateRanges.thisMonth')}</option>
                         </select>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                         <div>
-                             <label className="text-sm font-medium text-slate-600">Du</label>
+                             <label className="text-sm font-medium text-slate-600">{t('reporting.filters.from')}</label>
                             <input type="date" value={filters.startDate} onChange={e => setFilters(f => ({...f, startDate: e.target.value}))} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white"/>
                         </div>
                         <div>
-                             <label className="text-sm font-medium text-slate-600">Au</label>
+                             <label className="text-sm font-medium text-slate-600">{t('reporting.filters.to')}</label>
                             <input type="date" value={filters.endDate} onChange={e => setFilters(f => ({...f, endDate: e.target.value}))} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white"/>
                         </div>
                     </div>
                      <div>
-                        <label className="text-sm font-medium text-slate-600">Campagne</label>
+                        <label className="text-sm font-medium text-slate-600">{t('reporting.filters.campaign')}</label>
                         <select value={filters.campaignId} onChange={(e) => setFilters(f => ({...f, campaignId: e.target.value}))} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white" disabled={activeTab === 'timesheet'}>
-                            <option value="all">Toutes les campagnes</option>
+                            <option value="all">{t('reporting.filters.allCampaigns')}</option>
                             {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                     </div>
                      <div>
-                        <label className="text-sm font-medium text-slate-600">Agent</label>
+                        <label className="text-sm font-medium text-slate-600">{t('reporting.filters.agent')}</label>
                         <select value={filters.agentId} onChange={(e) => setFilters(f => ({...f, agentId: e.target.value}))} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white">
-                            <option value="all">Tous les agents</option>
+                            <option value="all">{t('reporting.filters.allAgents')}</option>
                             {users.filter(u => u.role === 'Agent').map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
                         </select>
                     </div>
@@ -772,27 +770,27 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                <KpiCard title="Appels Traités" value={kpis.totalCalls.toString()} icon={PhoneIcon} />
-                <KpiCard title="Temps Total de Conversation" value={formatDuration(kpis.totalDuration, 'full')} icon={TimeIcon} />
-                <KpiCard title="Durée Moyenne d'Appel" value={formatDuration(kpis.avgDuration, 'full')} icon={TimeIcon} />
-                <KpiCard title="Taux de Succès" value={`${kpis.successRate.toFixed(1)}%`} icon={ChartBarIcon} />
-                <KpiCard title="Taux d'Occupation (Simulé)" value={`${kpis.occupancy.toFixed(1)}%`} icon={ChartBarIcon} />
+                <KpiCard title={t('reporting.kpis.processedCalls')} value={kpis.totalCalls.toString()} icon={PhoneIcon} />
+                <KpiCard title={t('reporting.kpis.totalTalkTime')} value={formatDuration(kpis.totalDuration, 'full')} icon={TimeIcon} />
+                <KpiCard title={t('reporting.kpis.avgCallDuration')} value={formatDuration(kpis.avgDuration, 'full')} icon={TimeIcon} />
+                <KpiCard title={t('reporting.kpis.successRate')} value={`${kpis.successRate.toFixed(1)}%`} icon={ChartBarIcon} />
+                <KpiCard title={t('reporting.kpis.occupancyRate')} value={`${kpis.occupancy.toFixed(1)}%`} icon={ChartBarIcon} />
             </div>
 
              <div className="bg-white rounded-lg shadow-sm border border-slate-200">
                 <div className="border-b border-slate-200">
                     <nav className="-mb-px flex space-x-6 px-6" aria-label="Tabs">
-                        <TabButton text="Graphiques" isActive={activeTab === 'charts'} onClick={() => setActiveTab('charts')} />
-                        <TabButton text="Feuille de Temps" isActive={activeTab === 'timesheet'} onClick={() => setActiveTab('timesheet')} />
-                        <TabButton text="Par Campagne" isActive={activeTab === 'campaign'} onClick={() => setActiveTab('campaign')} />
-                        <TabButton text="Par Agent" isActive={activeTab === 'agent'} onClick={() => setActiveTab('agent')} />
-                        <TabButton text="Historique des Appels" isActive={activeTab === 'history'} onClick={() => setActiveTab('history')} />
+                        <TabButton text={t('reporting.tabs.charts')} isActive={activeTab === 'charts'} onClick={() => setActiveTab('charts')} />
+                        <TabButton text={t('reporting.tabs.timesheet')} isActive={activeTab === 'timesheet'} onClick={() => setActiveTab('timesheet')} />
+                        <TabButton text={t('reporting.tabs.campaign')} isActive={activeTab === 'campaign'} onClick={() => setActiveTab('campaign')} />
+                        <TabButton text={t('reporting.tabs.agent')} isActive={activeTab === 'agent'} onClick={() => setActiveTab('agent')} />
+                        <TabButton text={t('reporting.tabs.history')} isActive={activeTab === 'history'} onClick={() => setActiveTab('history')} />
                     </nav>
                 </div>
                  <div className="overflow-x-auto">
                     {renderContent()}
-                    {activeTab !== 'timesheet' && activeTab !== 'charts' && filteredHistory.length === 0 && <p className="text-center py-8 text-slate-500">Aucune donnée d'appel pour les filtres sélectionnés.</p>}
-                    {activeTab === 'timesheet' && timesheetReportData.length === 0 && <p className="text-center py-8 text-slate-500">Aucune donnée de session pour les filtres sélectionnés.</p>}
+                    {activeTab !== 'timesheet' && activeTab !== 'charts' && filteredHistory.length === 0 && <p className="text-center py-8 text-slate-500">{t('reporting.noCallData')}</p>}
+                    {activeTab === 'timesheet' && timesheetReportData.length === 0 && <p className="text-center py-8 text-slate-500">{t('reporting.noSessionData')}</p>}
                 </div>
             </div>
         </div>

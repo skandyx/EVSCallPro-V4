@@ -77,24 +77,6 @@ const TREEMAP_COLORS = [
   '#60a5fa', '#fcd34d', '#6ee7b7', '#fca5a5', '#c4b5fd', '#1d4ed8', '#d97706', '#059669', '#dc2626', '#7c3aed'
 ];
 
-// Helper function to find entity name
-const findEntityName = (id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>): string => {
-    if (!id) return 'N/A';
-    const item = collection.find(i => i.id === id);
-    if (!item) return 'Inconnu';
-    
-    // Check for properties in order of preference
-    if (item.name) return item.name;
-    if (item.firstName && item.lastName) return `${item.firstName} ${item.lastName}`;
-    if (item.description) return item.description;
-    
-    // Fallbacks for users with only one name part
-    if (item.firstName) return item.firstName;
-    if (item.lastName) return item.lastName;
-
-    return 'Inconnu';
-};
-
 const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts, onRecycleContacts, contactNotes, currentUser } = props;
     const { t } = useI18n();
@@ -109,6 +91,24 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const [drilldownPath, setDrilldownPath] = useState<DrilldownLevel[]>([]);
 
     const canDelete = currentUser.role === 'Administrateur' || currentUser.role === 'SuperAdmin';
+
+    // Helper function to find entity name
+    const findEntityName = useCallback((id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>): string => {
+        if (!id) return t('common.notAvailable');
+        const item = collection.find(i => i.id === id);
+        if (!item) return t('common.unknown');
+        
+        // Check for properties in order of preference
+        if (item.name) return item.name;
+        if (item.firstName && item.lastName) return `${item.firstName} ${item.lastName}`;
+        if (item.description) return item.description;
+        
+        // Fallbacks for users with only one name part
+        if (item.firstName) return item.firstName;
+        if (item.lastName) return item.lastName;
+
+        return t('common.unknown');
+    }, [t]);
 
     const campaignCallHistory = useMemo(() => callHistory.filter(c => c.campaignId === campaign.id), [callHistory, campaign.id]);
 
@@ -558,8 +558,8 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                             <td className="px-4 py-3 font-mono">{contact.phoneNumber}</td>
                                             <td className="px-4 py-3">{contact.customFields?.querry || ''}</td>
                                             <td className="px-4 py-3"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${contact.status === 'pending' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'}`}>{contact.status}</span></td>
-                                            <td className="px-4 py-3">{lastCall ? props.qualifications.find(q => q.id === lastCall.qualificationId)?.description : 'N/A'}</td>
-                                            <td className="px-4 py-3 truncate max-w-xs" title={lastNote?.note}>{lastNote?.note || 'N/A'}</td>
+                                            <td className="px-4 py-3">{lastCall ? findEntityName(lastCall.qualificationId, props.qualifications) : t('common.notAvailable')}</td>
+                                            <td className="px-4 py-3 truncate max-w-xs" title={lastNote?.note}>{lastNote?.note || t('common.notAvailable')}</td>
                                         </tr>
                                     )})}
                                 </tbody>
@@ -743,9 +743,9 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                                     <tr key={contact.id}>
                                                         <td className="px-4 py-2 font-medium">{contact.firstName} {contact.lastName}</td>
                                                         <td className="px-4 py-2 font-mono">{contact.phoneNumber}</td>
-                                                        <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.agentId, users) : 'N/A'}</td>
-                                                        <td className="px-4 py-2">{contact.lastCall ? new Date(contact.lastCall.timestamp).toLocaleString('fr-FR') : 'N/A'}</td>
-                                                        <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.qualificationId, qualifications) : 'N/A'}</td>
+                                                        <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.agentId, users) : t('common.notAvailable')}</td>
+                                                        <td className="px-4 py-2">{contact.lastCall ? new Date(contact.lastCall.timestamp).toLocaleString('fr-FR') : t('common.notAvailable')}</td>
+                                                        <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.qualificationId, qualifications) : t('common.notAvailable')}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
