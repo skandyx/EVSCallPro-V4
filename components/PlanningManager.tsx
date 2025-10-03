@@ -186,10 +186,12 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
     
     const handleModalSave = (eventData: Omit<PlanningEvent, 'id' | 'agentId'>, targetId: string) => {
         const isEditing = !!modalState.event?.id;
-        const [type, id] = targetId.split('-');
+        
+        // FIX: Replaced split('-') with substring logic to correctly handle IDs that contain hyphens.
+        const type = targetId.substring(0, targetId.indexOf('-'));
+        const id = targetId.substring(targetId.indexOf('-') + 1);
 
         if (type === 'group') {
-            // Group creation is always 'new' in the current UI, so this logic is fine.
             const group = userGroups.find(g => g.id === id);
             if (group) {
                 group.memberIds.forEach((memberId, index) => {
@@ -203,7 +205,6 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
             }
         } else if (type === 'user') {
             if (isEditing && modalState.event) {
-                // This is an UPDATE of an existing event
                 const updatedEvent: PlanningEvent = {
                     id: modalState.event.id!,
                     agentId: modalState.event.agentId!,
@@ -213,7 +214,6 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                 };
                 onSavePlanningEvent(updatedEvent);
             } else {
-                // This is a CREATE for a new event
                 const newEvent: PlanningEvent = {
                     ...eventData,
                     id: `plan-${Date.now()}`,
