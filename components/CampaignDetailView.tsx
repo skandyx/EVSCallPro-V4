@@ -70,7 +70,6 @@ const formatDuration = (seconds: number) => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
-// FIX: Added a vibrant color palette for the treemap to enhance visual differentiation and aesthetics, replacing the previous semantic (green/red/grey) coloring.
 const TREEMAP_COLORS = [
   '#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#3b82f6', '#fbbf24', '#34d399', '#f87171', '#a78bfa',
   '#60a5fa', '#fcd34d', '#6ee7b7', '#fca5a5', '#c4b5fd', '#1d4ed8', '#d97706', '#059669', '#dc2626', '#7c3aed'
@@ -166,6 +165,14 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         }));
     }, [qualifications, campaignCallHistory, campaign.qualificationGroupId]);
 
+    const qualColorMap = useMemo(() => {
+        const map = new Map();
+        qualifications.forEach((qual, index) => {
+            map.set(qual.id, TREEMAP_COLORS[index % TREEMAP_COLORS.length]);
+        });
+        return map;
+    }, [qualifications]);
+
     const treemapChartData = useMemo(() => ({
         datasets: [{
             tree: qualificationPerformanceForChart.filter(q => q.count > 0),
@@ -196,12 +203,16 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 }
             },
             treemap: {
-                // FIX: Replaced the semantic color logic with a dynamic color palette to provide distinct, vibrant colors for each category, matching the user's visual requirements.
                 colorizer: (ctx: any) => {
-                    if (!ctx.raw) {
-                        return 'rgba(100, 116, 139, 0.9)'; // Fallback grey
+                    if (!ctx.raw || !ctx.raw._data) return 'rgba(200, 200, 200, 0.5)';
+                    const node = ctx.raw._data;
+                    if (node.s && node.s.id && qualColorMap.has(node.s.id)) {
+                        return qualColorMap.get(node.s.id);
                     }
-                    return TREEMAP_COLORS[ctx.dataIndex % TREEMAP_COLORS.length];
+                    if (node.g === 'positive') return 'rgba(34, 197, 94, 0.2)';
+                    if (node.g === 'negative') return 'rgba(239, 68, 68, 0.2)';
+                    if (node.g === 'neutral') return 'rgba(100, 116, 139, 0.2)';
+                    return 'rgba(200, 200, 200, 0.5)';
                 },
             }
         },
@@ -214,7 +225,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 setTreemapFilter({ type: node.s.type, qualificationId: node.s.id });
             }
         }
-    }), []);
+    }), [qualColorMap]);
 
     const callsByHour = useMemo(() => {
         const hours = Array(24).fill(0);
@@ -262,7 +273,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             const count = qualCounts[qual.id] || 0;
             const rate = filteredDataForTables.length > 0 ? (count / filteredDataForTables.length) * 100 : 0;
             return { ...qual, count, rate };
-        }).sort((a,b) => b.count - a.count);
+        }).filter(q => q.count > 0).sort((a,b) => b.count - a.count);
     }, [campaign.qualificationGroupId, qualifications, filteredDataForTables]);
 
     const columnsToDisplay = useMemo(() => {

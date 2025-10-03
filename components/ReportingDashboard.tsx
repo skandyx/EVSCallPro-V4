@@ -39,7 +39,6 @@ const formatDuration = (seconds: number, type: 'full' | 'short' = 'short') => {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
-// FIX: Changed return type to React.ReactNode to resolve type ambiguity with global DOM Element.
 const findEntityName = (id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>, returnString: boolean = false): string | React.ReactNode => {
     if (!id) return returnString ? 'N/A' : <span className="text-slate-400 italic">N/A</span>;
     const item = collection.find(i => i.id === id);
@@ -79,7 +78,6 @@ const ChartComponent: React.FC<{ type: string; data: any; options: any; }> = ({ 
     return <canvas ref={canvasRef}></canvas>;
 };
 
-// FIX: Added a vibrant color palette for the treemap to enhance visual differentiation and aesthetics, replacing the previous semantic (green/red/grey) coloring.
 const TREEMAP_COLORS = [
   '#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#3b82f6', '#fbbf24', '#34d399', '#f87171', '#a78bfa',
   '#60a5fa', '#fcd34d', '#6ee7b7', '#fca5a5', '#c4b5fd', '#1d4ed8', '#d97706', '#059669', '#dc2626', '#7c3aed'
@@ -338,6 +336,14 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         };
     }, [agentTimesheetSummary]);
 
+    const qualColorMap = useMemo(() => {
+        const map = new Map();
+        qualifications.forEach((qual, index) => {
+            map.set(qual.id, TREEMAP_COLORS[index % TREEMAP_COLORS.length]);
+        });
+        return map;
+    }, [qualifications]);
+
     const treemapChartData = useMemo(() => ({
         datasets: [{
             tree: qualificationPerformanceForChart.filter(q => q.count > 0),
@@ -378,30 +384,30 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 }
             },
             treemap: {
-                // FIX: Replaced the semantic color logic with a dynamic color palette to provide distinct, vibrant colors for each category, matching the user's visual requirements.
                 colorizer: (ctx: any) => {
-                    if (!ctx.raw) {
-                        return 'rgba(100, 116, 139, 0.9)'; // Fallback grey
+                    if (!ctx.raw || !ctx.raw._data) return 'rgba(200, 200, 200, 0.5)';
+                    const node = ctx.raw._data;
+                    if (node.s && node.s.id && qualColorMap.has(node.s.id)) {
+                        return qualColorMap.get(node.s.id);
                     }
-                    return TREEMAP_COLORS[ctx.dataIndex % TREEMAP_COLORS.length];
+                    if (node.g === 'positive') return 'rgba(34, 197, 94, 0.2)';
+                    if (node.g === 'negative') return 'rgba(239, 68, 68, 0.2)';
+                    if (node.g === 'neutral') return 'rgba(100, 116, 139, 0.2)';
+                    return 'rgba(200, 200, 200, 0.5)';
                 },
             }
         },
         onClick: (evt: any, elements: any) => {
             if (!elements.length) return;
             const node = elements[0].element.$context.raw._data;
-            if (node.g) { // A group was clicked (e.g., 'positive')
+            if (node.g) {
                 setTreemapFilter({ type: node.g, qualificationId: null });
-            } else if (node.s) { // A leaf was clicked (a specific qualification)
-                const qual = qualifications.find(q => q.description === node.s.description);
-                if (qual) {
-                    setTreemapFilter({ type: qual.type, qualificationId: qual.id });
-                }
+            } else if (node.s) {
+                setTreemapFilter({ type: node.s.type, qualificationId: node.s.id });
             }
         }
-    }), [qualifications]);
+    }), [qualColorMap]);
 
-    // FIX: Changed 'filteredHistory' to 'filteredDataForTables' to make the chart react to treemap filters.
     const callsByHour = useMemo(() => {
         const hours = Array(24).fill(0);
         filteredDataForTables.forEach(call => {
