@@ -70,6 +70,12 @@ const formatDuration = (seconds: number) => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 };
 
+// FIX: Added a vibrant color palette for the treemap to enhance visual differentiation and aesthetics, replacing the previous semantic (green/red/grey) coloring.
+const TREEMAP_COLORS = [
+  '#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#3b82f6', '#fbbf24', '#34d399', '#f87171', '#a78bfa',
+  '#60a5fa', '#fcd34d', '#6ee7b7', '#fca5a5', '#c4b5fd', '#1d4ed8', '#d97706', '#059669', '#dc2626', '#7c3aed'
+];
+
 const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts, onRecycleContacts, contactNotes, currentUser } = props;
     const { t } = useI18n();
@@ -190,13 +196,12 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 }
             },
             treemap: {
+                // FIX: Replaced the semantic color logic with a dynamic color palette to provide distinct, vibrant colors for each category, matching the user's visual requirements.
                 colorizer: (ctx: any) => {
-                    const item = ctx.raw?.s || ctx.raw?._data?.s;
-                    const group = ctx.raw?._data?.g;
-                    const type = item?.type || group;
-                    if (type === 'positive') return 'rgba(16, 185, 129, 0.9)';
-                    if (type === 'negative') return 'rgba(239, 68, 68, 0.9)';
-                    return 'rgba(100, 116, 139, 0.9)';
+                    if (!ctx.raw) {
+                        return 'rgba(100, 116, 139, 0.9)'; // Fallback grey
+                    }
+                    return TREEMAP_COLORS[ctx.dataIndex % TREEMAP_COLORS.length];
                 },
             }
         },
@@ -209,7 +214,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 setTreemapFilter({ type: node.s.type, qualificationId: node.s.id });
             }
         }
-    }), [qualifications]);
+    }), []);
 
     const callsByHour = useMemo(() => {
         const hours = Array(24).fill(0);

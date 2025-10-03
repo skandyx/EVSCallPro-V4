@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Feature, CallHistoryRecord, User, Campaign, Qualification, AgentSession } from '../types.ts';
 import { ArrowUpTrayIcon, TimeIcon, PhoneIcon, ChartBarIcon, XMarkIcon } from './Icons.tsx';
@@ -88,6 +78,12 @@ const ChartComponent: React.FC<{ type: string; data: any; options: any; }> = ({ 
 
     return <canvas ref={canvasRef}></canvas>;
 };
+
+// FIX: Added a vibrant color palette for the treemap to enhance visual differentiation and aesthetics, replacing the previous semantic (green/red/grey) coloring.
+const TREEMAP_COLORS = [
+  '#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#3b82f6', '#fbbf24', '#34d399', '#f87171', '#a78bfa',
+  '#60a5fa', '#fcd34d', '#6ee7b7', '#fca5a5', '#c4b5fd', '#1d4ed8', '#d97706', '#059669', '#dc2626', '#7c3aed'
+];
 
 const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHistory, agentSessions, users, campaigns, qualifications }) => {
     
@@ -382,13 +378,12 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 }
             },
             treemap: {
+                // FIX: Replaced the semantic color logic with a dynamic color palette to provide distinct, vibrant colors for each category, matching the user's visual requirements.
                 colorizer: (ctx: any) => {
-                    const item = ctx.raw?.s || ctx.raw?._data?.s;
-                    const group = ctx.raw?._data?.g;
-                    const type = item?.type || group;
-                    if (type === 'positive') return 'rgba(16, 185, 129, 0.9)';
-                    if (type === 'negative') return 'rgba(239, 68, 68, 0.9)';
-                    return 'rgba(100, 116, 139, 0.9)';
+                    if (!ctx.raw) {
+                        return 'rgba(100, 116, 139, 0.9)'; // Fallback grey
+                    }
+                    return TREEMAP_COLORS[ctx.dataIndex % TREEMAP_COLORS.length];
                 },
             }
         },
