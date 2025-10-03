@@ -372,7 +372,8 @@ router.post('/test-email', isSuperAdmin, async (req, res) => {
  *             type: object
  *             properties:
  *               companyAddress: { type: string }
- *               appLogoUrl: { type: string }
+ *               appLogoDataUrl: { type: string, description: "Data URL de l'image (base64)" }
+ *               appFaviconDataUrl: { type: string, description: "Data URL de l'icône (base64)" }
  *               colorPalette: { type: string }
  *               appName: { type: string }
  *               defaultLanguage: { type: string, enum: ['fr', 'en'] }
@@ -383,22 +384,37 @@ router.post('/test-email', isSuperAdmin, async (req, res) => {
 router.put('/app-settings', isSuperAdmin, async (req, res) => {
     try {
         const settings = req.body;
+        
+        const validateBase64Size = (base64, limitBytes) => {
+            if (!base64) return true;
+            const base64Data = base64.split(',')[1];
+            if (!base64Data) return true;
+            const buffer = Buffer.from(base64Data, 'base64');
+            return buffer.length <= limitBytes;
+        };
+
+        if (!validateBase64Size(settings.appLogoDataUrl, 500 * 1024)) { // 500KB
+            return res.status(413).json({ error: "Le logo est trop volumineux (max 500KB)." });
+        }
+        if (!validateBase64Size(settings.appFaviconDataUrl, 50 * 1024)) { // 50KB
+            return res.status(413).json({ error: "Le favicon est trop volumineux (max 50KB)." });
+        }
+
         const envPath = path.join(__dirname, '..', '.env');
         let envContent = await fs.readFile(envPath, 'utf-8');
         const updates = {
             COMPANY_ADDRESS: settings.companyAddress,
-            APP_LOGO_URL: settings.appLogoUrl,
+            APP_LOGO_DATA_URL: settings.appLogoDataUrl,
+            APP_FAVICON_DATA_URL: settings.appFaviconDataUrl,
             COLOR_PALETTE: settings.colorPalette,
             APP_NAME: settings.appName,
-            // FIX: Add defaultLanguage to the list of settings to be saved.
             DEFAULT_LANGUAGE: settings.defaultLanguage,
         };
 
         for (const [key, value] of Object.entries(updates)) {
-            // Escape special characters for the regex
             const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regex = new RegExp(`^${escapedKey}=.*`, 'm');
-            const replacement = `${key}=${value}`;
+            const replacement = `${key}=${value || ''}`;
             
             if (envContent.match(regex)) {
                 envContent = envContent.replace(regex, replacement);

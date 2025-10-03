@@ -442,7 +442,8 @@ export interface SystemSmtpSettings {
 
 export interface SystemAppSettings {
     companyAddress: string;
-    appLogoUrl: string;
+    appLogoDataUrl: string;
+    appFaviconDataUrl: string;
     colorPalette: 'default' | 'forest' | 'ocean' | 'sunset' | 'slate' | 'rose' | 'amber' | 'cyan';
     appName: string;
     // FIX: Added 'defaultLanguage' to support system-wide language settings.

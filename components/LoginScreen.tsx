@@ -6,11 +6,11 @@ import { useI18n } from '../src/i18n/index.tsx';
 
 interface LoginScreenProps {
     onLoginSuccess: (data: { user: User, token: string }) => Promise<void>;
-    appLogoUrl?: string;
+    appLogoDataUrl?: string;
     appName?: string;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, appLogoUrl, appName }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, appLogoDataUrl, appName }) => {
     const { t } = useI18n();
     const [loginId, setLoginId] = useState('');
     const [password, setPassword] = useState('');
@@ -53,8 +53,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, appLogoUrl, a
         <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-100 font-sans p-4">
             <div className="w-full max-w-sm">
                 <div className="flex justify-center items-center mb-6">
-                    {appLogoUrl ? (
-                        <img src={appLogoUrl} alt="Logo" className="h-12 w-auto max-w-[6rem]" />
+                    {appLogoDataUrl ? (
+                        <img src={appLogoDataUrl} alt="Logo" className="h-12 w-auto max-w-[6rem]" />
                     ) : (
                         <LogoIcon className="w-12 h-12 text-indigo-600"/>
                     )}

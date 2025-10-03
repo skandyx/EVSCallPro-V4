@@ -218,6 +218,14 @@ const AppContent: React.FC = () => {
                 const settings = configResponse.data.appSettings;
                 setAllData(prev => ({ ...prev, appSettings: settings }));
                 
+                // Dynamically set favicon
+                if (settings.appFaviconDataUrl) {
+                    const link = document.getElementById('favicon-link') as HTMLLinkElement;
+                    if (link) {
+                        link.href = settings.appFaviconDataUrl;
+                    }
+                }
+                
                 const savedLang = localStorage.getItem('language');
                 if (!savedLang && settings.defaultLanguage) {
                     setLanguage(settings.defaultLanguage);
@@ -228,7 +236,7 @@ const AppContent: React.FC = () => {
                 setAllData(prev => ({
                     ...prev,
                     appSettings: {
-                        companyAddress: '', appLogoUrl: '', colorPalette: 'default', appName: 'Architecte de Solutions', defaultLanguage: 'fr',
+                        companyAddress: '', appLogoDataUrl: '', appFaviconDataUrl: '', colorPalette: 'default', appName: 'Architecte de Solutions', defaultLanguage: 'fr',
                     }
                 }));
             }
@@ -602,7 +610,7 @@ const AppContent: React.FC = () => {
     if (!currentUser) {
         return <LoginScreen
             onLoginSuccess={handleLoginSuccess}
-            appLogoUrl={allData.appSettings?.appLogoUrl}
+            appLogoDataUrl={allData.appSettings?.appLogoDataUrl}
             appName={allData.appSettings?.appName}
         />;
     }
@@ -715,7 +723,7 @@ const AppContent: React.FC = () => {
                         moduleVisibility={allData.moduleVisibility || { categories: {}, features: {} }}
                         agentStatus={currentUserAgentState?.status}
                         onOpenProfile={() => setIsProfileModalOpen(true)}
-                        appLogoUrl={allData.appSettings?.appLogoUrl}
+                        appLogoDataUrl={allData.appSettings?.appLogoDataUrl}
                         appName={allData.appSettings?.appName}
                     />
                     <div className="flex-1 flex flex-col min-w-0">

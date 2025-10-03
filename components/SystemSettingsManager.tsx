@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { Feature, SystemSmtpSettings, SystemAppSettings } from '../types.ts';
-import { Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon, PaletteIcon, BuildingOfficeIcon } from './Icons.tsx';
+import { Cog6ToothIcon, EnvelopeIcon, PaperAirplaneIcon, PaletteIcon, BuildingOfficeIcon, ArrowUpTrayIcon } from './Icons.tsx';
 import { useI18n } from '../src/i18n/index.tsx';
 
 const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void; }> = ({ enabled, onChange }) => (
@@ -8,6 +8,73 @@ const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) =>
         <span aria-hidden="true" className={`${enabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`} />
     </button>
 );
+
+interface ImageUploadFieldProps {
+    label: string;
+    currentImage: string | undefined;
+    onImageSelected: (base64: string) => void;
+    maxSizeKB: number;
+    recommendedSize?: string;
+}
+
+const ImageUploadField: React.FC<ImageUploadFieldProps> = ({ label, currentImage, onImageSelected, maxSizeKB, recommendedSize }) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [error, setError] = useState('');
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            setError('Veuillez sélectionner un fichier image.');
+            return;
+        }
+        if (file.size > maxSizeKB * 1024) {
+            setError(`Le fichier est trop volumineux (max ${maxSizeKB}KB).`);
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            setError('');
+            onImageSelected(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    return (
+        <div>
+            <label className="text-sm font-medium">{label}</label>
+            <div className="mt-1 flex items-center gap-4">
+                {currentImage ? (
+                     <img src={currentImage} alt="Aperçu" className="h-14 w-auto bg-slate-100 p-1 rounded-md border"/>
+                ) : (
+                    <div className="h-14 w-14 bg-slate-100 rounded-md border flex items-center justify-center text-slate-400">
+                        <BuildingOfficeIcon className="w-8 h-8"/>
+                    </div>
+                )}
+                <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-white border border-slate-300 px-4 py-2 rounded-md text-sm font-medium hover:bg-slate-50"
+                >
+                    <ArrowUpTrayIcon className="w-4 h-4 inline-block mr-2 -mt-1"/>
+                    Changer l'image
+                </button>
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/png, image/jpeg, image/gif, image/svg+xml, image/x-icon"
+                    className="hidden"
+                />
+            </div>
+            {recommendedSize && <p className="text-xs text-slate-500 mt-1">{recommendedSize}</p>}
+            {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+        </div>
+    );
+};
+
 
 interface SystemSettingsManagerProps {
     feature: Feature;
@@ -147,14 +214,27 @@ const SystemSettingsManager: React.FC<SystemSettingsManagerProps> = ({ feature, 
     const renderApparenceContent = () => (
          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             <div className="md:col-span-2"><h3 className="text-lg font-semibold text-slate-800 border-b pb-2 flex items-center gap-2"><BuildingOfficeIcon className="w-5 h-5"/>{t('systemSettings.appearance.company.title')}</h3></div>
-            <div>
+            <div className="md:col-span-2">
+                <ImageUploadField
+                    label="Logo de l'application"
+                    currentImage={localAppSettings?.appLogoDataUrl}
+                    onImageSelected={(base64) => handleAppSettingChange('appLogoDataUrl', base64)}
+                    maxSizeKB={500}
+                    recommendedSize="Recommandé : max 500KB, format PNG ou SVG."
+                />
+            </div>
+             <div className="md:col-span-2">
+                <ImageUploadField
+                    label="Icône du navigateur (Favicon)"
+                    currentImage={localAppSettings?.appFaviconDataUrl}
+                    onImageSelected={(base64) => handleAppSettingChange('appFaviconDataUrl', base64)}
+                    maxSizeKB={50}
+                    recommendedSize="Recommandé : max 50KB, format ICO, PNG ou SVG, carré."
+                />
+            </div>
+            <div className="md:col-span-2">
                 <label className="text-sm font-medium">{t('systemSettings.appearance.company.address')}</label>
                 <textarea value={localAppSettings?.companyAddress || ''} onChange={e => handleAppSettingChange('companyAddress', e.target.value)} rows={4} className="mt-1 w-full p-2 border rounded-md"/>
-            </div>
-             <div>
-                <label className="text-sm font-medium">{t('systemSettings.appearance.company.logoUrl')}</label>
-                <input type="url" value={localAppSettings?.appLogoUrl || ''} onChange={e => handleAppSettingChange('appLogoUrl', e.target.value)} className="mt-1 w-full p-2 border rounded-md" placeholder="https://.../logo.png"/>
-                {localAppSettings?.appLogoUrl && <img src={localAppSettings.appLogoUrl} alt={t('systemSettings.appearance.company.logoPreview')} className="mt-2 h-12 w-auto bg-slate-100 p-1 rounded-md"/>}
             </div>
             <div className="md:col-span-2">
                 <label className="text-sm font-medium">{t('systemSettings.appearance.company.appName')}</label>

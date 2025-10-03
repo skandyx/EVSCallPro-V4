@@ -76,6 +76,15 @@ router.put('/me/picture', async (req, res) => {
         return res.status(400).json({ error: 'URL de l\'image manquante.' });
     }
 
+    // Ajout de la validation de la taille (2MB)
+    const base64Data = pictureUrl.split(',')[1];
+    if (base64Data) {
+        const buffer = Buffer.from(base64Data, 'base64');
+        if (buffer.length > 2 * 1024 * 1024) { // 2MB limit
+            return res.status(413).json({ error: "L'image est trop volumineuse (max 2MB)." });
+        }
+    }
+
     try {
         const result = await db.updateUserProfilePicture(userId, pictureUrl);
         res.json(result);

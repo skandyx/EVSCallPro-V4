@@ -16,7 +16,7 @@ interface SidebarProps {
     moduleVisibility: ModuleVisibility;
     agentStatus: AgentStatus | undefined;
     onOpenProfile: () => void;
-    appLogoUrl?: string;
+    appLogoDataUrl?: string;
     appName?: string;
 }
 
@@ -49,7 +49,7 @@ const getStatusColor = (status: AgentStatus | undefined): string => {
 };
 
 
-const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFeature, currentUser, onLogout, moduleVisibility, agentStatus, onOpenProfile, appLogoUrl, appName }) => {
+const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFeature, currentUser, onLogout, moduleVisibility, agentStatus, onOpenProfile, appLogoDataUrl, appName }) => {
     const [expandedCategories, setExpandedCategories] = useState<string[]>([]);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const isSuperAdmin = currentUser?.role === 'SuperAdmin';
@@ -73,8 +73,8 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
     return (
         <aside className={`transition-all duration-300 ${isSidebarCollapsed ? 'w-20' : 'w-64'} bg-white dark:bg-slate-800 flex-shrink-0 border-r border-slate-200 dark:border-slate-700 flex flex-col`}>
             <div className="h-16 flex items-center justify-center border-b border-slate-200 dark:border-slate-700 flex-shrink-0 px-2">
-                {appLogoUrl ? (
-                    <img src={appLogoUrl} alt="Logo" className={`transition-all duration-300 ${isSidebarCollapsed ? 'h-10 w-auto' : 'h-12 w-auto'}`} />
+                {appLogoDataUrl ? (
+                    <img src={appLogoDataUrl} alt="Logo" className={`transition-all duration-300 ${isSidebarCollapsed ? 'h-10 w-auto' : 'h-12 w-auto'}`} />
                 ) : (
                     <LogoIcon className="w-8 h-8 text-indigo-600" />
                 )}
