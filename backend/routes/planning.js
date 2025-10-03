@@ -21,7 +21,10 @@ const db = require('../services/db');
  */
 router.post('/', async (req, res) => {
     try { res.status(201).json(await db.savePlanningEvent(req.body)); }
-    catch (e) { res.status(500).json({ error: 'Failed to save event' }); }
+    catch (e) {
+        console.error("Error saving planning event:", e);
+        res.status(500).json({ error: e.message || 'Failed to save event' });
+    }
 });
 
 /**
@@ -48,7 +51,10 @@ router.post('/', async (req, res) => {
  */
 router.put('/:id', async (req, res) => {
     try { res.json(await db.savePlanningEvent(req.body, req.params.id)); }
-    catch (e) { res.status(500).json({ error: 'Failed to save event' }); }
+    catch (e) {
+        console.error("Error updating planning event:", e);
+        res.status(500).json({ error: e.message || 'Failed to save event' });
+    }
 });
 
 /**
@@ -69,7 +75,10 @@ router.put('/:id', async (req, res) => {
  */
 router.delete('/:id', async (req, res) => {
     try { await db.deletePlanningEvent(req.params.id); res.status(204).send(); }
-    catch (e) { res.status(500).json({ error: 'Failed to delete event' }); }
+    catch (e) {
+        console.error("Error deleting planning event:", e);
+        res.status(500).json({ error: e.message || 'Failed to delete event' });
+    }
 });
 
 /**
