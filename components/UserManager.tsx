@@ -205,7 +205,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, users, campaigns, userGroup
                                         />
                                     </div>
                                 )}
-                                <div>
+                                <div className="pt-4 border-t dark:border-slate-700">
                                     <label htmlFor="password" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('common.password')}</label>
                                     <div className="mt-1 flex rounded-md shadow-sm">
                                         <input
@@ -221,7 +221,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, users, campaigns, userGroup
                                         <button type="button" onClick={handleGeneratePassword} className="inline-flex items-center rounded-r-md border border-l-0 border-slate-300 bg-slate-50 px-3 text-sm text-slate-500 hover:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-600">{t('userManager.modal.generate')}</button>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-2 gap-4 pt-4 border-t dark:border-slate-700">
                                     <div>
                                         <label htmlFor="role" className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('common.role')}</label>
                                         <select id="role" name="role" value={formData.role} onChange={handleChange} className="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2 border bg-white dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
@@ -241,13 +241,22 @@ const UserModal: React.FC<UserModalProps> = ({ user, users, campaigns, userGroup
                                         </select>
                                     </div>
                                 </div>
-                                <div className="flex items-start">
-                                    <div className="flex h-5 items-center">
-                                        <input id="isActive" name="isActive" type="checkbox" checked={formData.isActive} onChange={handleChange} className="h-4 w-4 rounded border-slate-300 text-indigo-600"/>
+                                <div className="flex items-center justify-between pt-4 border-t dark:border-slate-700">
+                                    <label className="font-medium text-slate-700 dark:text-slate-300">{t('userManager.modal.activeUser')}</label>
+                                    <ToggleSwitch
+                                        enabled={formData.isActive}
+                                        onChange={isEnabled => setFormData(f => ({ ...f, isActive: isEnabled }))}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between pt-4 border-t dark:border-slate-700">
+                                    <div>
+                                        <label className="font-medium text-slate-700 dark:text-slate-300">Gestion par Planning</label>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Si activé, le statut de l'agent est géré automatiquement par le planning.</p>
                                     </div>
-                                    <div className="ml-3 text-sm">
-                                        <label htmlFor="isActive" className="font-medium text-slate-700 dark:text-slate-300">{t('userManager.modal.activeUser')}</label>
-                                    </div>
+                                    <ToggleSwitch
+                                        enabled={!!formData.planningEnabled}
+                                        onChange={isEnabled => setFormData(f => ({ ...f, planningEnabled: isEnabled }))}
+                                    />
                                 </div>
                             </div>
                         )}
@@ -418,6 +427,7 @@ const UserManager: React.FC<UserManagerProps> = ({ feature, users, campaigns, us
         siteId: null,
         mobileNumber: '',
         useMobileAsStation: false,
+        planningEnabled: false,
     });
     setIsModalOpen(true);
   };

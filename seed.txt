@@ -57,15 +57,15 @@ INSERT INTO qualifications (id, code, description, "type", is_standard) VALUES
 ('std-97', '97', 'Transfert', 'neutral', true);
 
 -- =============================================================================
--- SECTION 4 : TYPES D'ACTIVITÉS POUR LE PLANNING
+-- SECTION 4 : TYPES D'ACTIVITÉS POUR LE PLANNING (alignés sur les statuts agent)
 -- Insertion des activités par défaut pour le module de planning.
 -- =============================================================================
 
 INSERT INTO activity_types (id, name, color) VALUES
-('activity-outbound', 'Appel Sortant', '#3b82f6'), -- blue-500
-('activity-lunch', 'Pause Déjeuner', '#64748b'), -- slate-500
-('activity-meeting', 'Réunion', '#8b5cf6'), -- violet-500
-('activity-training', 'Formation', '#f59e0b'); -- amber-500
+('activity-available', 'Disponible', '#22c55e'), -- green-500 (En Attente)
+('activity-pause', 'Pause', '#f97316'),       -- orange-500 (En Pause)
+('activity-training', 'Formation', '#a855f7'),  -- purple-500 (Formation)
+('activity-meeting', 'Réunion', '#8b5cf6');      -- violet-500
 
 -- =============================================================================
 -- Fin du script d'initialisation.

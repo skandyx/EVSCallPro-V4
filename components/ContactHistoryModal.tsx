@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Contact, CallHistoryRecord, User, Qualification, ContactNote } from '../types.ts';
+// FIX: Replaced ClockIcon with TimeIcon as ClockIcon is not an exported member.
 import { XMarkIcon, PhoneIcon, ChartBarIcon, TimeIcon, UsersIcon } from './Icons';
 import apiClient from '../src/lib/axios';
 import { useI18n } from '../src/i18n/index.tsx';
@@ -11,6 +12,13 @@ interface ContactHistoryModalProps {
     users: User[];
     qualifications: Qualification[];
 }
+
+const findEntityName = (id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>): string => {
+    if (!id) return 'N/A';
+    const item = collection.find(i => i.id === id);
+    if (!item) return 'Inconnu';
+    return item.name || `${item.firstName} ${item.lastName}` || item.description || 'Inconnu';
+};
 
 const formatDuration = (seconds: number): string => {
     if(isNaN(seconds) || seconds < 0) return '0m 0s';
@@ -35,13 +43,6 @@ const ContactHistoryModal: React.FC<ContactHistoryModalProps> = ({ isOpen, onClo
     const { t } = useI18n();
     const [history, setHistory] = useState<{ calls: CallHistoryRecord[], notes: ContactNote[] }>({ calls: [], notes: [] });
     const [isLoading, setIsLoading] = useState(true);
-    
-    const findEntityName = (id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>): string => {
-        if (!id) return t('common.notAvailable');
-        const item = collection.find(i => i.id === id);
-        if (!item) return t('common.unknown');
-        return item.name || `${item.firstName} ${item.lastName}` || item.description || t('common.unknown');
-    };
 
     useEffect(() => {
         if (isOpen && contact) {

@@ -71,6 +71,7 @@ export interface User {
     mobileNumber?: string | null;
     useMobileAsStation?: boolean;
     profilePictureUrl?: string;
+    planningEnabled?: boolean;
 }
 
 export interface Site {
@@ -152,13 +153,6 @@ export interface FilterRule {
     value: string;
 }
 
-export interface CampaignScheduleEntry {
-    dayOfWeek: number; // 1 for Monday, 7 for Sunday
-    startTime: string; // "HH:mm"
-    endTime: string; // "HH:mm"
-    enabled: boolean;
-}
-
 export interface Campaign {
     id: string;
     name: string;
@@ -172,7 +166,9 @@ export interface Campaign {
     dialingMode: 'PREDICTIVE' | 'PROGRESSIVE' | 'MANUAL';
     priority: number;
     timezone: string;
-    schedule: CampaignScheduleEntry[];
+    callingDays: number[];
+    callingStartTime: string;
+    callingEndTime: string;
     maxAbandonRate: number;
     paceFactor: number;
     minAgentsBeforeStart: number;
@@ -218,7 +214,6 @@ export interface Qualification {
     groupId: string | null;
     isStandard: boolean;
     parentId?: string | null;
-    isRecyclable?: boolean;
 }
 
 export interface QualificationGroup {

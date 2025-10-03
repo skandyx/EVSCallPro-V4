@@ -22,9 +22,7 @@
     "all": "All",
     "none": "None",
     "previous": "Previous",
-    "next": "Next",
-    "notAvailable": "N/A",
-    "unknown": "Unknown"
+    "next": "Next"
   },
   "alerts": {
     "appDataLoadError": "Could not load application data.",
@@ -198,7 +196,7 @@
   },
   "outboundCampaignsManager": {
     "title": "Campaigns",
-    "createCampaign": "Create a campaign",
+    "createCampaign": "Create Campaign",
     "headers": {
       "name": "Name",
       "id": "ID",
@@ -230,7 +228,7 @@
       "manual": "Manual",
       "callerId": "Caller ID",
       "wrapUpTime": "Wrap-up Time (seconds)",
-      "wrapUpTimeHelp": "Max duration for agent in 'Wrap-up' state (max 120s).",
+      "wrapUpTimeHelp": "Max duration for an agent in 'Wrap-up' state (max 120s).",
       "assignedAgents": "Assigned Agents & Groups",
       "groups": "Groups",
       "individualAgents": "Individual Agents",
@@ -245,13 +243,9 @@
         "sunday": "Sunday"
       },
       "activityDays": "Activity Days",
-      "startTime": "Start time",
-      "endTime": "End time",
-      "fields": {
-        "postalCode": "Postal Code",
-        "phoneNumber": "Phone Number",
-        "lastName": "Last Name"
-      },
+      "timeRange": "Time Range",
+      "startTime": "Start Time",
+      "endTime": "End Time",
       "operators": {
         "equals": "equals",
         "startsWith": "starts with",
@@ -583,9 +577,6 @@
       "history": "Call History"
     },
     "charts": {
-      "treemapTitle": "Hierarchical Distribution",
-      "resetFilter": "Reset filter",
-      "successByHourTitle": "Success Hours (Conversions)",
       "dailyVolumeTitle": "Daily call volume",
       "callCountLabel": "Number of calls",
       "callsByCampaignTitle": "Call distribution by campaign",
@@ -652,8 +643,7 @@
       "value": "Value",
       "timesheetKpis": "Timesheet Indicators",
       "detailedAnalysis": "Detailed Analyses",
-      "detailedLogs": "Detailed Logs",
-      "filename": "analytics_report"
+      "detailedLogs": "Detailed Logs"
     }
   },
   "systemSettings": {

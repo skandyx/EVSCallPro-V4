@@ -4,7 +4,7 @@ const { keysToCamel } = require('./utils');
 const { sendToUser } = require('../webSocketServer');
 
 // Define safe columns to be returned, excluding sensitive ones like password_hash
-const SAFE_USER_COLUMNS = 'u.id, u.login_id, u.extension, u.first_name, u.last_name, u.email, u."role", u.is_active, u.site_id, u.created_at, u.updated_at, u.mobile_number, u.use_mobile_as_station, u.profile_picture_url';
+const SAFE_USER_COLUMNS = 'u.id, u.login_id, u.extension, u.first_name, u.last_name, u.email, u."role", u.is_active, u.site_id, u.created_at, u.updated_at, u.mobile_number, u.use_mobile_as_station, u.profile_picture_url, u.planning_enabled';
 
 const getUsers = async () => {
     // The query is now enriched with a LEFT JOIN and ARRAY_AGG to fetch assigned campaign IDs for each user.
@@ -54,15 +54,15 @@ const createUser = async (userData) => {
         // FIX: Use a distinct placeholder for each column to avoid type deduction errors.
         // The number of placeholders now matches the number of columns (12) and parameters.
         const userQuery = `
-            INSERT INTO users (id, login_id, extension, first_name, last_name, email, "role", is_active, password_hash, site_id, mobile_number, use_mobile_as_station)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING id, login_id, first_name, last_name, email, "role", is_active, site_id, mobile_number, use_mobile_as_station;
+            INSERT INTO users (id, login_id, extension, first_name, last_name, email, "role", is_active, password_hash, site_id, mobile_number, use_mobile_as_station, planning_enabled)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            RETURNING id, login_id, first_name, last_name, email, "role", is_active, site_id, mobile_number, use_mobile_as_station, planning_enabled;
         `;
         const userRes = await client.query(userQuery, [
             user.id, user.loginId, user.loginId, // Pass loginId twice for both login_id and extension
             user.firstName, user.lastName, user.email || null,
             user.role, user.isActive, user.password, user.siteId || null, 
-            user.mobileNumber || null, user.useMobileAsStation || false
+            user.mobileNumber || null, user.useMobileAsStation || false, user.planningEnabled || false
         ]);
 
         const newUser = userRes.rows[0];
@@ -114,11 +114,12 @@ const updateUser = async (userId, userData) => {
             user.siteId || null, // $8
             user.mobileNumber || null, // $9
             user.useMobileAsStation || false, // $10
+            user.planningEnabled || false, // $11
         ];
         
         let passwordUpdateClause = '';
         if (hasPassword) {
-            passwordUpdateClause = `, password_hash = $11`;
+            passwordUpdateClause = `, password_hash = $12`;
             queryParams.push(user.password);
         }
         
@@ -128,7 +129,8 @@ const updateUser = async (userId, userData) => {
         const userQuery = `
             UPDATE users SET 
                 login_id = $1, extension = $2, first_name = $3, last_name = $4, email = $5, 
-                "role" = $6, is_active = $7, site_id = $8, mobile_number = $9, use_mobile_as_station = $10
+                "role" = $6, is_active = $7, site_id = $8, mobile_number = $9, use_mobile_as_station = $10,
+                planning_enabled = $11
                 ${passwordUpdateClause}, updated_at = NOW()
             WHERE id = $${userIdIndex}
             RETURNING *;
@@ -191,8 +193,8 @@ const createUsersBulk = async (users) => {
         for (const user of users) {
              // FIX: Use a distinct placeholder for each column to avoid type deduction errors.
             const userQuery = `
-                INSERT INTO users (id, login_id, extension, first_name, last_name, email, "role", is_active, password_hash, site_id, mobile_number, use_mobile_as_station)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                INSERT INTO users (id, login_id, extension, first_name, last_name, email, "role", is_active, password_hash, site_id, mobile_number, use_mobile_as_station, planning_enabled)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                 RETURNING id, login_id, first_name, last_name, email, "role", is_active, site_id;
             `;
             const res = await client.query(userQuery, [
@@ -207,7 +209,8 @@ const createUsersBulk = async (users) => {
                 user.password || generatePassword(), // ROBUSTNESS: Ensure password is not null
                 user.siteId || null,
                 user.mobileNumber || null,
-                'useMobileAsStation' in user ? user.useMobileAsStation : false
+                'useMobileAsStation' in user ? user.useMobileAsStation : false,
+                'planningEnabled' in user ? user.planningEnabled : false
             ]);
             createdUsers.push(res.rows[0]);
         }

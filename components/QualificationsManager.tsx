@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo } from 'react';
 import type { Feature, Qualification, QualificationGroup } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ArrowLeftIcon, ArrowRightIcon, ChevronDownIcon } from './Icons.tsx';
@@ -18,21 +20,6 @@ const getNextAvailableCode = (allQualifications: Qualification[]): string => {
     return (Math.max(maxCode, 99) + 1).toString();
 };
 
-const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void; }> = ({ enabled, onChange }) => (
-    <button
-        type="button"
-        onClick={() => onChange(!enabled)}
-        className={`${enabled ? 'bg-primary' : 'bg-slate-200'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`}
-        role="switch"
-        aria-checked={enabled}
-    >
-        <span
-            aria-hidden="true"
-            className={`${enabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
-        />
-    </button>
-);
-
 // --- MODAL: Create/Edit Qualification ---
 interface QualificationModalProps {
     qualificationToEdit?: Qualification | null;
@@ -47,7 +34,6 @@ const QualificationModal: React.FC<QualificationModalProps> = ({ qualificationTo
         description: qualificationToEdit ? qualificationToEdit.description : '',
         type: qualificationToEdit ? qualificationToEdit.type : 'neutral',
         parentId: qualificationToEdit ? qualificationToEdit.parentId : null,
-        isRecyclable: qualificationToEdit ? (qualificationToEdit.isRecyclable ?? true) : true,
     });
     const [error, setError] = useState('');
     
@@ -104,16 +90,6 @@ const QualificationModal: React.FC<QualificationModalProps> = ({ qualificationTo
                                     <option value="neutral">Neutre</option>
                                     <option value="negative">Négatif</option>
                                 </select>
-                            </div>
-                             <div className="flex items-center justify-between pt-3 border-t">
-                                <div>
-                                    <label className="font-medium text-slate-700">Recyclable</label>
-                                    <p className="text-xs text-slate-400">Permet le recyclage des fiches avec ce statut.</p>
-                                </div>
-                                <ToggleSwitch
-                                    enabled={formData.isRecyclable}
-                                    onChange={isEnabled => setFormData(f => ({ ...f, isRecyclable: isEnabled }))}
-                                />
                             </div>
                         </div>
                     </div>

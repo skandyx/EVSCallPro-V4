@@ -77,6 +77,24 @@ const TREEMAP_COLORS = [
   '#60a5fa', '#fcd34d', '#6ee7b7', '#fca5a5', '#c4b5fd', '#1d4ed8', '#d97706', '#059669', '#dc2626', '#7c3aed'
 ];
 
+// Helper function to find entity name
+const findEntityName = (id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>): string => {
+    if (!id) return 'N/A';
+    const item = collection.find(i => i.id === id);
+    if (!item) return 'Inconnu';
+    
+    // Check for properties in order of preference
+    if (item.name) return item.name;
+    if (item.firstName && item.lastName) return `${item.firstName} ${item.lastName}`;
+    if (item.description) return item.description;
+    
+    // Fallbacks for users with only one name part
+    if (item.firstName) return item.firstName;
+    if (item.lastName) return item.lastName;
+
+    return 'Inconnu';
+};
+
 const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts, onRecycleContacts, contactNotes, currentUser } = props;
     const { t } = useI18n();
@@ -88,27 +106,10 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const [contactSortConfig, setContactSortConfig] = useState<{ key: ContactSortKeys; direction: 'ascending' | 'descending' }>({ key: 'lastName', direction: 'ascending' });
     
     const [historyModal, setHistoryModal] = useState<{ isOpen: boolean, contact: Contact | null }>({ isOpen: false, contact: null });
+    const [treemapFilter, setTreemapFilter] = useState<{ type: Qualification['type'] | null, qualificationId: string | null }>({ type: null, qualificationId: null });
     const [drilldownPath, setDrilldownPath] = useState<DrilldownLevel[]>([]);
 
     const canDelete = currentUser.role === 'Administrateur' || currentUser.role === 'SuperAdmin';
-
-    // Helper function to find entity name
-    const findEntityName = useCallback((id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>): string => {
-        if (!id) return t('common.notAvailable');
-        const item = collection.find(i => i.id === id);
-        if (!item) return t('common.unknown');
-        
-        // Check for properties in order of preference
-        if (item.name) return item.name;
-        if (item.firstName && item.lastName) return `${item.firstName} ${item.lastName}`;
-        if (item.description) return item.description;
-        
-        // Fallbacks for users with only one name part
-        if (item.firstName) return item.firstName;
-        if (item.lastName) return item.lastName;
-
-        return t('common.unknown');
-    }, [t]);
 
     const campaignCallHistory = useMemo(() => callHistory.filter(c => c.campaignId === campaign.id), [callHistory, campaign.id]);
 
@@ -153,8 +154,25 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     }, [campaign.contacts, campaignCallHistory, qualifications]);
 
     const filteredDataForTables = useMemo(() => {
-        return campaignCallHistory;
-    }, [campaignCallHistory]);
+        const isFilterActive = treemapFilter.type || treemapFilter.qualificationId;
+        if (!isFilterActive) {
+            return campaignCallHistory;
+        }
+
+        return campaignCallHistory.filter(call => {
+            if (!call.qualificationId) return false;
+            const qual = qualifications.find(q => q.id === call.qualificationId);
+            if (!qual) return false;
+
+            if (treemapFilter.qualificationId) {
+                return qual.id === treemapFilter.qualificationId;
+            }
+            if (treemapFilter.type) {
+                return qual.type === treemapFilter.type;
+            }
+            return false;
+        });
+    }, [campaignCallHistory, treemapFilter, qualifications]);
     
     const qualificationPerformanceForChart = useMemo(() => {
         const campaignQuals = qualifications.filter(q => q.isStandard || q.groupId === campaign.qualificationGroupId);
@@ -187,6 +205,72 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         return map;
     }, [qualifications]);
 
+
+    const treemapChartData = useMemo(() => ({
+        datasets: [{
+            tree: qualificationPerformanceForChart.filter(q => q.count > 0),
+            key: 'count',
+            groups: ['type', 'description'],
+            spacing: 1,
+            borderWidth: 2,
+            borderColor: 'white',
+            captions: {
+                display: true,
+                color: 'white', 
+                font: { weight: 'bold' }
+            },
+            labels: {
+                display: true,
+                color: 'white',
+                font: { size: 12 },
+                formatter: (ctx: any) => {
+                    if (!ctx.raw) return null;
+                    const node = ctx.raw._data;
+                    return node.s ? node.s.description : null;
+                }
+            },
+            backgroundColor: (ctx: any) => {
+                if (!ctx.raw || !ctx.raw._data) return 'rgba(200, 200, 200, 0.5)';
+                const node = ctx.raw._data;
+                if (node.s && node.s.id && qualColorMap.has(node.s.id)) {
+                    return qualColorMap.get(node.s.id);
+                }
+                if (node.g === 'positive') return 'rgba(34, 197, 94, 0.2)';
+                if (node.g === 'negative') return 'rgba(239, 68, 68, 0.2)';
+                if (node.g === 'neutral') return 'rgba(100, 116, 139, 0.2)';
+                return 'rgba(200, 200, 200, 0.5)';
+            }
+        }]
+    }), [qualificationPerformanceForChart, qualColorMap]);
+    
+    const treemapOptions = useMemo(() => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: (context: any) => {
+                        const node = context.raw?._data;
+                        if (!node) return '';
+                        if (node.g) return `${t(`qualifications.types.${node.g}`)}: ${node.v} appels`;
+                        if (node.s) return `${node.s.description}: ${node.s.count} appels`;
+                        return '';
+                    }
+                }
+            },
+        },
+        onClick: (evt: any, elements: any) => {
+            if (!elements.length) return;
+            const node = elements[0].element.$context.raw._data;
+            if (node.g) {
+                setTreemapFilter({ type: node.g, qualificationId: null });
+            } else if (node.s) {
+                setTreemapFilter({ type: node.s.type, qualificationId: node.s.id });
+            }
+        }
+    }), [t]);
+    
     //
     // --- START: DASHBOARD 2 LOGIC ---
     //
@@ -558,8 +642,8 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                             <td className="px-4 py-3 font-mono">{contact.phoneNumber}</td>
                                             <td className="px-4 py-3">{contact.customFields?.querry || ''}</td>
                                             <td className="px-4 py-3"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${contact.status === 'pending' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'}`}>{contact.status}</span></td>
-                                            <td className="px-4 py-3">{lastCall ? findEntityName(lastCall.qualificationId, props.qualifications) : t('common.notAvailable')}</td>
-                                            <td className="px-4 py-3 truncate max-w-xs" title={lastNote?.note}>{lastNote?.note || t('common.notAvailable')}</td>
+                                            <td className="px-4 py-3">{lastCall ? props.qualifications.find(q => q.id === lastCall.qualificationId)?.description : 'N/A'}</td>
+                                            <td className="px-4 py-3 truncate max-w-xs" title={lastNote?.note}>{lastNote?.note || 'N/A'}</td>
                                         </tr>
                                     )})}
                                 </tbody>
@@ -618,7 +702,18 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                     </div>
                                 </div>
                             )}
-                            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 pt-4 border-t">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t">
+                                <div>
+                                     <div className="flex justify-between items-start">
+                                        <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.charts.qualifDistributionTitle')}</h3>
+                                        {(treemapFilter.type || treemapFilter.qualificationId) && (
+                                            <button onClick={() => setTreemapFilter({ type: null, qualificationId: null })} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1">
+                                                <XMarkIcon className="w-4 h-4" /> Réinitialiser le filtre
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="h-64"><ChartComponent type="treemap" data={treemapChartData} options={treemapOptions} /></div>
+                                </div>
                                 <div>
                                     <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.charts.successByHourTitle')}</h3>
                                     <div className="h-64"><ChartComponent type="bar" data={callsByHour} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }} /></div>
@@ -743,9 +838,9 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                                     <tr key={contact.id}>
                                                         <td className="px-4 py-2 font-medium">{contact.firstName} {contact.lastName}</td>
                                                         <td className="px-4 py-2 font-mono">{contact.phoneNumber}</td>
-                                                        <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.agentId, users) : t('common.notAvailable')}</td>
-                                                        <td className="px-4 py-2">{contact.lastCall ? new Date(contact.lastCall.timestamp).toLocaleString('fr-FR') : t('common.notAvailable')}</td>
-                                                        <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.qualificationId, qualifications) : t('common.notAvailable')}</td>
+                                                        <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.agentId, users) : 'N/A'}</td>
+                                                        <td className="px-4 py-2">{contact.lastCall ? new Date(contact.lastCall.timestamp).toLocaleString('fr-FR') : 'N/A'}</td>
+                                                        <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.qualificationId, qualifications) : 'N/A'}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
@@ -781,9 +876,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                                     <td className="px-4 py-2 text-right">
                                                         <button 
                                                             onClick={() => handleRecycleClick(qual.id)}
-                                                            disabled={qual.isRecyclable === false}
-                                                            className="bg-indigo-100 text-indigo-700 font-semibold text-xs py-1 px-3 rounded-md hover:bg-indigo-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                                            title={qual.isRecyclable === false ? "Ce statut n'est pas configurable pour le recyclage." : t('campaignDetail.settings.recycling.recycleButton')}
+                                                            className="bg-indigo-100 text-indigo-700 font-semibold text-xs py-1 px-3 rounded-md hover:bg-indigo-200"
                                                         >
                                                             {t('campaignDetail.settings.recycling.recycleButton')}
                                                         </button>

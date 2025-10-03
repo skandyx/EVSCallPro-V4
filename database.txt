@@ -59,6 +59,7 @@ CREATE TABLE users (
     mobile_number TEXT,
     use_mobile_as_station BOOLEAN NOT NULL DEFAULT FALSE,
     profile_picture_url TEXT,
+    planning_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -66,6 +67,7 @@ COMMENT ON TABLE users IS 'Contient tous les utilisateurs de la plateforme, leur
 COMMENT ON COLUMN users.extension IS 'Numéro d''extension SIP de l''agent, utilisé par Asterisk. Doit correspondre au login_id.';
 COMMENT ON COLUMN users.mobile_number IS 'Numéro de mobile de l''agent pour la fonctionnalité "Connect to Phone".';
 COMMENT ON COLUMN users.use_mobile_as_station IS 'Flag pour activer l''appel via le mobile de l''agent.';
+COMMENT ON COLUMN users.planning_enabled IS 'Si activé, le statut de l''agent est géré automatiquement par le planning.';
 
 
 CREATE INDEX idx_users_role ON users("role");
@@ -119,7 +121,6 @@ CREATE TABLE qualifications (
     group_id TEXT REFERENCES qualification_groups(id) ON DELETE SET NULL,
     is_standard BOOLEAN NOT NULL DEFAULT FALSE,
     parent_id TEXT REFERENCES qualifications(id) ON DELETE SET NULL, -- Pour la hiérarchie
-    is_recyclable BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
