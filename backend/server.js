@@ -42,7 +42,7 @@ const PORT = process.env.PORT || 3001;
 
 // --- MIDDLEWARE ---
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '5mb' })); // Increased limit for base64 images
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(express.static(path.join(__dirname, '..', 'dist')));
 
@@ -138,11 +138,11 @@ app.get('/api/public-config', async (req, res) => {
         
         const appSettings = {
             companyAddress: envConfig.COMPANY_ADDRESS || 'Your Company\n123 Main Street\n12345 City, Country',
-            appLogoUrl: envConfig.APP_LOGO_URL || '',
+            appLogoDataUrl: envConfig.APP_LOGO_DATA_URL || '',
+            appFaviconDataUrl: envConfig.APP_FAVICON_DATA_URL || '',
             colorPalette: envConfig.COLOR_PALETTE || 'default',
-            appName: envConfig.APP_NAME || 'Solutions Architect',
-            // FIX: Expose default language to the frontend.
-            defaultLanguage: envConfig.DEFAULT_LANGUAGE || 'en',
+            appName: envConfig.APP_NAME || 'Architecte de Solutions',
+            defaultLanguage: envConfig.DEFAULT_LANGUAGE || 'fr',
         };
 
         res.json({ appSettings });
@@ -151,11 +151,12 @@ app.get('/api/public-config', async (req, res) => {
         // Send a default object on error to prevent the frontend from crashing.
         res.status(500).json({ 
             appSettings: {
-                appName: 'Solutions Architect',
-                appLogoUrl: '',
+                appName: 'Architecte de Solutions',
+                appLogoDataUrl: '',
+                appFaviconDataUrl: '',
                 colorPalette: 'default',
                 companyAddress: '',
-                defaultLanguage: 'en',
+                defaultLanguage: 'fr',
             }
          });
     }
@@ -242,11 +243,11 @@ app.get('/api/application-data', async (req, res) => {
         
         const appSettings = {
             companyAddress: envConfig.COMPANY_ADDRESS || 'Your Company\n123 Main Street\n12345 City, Country',
-            appLogoUrl: envConfig.APP_LOGO_URL || '',
+            appLogoDataUrl: envConfig.APP_LOGO_DATA_URL || '',
+            appFaviconDataUrl: envConfig.APP_FAVICON_DATA_URL || '',
             colorPalette: envConfig.COLOR_PALETTE || 'default',
-            appName: envConfig.APP_NAME || 'Solutions Architect',
-            // FIX: Expose default language to the frontend.
-            defaultLanguage: envConfig.DEFAULT_LANGUAGE || 'en',
+            appName: envConfig.APP_NAME || 'Architecte de Solutions',
+            defaultLanguage: envConfig.DEFAULT_LANGUAGE || 'fr',
         };
 
         res.json({
