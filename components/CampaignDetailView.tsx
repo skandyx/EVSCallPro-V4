@@ -247,8 +247,40 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         }
     }), [t]);
     
+    const totalCallsForTreemap2 = useMemo(() => qualificationPerformanceForChart.reduce((sum, item) => sum + item.count, 0), [qualificationPerformanceForChart]);
+
     const treemapOptions2 = useMemo(() => ({
-        ...treemapOptions,
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: (context: any) => {
+                        const node = context.raw?._data;
+                        if (!node) return '';
+                        
+                        let label = '';
+                        let count = 0;
+
+                        if (node.g) { // Group
+                           label = t(`qualifications.types.${node.g}`);
+                           count = node.v;
+                        } else if (node.s) { // Leaf
+                           label = node.s.description;
+                           count = node.s.count;
+                        }
+
+                        if (totalCallsForTreemap2 > 0) {
+                            const percentage = (count / totalCallsForTreemap2 * 100).toFixed(1);
+                            return `${label}: ${count} appels (${percentage}%)`;
+                        }
+                        
+                        return `${label}: ${count} appels`;
+                    }
+                }
+            },
+        },
         onClick: (evt: any, elements: any) => {
             if (!elements.length) return;
             const node = elements[0].element.$context.raw._data;
@@ -258,7 +290,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 setTreemapFilter2({ type: node.s.type, qualificationId: node.s.id });
             }
         }
-    }), [treemapOptions]);
+    }), [t, totalCallsForTreemap2]);
 
     const callsByHour = useMemo(() => {
         const hours = Array(24).fill(0);
@@ -633,13 +665,19 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                             <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.conversions')}</th>
                                         </tr></thead>
                                         <tbody className="bg-white divide-y divide-slate-200">
-                                            {agentPerformanceForDashboard2.map(agent => (
+                                            {agentPerformanceForDashboard2.length > 0 ? agentPerformanceForDashboard2.map(agent => (
                                                 <tr key={agent.name}>
                                                     <td className="px-4 py-2 font-medium">{agent.name}</td>
                                                     <td className="px-4 py-2">{agent.calls}</td>
                                                     <td className="px-4 py-2">{agent.conversions}</td>
                                                 </tr>
-                                            ))}
+                                            )) : (
+                                                <tr>
+                                                    <td colSpan={3} className="text-center py-8 text-slate-500 italic">
+                                                        Aucune donnée à afficher pour la sélection actuelle.
+                                                    </td>
+                                                </tr>
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
