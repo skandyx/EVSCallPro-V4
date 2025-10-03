@@ -152,6 +152,13 @@ export interface FilterRule {
     value: string;
 }
 
+export interface CampaignScheduleEntry {
+    dayOfWeek: number; // 1 for Monday, 7 for Sunday
+    startTime: string; // "HH:mm"
+    endTime: string; // "HH:mm"
+    enabled: boolean;
+}
+
 export interface Campaign {
     id: string;
     name: string;
@@ -165,9 +172,7 @@ export interface Campaign {
     dialingMode: 'PREDICTIVE' | 'PROGRESSIVE' | 'MANUAL';
     priority: number;
     timezone: string;
-    callingDays: number[];
-    callingStartTime: string;
-    callingEndTime: string;
+    schedule: CampaignScheduleEntry[];
     maxAbandonRate: number;
     paceFactor: number;
     minAgentsBeforeStart: number;

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact, CallHistoryRecord, Qualification, UserGroup, ContactNote } from '../types.ts';
+import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact, CallHistoryRecord, Qualification, UserGroup, ContactNote, CampaignScheduleEntry } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ArrowUpTrayIcon } from './Icons.tsx';
 import ImportContactsModal from './ImportContactsModal.tsx';
 // FIX: Corrected import path for CampaignDetailView
@@ -33,17 +33,46 @@ interface CampaignModalProps {
     onSave: (campaign: Campaign) => void;
     onClose: () => void;
 }
+
+const DEFAULT_SCHEDULE: CampaignScheduleEntry[] = Array.from({ length: 7 }, (_, i) => ({
+    dayOfWeek: i + 1,
+    startTime: '08:00',
+    endTime: '20:00',
+    enabled: true,
+}));
+
 // FIX: The CampaignModal component definition has been moved outside of the OutboundCampaignsManager component. This ensures that the modal maintains a stable identity across re-renders of its parent, preventing state loss and fixing the "white screen" bug on edit.
 const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts, qualificationGroups, userGroups, onSave, onClose }) => {
     const [activeTab, setActiveTab] = useState('general');
-    const [formData, setFormData] = useState<Campaign>(campaign || {
-        id: `campaign-${Date.now()}`, name: '', description: '', scriptId: null, callerId: '', isActive: true,
-        assignedUserIds: [], qualificationGroupId: qualificationGroups.length > 0 ? qualificationGroups[0].id : null,
-        contacts: [], dialingMode: 'MANUAL', priority: 5, timezone: 'Europe/Paris', callingDays: [1, 2, 3, 4, 5],
-        callingStartTime: '09:00', callingEndTime: '20:00', maxAbandonRate: 3, paceFactor: 1.2, minAgentsBeforeStart: 1,
-        retryAttempts: 3, retryIntervals: [30, 60, 120], retryOnStatus: [], amdEnabled: true, amdConfidence: 80,
-        voicemailAction: 'HANGUP', recordingEnabled: true, recordingBeep: true, maxRingDuration: 25, wrapUpTime: 10,
-        maxCallDuration: 3600, quotaRules: [], filterRules: [],
+    const [formData, setFormData] = useState<Campaign>(() => {
+        const initialData = campaign || {
+            id: `campaign-${Date.now()}`, name: '', description: '', scriptId: null, callerId: '', isActive: true,
+            assignedUserIds: [], qualificationGroupId: qualificationGroups.length > 0 ? qualificationGroups[0].id : null,
+            contacts: [], dialingMode: 'MANUAL', priority: 5, timezone: 'Europe/Paris',
+            schedule: DEFAULT_SCHEDULE,
+            maxAbandonRate: 3, paceFactor: 1.2, minAgentsBeforeStart: 1,
+            retryAttempts: 3, retryIntervals: [30, 60, 120], retryOnStatus: [], amdEnabled: true, amdConfidence: 80,
+            voicemailAction: 'HANGUP', recordingEnabled: true, recordingBeep: true, maxRingDuration: 25, wrapUpTime: 10,
+            maxCallDuration: 3600, quotaRules: [], filterRules: [],
+        };
+
+        // @ts-ignore
+        if (campaign && (!campaign.schedule || campaign.schedule.length === 0) && campaign.callingDays) {
+            // @ts-ignore
+            initialData.schedule = DEFAULT_SCHEDULE.map(day => {
+                // @ts-ignore
+                const isEnabled = campaign.callingDays.includes(day.dayOfWeek);
+                return {
+                    ...day,
+                    // @ts-ignore
+                    startTime: campaign.callingStartTime || '08:00',
+                    // @ts-ignore
+                    endTime: campaign.callingEndTime || '20:00',
+                    enabled: isEnabled,
+                };
+            });
+        }
+        return initialData as Campaign;
     });
 
     const WEEK_DAYS = [
@@ -60,15 +89,36 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
     const isFormValid = isNameValid && isQualifGroupValid && isCallerIdValid && isWrapUpTimeValid;
     
     useEffect(() => {
-        setFormData(campaign || {
+        const initialData = campaign || {
             id: `campaign-${Date.now()}`, name: '', description: '', scriptId: null, callerId: '', isActive: true,
             assignedUserIds: [], qualificationGroupId: qualificationGroups.length > 0 ? qualificationGroups[0].id : null,
-            contacts: [], dialingMode: 'MANUAL', priority: 5, timezone: 'Europe/Paris', callingDays: [1, 2, 3, 4, 5],
-            callingStartTime: '09:00', callingEndTime: '20:00', maxAbandonRate: 3, paceFactor: 1.2, minAgentsBeforeStart: 1,
+            contacts: [], dialingMode: 'MANUAL', priority: 5, timezone: 'Europe/Paris',
+            schedule: DEFAULT_SCHEDULE,
+            maxAbandonRate: 3, paceFactor: 1.2, minAgentsBeforeStart: 1,
             retryAttempts: 3, retryIntervals: [30, 60, 120], retryOnStatus: [], amdEnabled: true, amdConfidence: 80,
             voicemailAction: 'HANGUP', recordingEnabled: true, recordingBeep: true, maxRingDuration: 25, wrapUpTime: 10,
             maxCallDuration: 3600, quotaRules: [], filterRules: [],
-        });
+        };
+
+        // Backward compatibility for old campaigns without schedule
+        // @ts-ignore
+        if (campaign && (!campaign.schedule || campaign.schedule.length === 0) && campaign.callingDays) {
+            // @ts-ignore
+            initialData.schedule = DEFAULT_SCHEDULE.map(day => {
+                // @ts-ignore
+                const isEnabled = campaign.callingDays.includes(day.dayOfWeek);
+                return {
+                    ...day,
+                    // @ts-ignore
+                    startTime: campaign.callingStartTime || '08:00',
+                    // @ts-ignore
+                    endTime: campaign.callingEndTime || '20:00',
+                    enabled: isEnabled,
+                };
+            });
+        }
+        
+        setFormData(initialData as Campaign);
     }, [campaign, qualificationGroups]);
 
 
@@ -99,16 +149,13 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
         else setFormData(prev => ({ ...prev, [name]: value }));
     };
     
-    const handleCallingDayChange = (dayValue: number, isEnabled: boolean) => {
-        setFormData(prev => {
-            const currentDays = new Set(prev.callingDays || []);
-            if (isEnabled) {
-                currentDays.add(dayValue);
-            } else {
-                currentDays.delete(dayValue);
-            }
-            return { ...prev, callingDays: Array.from(currentDays).sort() };
-        });
+    const handleScheduleChange = (dayOfWeek: number, field: keyof CampaignScheduleEntry, value: string | boolean) => {
+        setFormData(prev => ({
+            ...prev,
+            schedule: prev.schedule.map(day => 
+                day.dayOfWeek === dayOfWeek ? { ...day, [field]: value } : day
+            )
+        }));
     };
     
     const handleAgentAssignment = (agentId: string, isChecked: boolean) => {
@@ -237,31 +284,29 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ campaign, users, scripts,
                         </>}
                         {activeTab === 'planning' && (
                             <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700">Jours d'activité</label>
-                                    <div className="mt-2 space-y-2 rounded-md border border-slate-300 p-3 bg-slate-50">
-                                        {WEEK_DAYS.map(day => (
-                                            <div key={day.value} className="flex items-center justify-between">
-                                                <label htmlFor={`day-${day.value}`} className="font-medium text-slate-800">{day.label}</label>
-                                                <ToggleSwitch
-                                                    enabled={formData.callingDays.includes(day.value)}
-                                                    onChange={(isEnabled) => handleCallingDayChange(day.value, isEnabled)}
-                                                />
-                                            </div>
-                                        ))}
+                                <div className="p-3 bg-slate-50 rounded-md border">
+                                    <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-4 mb-2">
+                                        <div className="text-xs font-medium text-slate-500 uppercase">Jours d'activité</div>
+                                        <div className="text-xs font-medium text-slate-500 uppercase">Heure de début</div>
+                                        <div className="text-xs font-medium text-slate-500 uppercase">Heure de fin</div>
+                                        <div /> {/* Empty header for toggle */}
                                     </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700">Plage horaire</label>
-                                    <div className="mt-2 grid grid-cols-2 gap-4">
-                                         <div>
-                                            <label className="block text-xs font-medium text-slate-500">Heure de début</label>
-                                            <input type="time" name="callingStartTime" value={formData.callingStartTime} onChange={handleChange} className="mt-1 block w-full p-2 border rounded-md" />
-                                         </div>
-                                         <div>
-                                            <label className="block text-xs font-medium text-slate-500">Heure de fin</label>
-                                            <input type="time" name="callingEndTime" value={formData.callingEndTime} onChange={handleChange} className="mt-1 block w-full p-2 border rounded-md" />
-                                         </div>
+                                    <div className="space-y-2">
+                                        {WEEK_DAYS.map((day) => {
+                                            const daySchedule = formData.schedule?.find(s => s.dayOfWeek === day.value);
+                                            if (!daySchedule) return null;
+                                            return (
+                                                <div key={day.value} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-4 p-2 rounded-md hover:bg-slate-100">
+                                                    <label className="font-medium text-slate-800">{day.label}</label>
+                                                    <div className="relative"><input type="time" name={`startTime-${day.value}`} value={daySchedule.startTime} onChange={e => handleScheduleChange(day.value, 'startTime', e.target.value)} className="p-1.5 border rounded-md bg-white w-28 text-center" /><div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-700"><svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.18l.88-1.48a1.651 1.651 0 012.708 0l.88 1.48a1.651 1.651 0 010 1.18l-.88 1.48a1.651 1.651 0 01-2.708 0l-.88-1.48zM10 15a5 5 0 100-10 5 5 0 000 10z" clipRule="evenodd"/></svg></div></div>
+                                                    <div className="relative"><input type="time" name={`endTime-${day.value}`} value={daySchedule.endTime} onChange={e => handleScheduleChange(day.value, 'endTime', e.target.value)} className="p-1.5 border rounded-md bg-white w-28 text-center" /><div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-700"><svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.18l.88-1.48a1.651 1.651 0 012.708 0l.88 1.48a1.651 1.651 0 010 1.18l-.88 1.48a1.651 1.651 0 01-2.708 0l-.88-1.48zM10 15a5 5 0 100-10 5 5 0 000 10z" clipRule="evenodd"/></svg></div></div>
+                                                    <ToggleSwitch
+                                                        enabled={daySchedule.enabled}
+                                                        onChange={(isEnabled) => handleScheduleChange(day.value, 'enabled', isEnabled)}
+                                                    />
+                                                </div>
+                                            )
+                                        })}
                                     </div>
                                 </div>
                             </div>
