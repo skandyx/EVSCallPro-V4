@@ -171,11 +171,20 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
 
     const qualColorMap = useMemo(() => {
         const map = new Map();
-        qualifications.filter(q => !q.isStandard).forEach((qual, index) => {
-            map.set(qual.id, TREEMAP_COLORS[index % TREEMAP_COLORS.length]);
+        let customIndex = 0;
+        qualifications.forEach((qual) => {
+            if (qual.isStandard) {
+                if (qual.type === 'positive') map.set(qual.id, 'rgba(34, 197, 94, 0.7)');
+                else if (qual.type === 'negative') map.set(qual.id, 'rgba(239, 68, 68, 0.7)');
+                else map.set(qual.id, 'rgba(100, 116, 139, 0.7)');
+            } else {
+                map.set(qual.id, TREEMAP_COLORS[customIndex % TREEMAP_COLORS.length]);
+                customIndex++;
+            }
         });
         return map;
     }, [qualifications]);
+
 
     const treemapChartData = useMemo(() => ({
         datasets: [{
@@ -187,7 +196,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             borderColor: 'white',
             captions: {
                 display: true,
-                color: '#475569', // slate-600
+                color: 'white', 
                 font: { weight: 'bold' }
             },
             labels: {
@@ -209,11 +218,6 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 if (node.g === 'positive') return 'rgba(34, 197, 94, 0.2)';
                 if (node.g === 'negative') return 'rgba(239, 68, 68, 0.2)';
                 if (node.g === 'neutral') return 'rgba(100, 116, 139, 0.2)';
-                if (node.s) { // Standard qual color fallback
-                    if (node.s.type === 'positive') return 'rgba(34, 197, 94, 0.7)';
-                    if (node.s.type === 'negative') return 'rgba(239, 68, 68, 0.7)';
-                    return 'rgba(100, 116, 139, 0.7)';
-                }
                 return 'rgba(200, 200, 200, 0.5)';
             }
         }]
@@ -247,8 +251,6 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         }
     }), [t]);
     
-    const totalCallsForTreemap2 = useMemo(() => qualificationPerformanceForChart.reduce((sum, item) => sum + item.count, 0), [qualificationPerformanceForChart]);
-
     const treemapOptions2 = useMemo(() => ({
         responsive: true,
         maintainAspectRatio: false,
@@ -259,24 +261,9 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                     label: (context: any) => {
                         const node = context.raw?._data;
                         if (!node) return '';
-                        
-                        let label = '';
-                        let count = 0;
-
-                        if (node.g) { // Group
-                           label = t(`qualifications.types.${node.g}`);
-                           count = node.v;
-                        } else if (node.s) { // Leaf
-                           label = node.s.description;
-                           count = node.s.count;
-                        }
-
-                        if (totalCallsForTreemap2 > 0) {
-                            const percentage = (count / totalCallsForTreemap2 * 100).toFixed(1);
-                            return `${label}: ${count} appels (${percentage}%)`;
-                        }
-                        
-                        return `${label}: ${count} appels`;
+                        if (node.g) return `${t(`qualifications.types.${node.g}`)}: ${node.v} appels`;
+                        if (node.s) return `${node.s.description}: ${node.s.count} appels`;
+                        return '';
                     }
                 }
             },
@@ -290,7 +277,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 setTreemapFilter2({ type: node.s.type, qualificationId: node.s.id });
             }
         }
-    }), [t, totalCallsForTreemap2]);
+    }), [t]);
 
     const callsByHour = useMemo(() => {
         const hours = Array(24).fill(0);
