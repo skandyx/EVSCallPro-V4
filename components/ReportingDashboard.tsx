@@ -3,14 +3,18 @@
 
 
 
+
+
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Feature, CallHistoryRecord, User, Campaign, Qualification, AgentSession } from '../types.ts';
-import { ArrowUpTrayIcon, TimeIcon, PhoneIcon, ChartBarIcon } from './Icons.tsx';
+import { ArrowUpTrayIcon, TimeIcon, PhoneIcon, ChartBarIcon, XMarkIcon } from './Icons.tsx';
 import { useI18n } from '../src/i18n/index.tsx';
 
 // Déclaration pour TypeScript afin de reconnaître les variables globales injectées par les scripts CDN
 declare var jspdf: any;
 declare var Chart: any;
+declare var d3: any;
 
 interface ReportingDashboardProps {
     feature: Feature;
@@ -93,6 +97,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         campaignId: 'all',
         agentId: 'all',
     });
+    const [treemapFilter, setTreemapFilter] = useState<{ type: Qualification['type'] | null, qualificationId: string | null }>({ type: null, qualificationId: null });
     const { t } = useI18n();
 
     const handleDateRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -130,6 +135,27 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
             return true;
         });
     }, [dateFilteredData.calls, filters.campaignId, filters.agentId]);
+    
+    const filteredDataForTables = useMemo(() => {
+        if (!treemapFilter.type && !treemapFilter.qualificationId) {
+            return filteredHistory;
+        }
+        return filteredHistory.filter(call => {
+            if (!call.qualificationId) return false;
+            const qual = qualifications.find(q => q.id === call.qualificationId);
+            if (!qual) return false;
+
+            // Si un ID de qualif est sélectionné, c'est le filtre le plus précis
+            if (treemapFilter.qualificationId) {
+                return qual.id === treemapFilter.qualificationId;
+            }
+            // Sinon, filtrer par type
+            if (treemapFilter.type) {
+                return qual.type === treemapFilter.type;
+            }
+            return true;
+        });
+    }, [filteredHistory, treemapFilter, qualifications]);
 
     const kpis = useMemo(() => {
         const totalCalls = filteredHistory.length;
@@ -149,7 +175,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
     
     const campaignReportData = useMemo(() => {
         const report: { [key: string]: { name: string, calls: number, totalDuration: number, success: number } } = {};
-        filteredHistory.forEach(call => {
+        filteredDataForTables.forEach(call => {
             if (!call.campaignId) return;
             if (!report[call.campaignId]) {
                 report[call.campaignId] = { name: findEntityName(call.campaignId, campaigns, true) as string, calls: 0, totalDuration: 0, success: 0 };
@@ -160,11 +186,11 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
             if(qual?.type === 'positive') report[call.campaignId].success++;
         });
         return Object.values(report);
-    }, [filteredHistory, campaigns, qualifications]);
+    }, [filteredDataForTables, campaigns, qualifications]);
 
      const agentReportData = useMemo(() => {
         const report: { [key: string]: { name: string, calls: number, totalDuration: number, success: number } } = {};
-        filteredHistory.forEach(call => {
+        filteredDataForTables.forEach(call => {
             if (!report[call.agentId]) {
                 report[call.agentId] = { name: findEntityName(call.agentId, users, true) as string, calls: 0, totalDuration: 0, success: 0 };
             }
@@ -174,7 +200,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
             if(qual?.type === 'positive') report[call.agentId].success++;
         });
         return Object.values(report);
-    }, [filteredHistory, users, qualifications]);
+    }, [filteredDataForTables, users, qualifications]);
     
     const timesheetReportData = useMemo(() => {
         const dailyData: { [key: string]: { [key: string]: AgentSession[] } } = {};
@@ -236,6 +262,41 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         return Object.values(summary);
     }, [timesheetReportData, users]);
 
+    const qualificationPerformanceForChart = useMemo(() => {
+        const campaignQuals = qualifications.filter(q => q.isStandard || campaigns.some(c => c.qualificationGroupId === q.groupId));
+        const qualCounts = filteredHistory.reduce((acc, call) => {
+            if (call.qualificationId) {
+                acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
+            }
+            return acc;
+        }, {} as Record<string, number>);
+
+        return campaignQuals.map(qual => ({
+            ...qual,
+            count: qualCounts[qual.id] || 0,
+        }));
+    }, [qualifications, filteredHistory, campaigns]);
+
+    const qualificationPerformanceForTable = useMemo(() => {
+        const campaignQuals = qualifications.filter(q => q.isStandard || campaigns.some(c => c.qualificationGroupId === q.groupId));
+        const qualCounts = filteredDataForTables.reduce((acc, call) => {
+            if (call.qualificationId) {
+                acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
+            }
+            return acc;
+        }, {} as Record<string, number>);
+
+        return campaignQuals.map(qual => {
+            const count = qualCounts[qual.id] || 0;
+            const rate = filteredDataForTables.length > 0 ? (count / filteredDataForTables.length) * 100 : 0;
+            return {
+                ...qual,
+                count,
+                rate,
+            };
+        }).filter(q => q.count > 0).sort((a,b) => b.count - a.count);
+    }, [qualifications, filteredDataForTables, campaigns]);
+
     // Data for charts
     const dailyVolumeData = useMemo(() => {
         const counts: { [date: string]: number } = {};
@@ -256,16 +317,6 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
             }]
         };
     }, [filteredHistory]);
-    
-    const callsByCampaignData = useMemo(() => {
-        return {
-            labels: campaignReportData.map(c => c.name),
-            datasets: [{
-                data: campaignReportData.map(c => c.calls),
-                backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#3b82f6'],
-            }]
-        };
-    }, [campaignReportData]);
 
     const successRateByAgentData = useMemo(() => {
         return {
@@ -288,6 +339,90 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
             }]
         };
     }, [agentTimesheetSummary]);
+
+    const treemapChartData = useMemo(() => ({
+        datasets: [{
+            tree: qualificationPerformanceForChart.filter(q => q.count > 0),
+            key: 'count',
+            groups: ['type', 'description'],
+            spacing: 1,
+            borderWidth: 2,
+            borderColor: 'white',
+            captions: {
+                display: true,
+                color: 'white',
+                font: { weight: 'bold' }
+            },
+            labels: {
+                display: false
+            },
+        }]
+    }), [qualificationPerformanceForChart]);
+
+    const treemapOptions = useMemo(() => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: (context: any) => {
+                        const node = context.raw?._data;
+                        if (!node) return '';
+                        if (node.g) { // Group
+                            return `${node.g}: ${node.v} appels`;
+                        }
+                        if (node.s) { // Leaf
+                            return `${node.s.description}: ${node.s.count} appels`;
+                        }
+                        return '';
+                    }
+                }
+            },
+            treemap: {
+                colorizer: (ctx: any) => {
+                    const item = ctx.raw?.s || ctx.raw?._data?.s;
+                    const group = ctx.raw?._data?.g;
+                    const type = item?.type || group;
+                    if (type === 'positive') return 'rgba(16, 185, 129, 0.9)';
+                    if (type === 'negative') return 'rgba(239, 68, 68, 0.9)';
+                    return 'rgba(100, 116, 139, 0.9)';
+                },
+            }
+        },
+        onClick: (evt: any, elements: any) => {
+            if (!elements.length) return;
+            const node = elements[0].element.$context.raw._data;
+            if (node.g) { // A group was clicked (e.g., 'positive')
+                setTreemapFilter({ type: node.g, qualificationId: null });
+            } else if (node.s) { // A leaf was clicked (a specific qualification)
+                const qual = qualifications.find(q => q.description === node.s.description);
+                if (qual) {
+                    setTreemapFilter({ type: qual.type, qualificationId: qual.id });
+                }
+            }
+        }
+    }), [qualifications]);
+
+    // FIX: Added 'callsByHour' calculation to provide data for the 'Heures de Succès' chart.
+    const callsByHour = useMemo(() => {
+        const hours = Array(24).fill(0);
+        filteredHistory.forEach(call => {
+            const qual = qualifications.find(q => q.id === call.qualificationId);
+            if (qual?.type === 'positive') {
+                const hour = new Date(call.timestamp).getHours();
+                hours[hour]++;
+            }
+        });
+        return {
+            labels: Array.from({length: 24}, (_, i) => `${i}h`),
+            datasets: [{
+                label: t('campaignDetail.dashboard.charts.conversionsLabel'),
+                data: hours,
+                backgroundColor: 'rgba(79, 70, 229, 0.7)',
+            }]
+        };
+    }, [filteredHistory, qualifications, t]);
 
 
     const handleExportPDF = () => {
@@ -447,12 +582,19 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                     <div className="p-4 space-y-8">
                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div className="bg-white p-4 rounded-lg shadow-sm border">
-                                <h3 className="font-semibold text-slate-800 mb-3">Volume d'appels par jour</h3>
-                                <div className="h-64"><ChartComponent type="bar" data={dailyVolumeData} options={{ responsive: true, maintainAspectRatio: false }} /></div>
+                                <div className="flex justify-between items-start">
+                                    <h3 className="font-semibold text-slate-800 mb-3">Distribution hiérarchique</h3>
+                                    {(treemapFilter.type || treemapFilter.qualificationId) && (
+                                        <button onClick={() => setTreemapFilter({ type: null, qualificationId: null })} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1">
+                                            <XMarkIcon className="w-4 h-4" /> Réinitialiser le filtre
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="h-64"><ChartComponent type="treemap" data={treemapChartData} options={treemapOptions} /></div>
                             </div>
                             <div className="bg-white p-4 rounded-lg shadow-sm border">
-                                <h3 className="font-semibold text-slate-800 mb-3">Répartition des appels par campagne</h3>
-                                <div className="h-64"><ChartComponent type="doughnut" data={callsByCampaignData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }} }} /></div>
+                                <h3 className="font-semibold text-slate-800 mb-3">Heures de Succès (Conversions)</h3>
+                                <div className="h-64"><ChartComponent type="bar" data={callsByHour} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }} /></div>
                             </div>
                          </div>
                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
