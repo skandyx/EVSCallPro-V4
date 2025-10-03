@@ -82,8 +82,17 @@ const findEntityName = (id: string | null, collection: Array<{id: string, name?:
     if (!id) return 'N/A';
     const item = collection.find(i => i.id === id);
     if (!item) return 'Inconnu';
-    const name = item.name || `${item.firstName} ${item.lastName}` || item.description;
-    return name || '';
+    
+    // Check for properties in order of preference
+    if (item.name) return item.name;
+    if (item.firstName && item.lastName) return `${item.firstName} ${item.lastName}`;
+    if (item.description) return item.description;
+    
+    // Fallbacks for users with only one name part
+    if (item.firstName) return item.firstName;
+    if (item.lastName) return item.lastName;
+
+    return 'Inconnu';
 };
 
 const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
@@ -756,6 +765,12 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                     )}
                     {activeTab === 'dashboard2' && (
                         <div className="space-y-6">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <KpiCard title={t('campaignDetail.dashboard.kpis.completionRate')} value={`${campaignStats.completionRate.toFixed(1)}%`} />
+                                <KpiCard title={t('campaignDetail.dashboard.kpis.contactRate')} value={`${campaignStats.contactRate.toFixed(1)}%`} />
+                                <KpiCard title={t('campaignDetail.dashboard.kpis.conversionRate')} value={`${campaignStats.conversionRate.toFixed(1)}%`} />
+                                <KpiCard title={t('campaignDetail.dashboard.kpis.aht')} value={formatDuration(campaignStats.avgDuration)} />
+                            </div>
                             <div>
                                 <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.fileProgress.title')}</h3>
                                 <div className="w-full bg-slate-200 rounded-full h-4">
