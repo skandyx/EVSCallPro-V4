@@ -781,7 +781,9 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                                     <td className="px-4 py-2 text-right">
                                                         <button 
                                                             onClick={() => handleRecycleClick(qual.id)}
-                                                            className="bg-indigo-100 text-indigo-700 font-semibold text-xs py-1 px-3 rounded-md hover:bg-indigo-200"
+                                                            disabled={qual.isRecyclable === false}
+                                                            className="bg-indigo-100 text-indigo-700 font-semibold text-xs py-1 px-3 rounded-md hover:bg-indigo-200 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                                            title={qual.isRecyclable === false ? "Ce statut n'est pas configurable pour le recyclage." : t('campaignDetail.settings.recycling.recycleButton')}
                                                         >
                                                             {t('campaignDetail.settings.recycling.recycleButton')}
                                                         </button>

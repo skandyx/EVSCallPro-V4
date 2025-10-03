@@ -119,6 +119,7 @@ CREATE TABLE qualifications (
     group_id TEXT REFERENCES qualification_groups(id) ON DELETE SET NULL,
     is_standard BOOLEAN NOT NULL DEFAULT FALSE,
     parent_id TEXT REFERENCES qualifications(id) ON DELETE SET NULL, -- Pour la hiérarchie
+    is_recyclable BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
