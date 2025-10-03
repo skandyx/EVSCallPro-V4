@@ -64,8 +64,7 @@ INSERT INTO qualifications (id, code, description, "type", is_standard) VALUES
 INSERT INTO activity_types (id, name, color) VALUES
 ('activity-available', 'Disponible', '#22c55e'), -- green-500 (En Attente)
 ('activity-pause', 'Pause', '#f97316'),       -- orange-500 (En Pause)
-('activity-training', 'Formation', '#a855f7'),  -- purple-500 (Formation)
-('activity-meeting', 'Réunion', '#8b5cf6');      -- violet-500
+('activity-training', 'Formation', '#a855f7');  -- purple-500 (Formation)
 
 -- =============================================================================
 -- Fin du script d'initialisation.

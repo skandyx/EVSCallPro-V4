@@ -95,7 +95,6 @@
     "nextCall": "Next Call",
     "searching": "Searching...",
     "callControls": "Call Controls",
-    "call": "Call",
     "endCall": "End Call",
     "qualifyContact": "Qualify Contact",
     "hold": "Hold",
@@ -707,6 +706,34 @@
     },
     "savedConfirmation": "Saved successfully!",
     "saving": "Saving..."
+  },
+  "planning": {
+    "today": "Today",
+    "show": "Show:",
+    "all": "All",
+    "groups": "Groups",
+    "agents": "Agents",
+    "hour": "Time",
+    "modal": {
+      "editTitle": "Edit Event",
+      "newTitle": "New Event",
+      "for": "For",
+      "selectTarget": "Select...",
+      "activity": "Activity",
+      "selectActivity": "Select an activity",
+      "start": "Start",
+      "end": "End",
+      "validationError": "Please select a target (agent/group) and an activity."
+    }
+  },
+  "weekdays": {
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
   },
   "features": {
     "users": {

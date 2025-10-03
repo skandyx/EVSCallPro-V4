@@ -708,6 +708,34 @@
     "savedConfirmation": "Enregistré avec succès !",
     "saving": "Enregistrement..."
   },
+  "planning": {
+    "today": "Aujourd'hui",
+    "show": "Afficher:",
+    "all": "Tous",
+    "groups": "Groupes",
+    "agents": "Agents",
+    "hour": "Heure",
+    "modal": {
+      "editTitle": "Modifier l'événement",
+      "newTitle": "Nouvel événement",
+      "for": "Pour",
+      "selectTarget": "Sélectionner...",
+      "activity": "Activité",
+      "selectActivity": "Sélectionner une activité",
+      "start": "Début",
+      "end": "Fin",
+      "validationError": "Veuillez sélectionner une cible (agent/groupe) et une activité."
+    }
+  },
+  "weekdays": {
+    "monday": "Lundi",
+    "tuesday": "Mardi",
+    "wednesday": "Mercredi",
+    "thursday": "Jeudi",
+    "friday": "Vendredi",
+    "saturday": "Samedi",
+    "sunday": "Dimanche"
+  },
   "features": {
     "users": {
       "title": "Utilisateurs",
