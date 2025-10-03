@@ -106,7 +106,6 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const [contactSortConfig, setContactSortConfig] = useState<{ key: ContactSortKeys; direction: 'ascending' | 'descending' }>({ key: 'lastName', direction: 'ascending' });
     
     const [historyModal, setHistoryModal] = useState<{ isOpen: boolean, contact: Contact | null }>({ isOpen: false, contact: null });
-    const [treemapFilter, setTreemapFilter] = useState<{ type: Qualification['type'] | null, qualificationId: string | null }>({ type: null, qualificationId: null });
     const [drilldownPath, setDrilldownPath] = useState<DrilldownLevel[]>([]);
 
     const canDelete = currentUser.role === 'Administrateur' || currentUser.role === 'SuperAdmin';
@@ -154,25 +153,8 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     }, [campaign.contacts, campaignCallHistory, qualifications]);
 
     const filteredDataForTables = useMemo(() => {
-        const isFilterActive = treemapFilter.type || treemapFilter.qualificationId;
-        if (!isFilterActive) {
-            return campaignCallHistory;
-        }
-
-        return campaignCallHistory.filter(call => {
-            if (!call.qualificationId) return false;
-            const qual = qualifications.find(q => q.id === call.qualificationId);
-            if (!qual) return false;
-
-            if (treemapFilter.qualificationId) {
-                return qual.id === treemapFilter.qualificationId;
-            }
-            if (treemapFilter.type) {
-                return qual.type === treemapFilter.type;
-            }
-            return false;
-        });
-    }, [campaignCallHistory, treemapFilter, qualifications]);
+        return campaignCallHistory;
+    }, [campaignCallHistory]);
     
     const qualificationPerformanceForChart = useMemo(() => {
         const campaignQuals = qualifications.filter(q => q.isStandard || q.groupId === campaign.qualificationGroupId);
@@ -205,72 +187,6 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         return map;
     }, [qualifications]);
 
-
-    const treemapChartData = useMemo(() => ({
-        datasets: [{
-            tree: qualificationPerformanceForChart.filter(q => q.count > 0),
-            key: 'count',
-            groups: ['type', 'description'],
-            spacing: 1,
-            borderWidth: 2,
-            borderColor: 'white',
-            captions: {
-                display: true,
-                color: 'white', 
-                font: { weight: 'bold' }
-            },
-            labels: {
-                display: true,
-                color: 'white',
-                font: { size: 12 },
-                formatter: (ctx: any) => {
-                    if (!ctx.raw) return null;
-                    const node = ctx.raw._data;
-                    return node.s ? node.s.description : null;
-                }
-            },
-            backgroundColor: (ctx: any) => {
-                if (!ctx.raw || !ctx.raw._data) return 'rgba(200, 200, 200, 0.5)';
-                const node = ctx.raw._data;
-                if (node.s && node.s.id && qualColorMap.has(node.s.id)) {
-                    return qualColorMap.get(node.s.id);
-                }
-                if (node.g === 'positive') return 'rgba(34, 197, 94, 0.2)';
-                if (node.g === 'negative') return 'rgba(239, 68, 68, 0.2)';
-                if (node.g === 'neutral') return 'rgba(100, 116, 139, 0.2)';
-                return 'rgba(200, 200, 200, 0.5)';
-            }
-        }]
-    }), [qualificationPerformanceForChart, qualColorMap]);
-    
-    const treemapOptions = useMemo(() => ({
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                callbacks: {
-                    label: (context: any) => {
-                        const node = context.raw?._data;
-                        if (!node) return '';
-                        if (node.g) return `${t(`qualifications.types.${node.g}`)}: ${node.v} appels`;
-                        if (node.s) return `${node.s.description}: ${node.s.count} appels`;
-                        return '';
-                    }
-                }
-            },
-        },
-        onClick: (evt: any, elements: any) => {
-            if (!elements.length) return;
-            const node = elements[0].element.$context.raw._data;
-            if (node.g) {
-                setTreemapFilter({ type: node.g, qualificationId: null });
-            } else if (node.s) {
-                setTreemapFilter({ type: node.s.type, qualificationId: node.s.id });
-            }
-        }
-    }), [t]);
-    
     //
     // --- START: DASHBOARD 2 LOGIC ---
     //
@@ -702,18 +618,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                     </div>
                                 </div>
                             )}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t">
-                                <div>
-                                     <div className="flex justify-between items-start">
-                                        <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.charts.qualifDistributionTitle')}</h3>
-                                        {(treemapFilter.type || treemapFilter.qualificationId) && (
-                                            <button onClick={() => setTreemapFilter({ type: null, qualificationId: null })} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1">
-                                                <XMarkIcon className="w-4 h-4" /> Réinitialiser le filtre
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="h-64"><ChartComponent type="treemap" data={treemapChartData} options={treemapOptions} /></div>
-                                </div>
+                            <div className="grid grid-cols-1 lg:grid-cols-1 gap-6 pt-4 border-t">
                                 <div>
                                     <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.charts.successByHourTitle')}</h3>
                                     <div className="h-64"><ChartComponent type="bar" data={callsByHour} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }} /></div>
