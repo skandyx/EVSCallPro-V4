@@ -409,9 +409,13 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
 
     const Breadcrumbs = () => (
         <div className="flex items-center gap-2 text-sm">
-            <button onClick={() => setDrilldownPath([])} className="font-semibold text-indigo-600 hover:underline">
-                Analyse Détaillée
-            </button>
+            {drilldownPath.length === 0 ? (
+                <h3 className="text-lg font-semibold text-slate-800">Analyse Détaillée</h3>
+            ) : (
+                <button onClick={() => setDrilldownPath([])} className="font-semibold text-indigo-600 hover:underline">
+                    Analyse Détaillée
+                </button>
+            )}
             {drilldownPath.map((level, index) => (
                 <React.Fragment key={index}>
                     <span className="text-slate-400">/</span>
@@ -751,88 +755,90 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                         </div>
                     )}
                     {activeTab === 'dashboard2' && (
-                        <div className="space-y-4">
-                            <div className="flex justify-between items-center bg-slate-50 p-2 rounded-md border">
-                                <Breadcrumbs />
-                                {drilldownPath.length > 0 && (
-                                    <button onClick={() => setDrilldownPath([])} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1">
-                                        <XMarkIcon className="w-4 h-4" /> Réinitialiser
-                                    </button>
-                                )}
-                            </div>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div className="space-y-6">
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.fileProgress.title')}</h3>
-                                        <div className="w-full bg-slate-200 rounded-full h-4">
-                                            <div className="bg-indigo-600 h-4 rounded-full text-center text-white text-xs font-bold" style={{ width: `${campaignStats.completionRate}%` }}>
-                                                {campaignStats.completionRate.toFixed(0)}%
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-between text-sm mt-1">
-                                            <span>{t('campaignDetail.dashboard.fileProgress.processed')} {campaignStats.processed}</span>
-                                            <span>{t('campaignDetail.dashboard.fileProgress.remaining')} {campaignStats.pending}</span>
-                                        </div>
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.fileProgress.title')}</h3>
+                                <div className="w-full bg-slate-200 rounded-full h-4">
+                                    <div className="bg-blue-600 h-4 rounded-full text-center text-white text-xs font-bold" style={{ width: `${campaignStats.completionRate}%` }}>
+                                        {campaignStats.completionRate > 10 && `${campaignStats.completionRate.toFixed(0)}%`}
                                     </div>
-                                    {campaign.quotaRules.length > 0 && (
-                                        <div>
-                                            <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.quota.title')}</h3>
-                                            <div className="space-y-3">
-                                                {campaign.quotaRules.map(rule => (
-                                                    <div key={rule.id}>
-                                                        <div className="flex justify-between text-sm font-medium mb-1">
-                                                            <span>
-                                                                {rule.operator === 'starts_with' 
-                                                                    ? t('campaignDetail.dashboard.quota.ruleStartsWith', { field: rule.contactField, value: rule.value })
-                                                                    : t('campaignDetail.dashboard.quota.ruleEquals', { field: rule.contactField, value: rule.value })
-                                                                }
-                                                            </span>
-                                                            <span>{t('campaignDetail.dashboard.quota.achieved')} {rule.currentCount} / {rule.limit}</span>
-                                                        </div>
-                                                        <div className="w-full bg-slate-200 rounded-full h-2.5">
-                                                            <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${rule.limit > 0 ? (rule.currentCount / rule.limit) * 100 : 0}%` }}></div>
-                                                        </div>
-                                                    </div>
-                                                ))}
+                                </div>
+                                <div className="flex justify-between text-sm mt-1">
+                                    <span>{t('campaignDetail.dashboard.fileProgress.processed')} {campaignStats.processed}</span>
+                                    <span>{t('campaignDetail.dashboard.fileProgress.remaining')} {campaignStats.pending}</span>
+                                </div>
+                            </div>
+                            {campaign.quotaRules.length > 0 && (
+                                <div>
+                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.quota.title')}</h3>
+                                    <div className="space-y-3">
+                                        {campaign.quotaRules.map(rule => (
+                                            <div key={rule.id}>
+                                                <div className="flex justify-between text-sm font-medium mb-1">
+                                                    <span>
+                                                        {rule.operator === 'starts_with' 
+                                                            ? t('campaignDetail.dashboard.quota.ruleStartsWith', { field: rule.contactField, value: rule.value })
+                                                            : t('campaignDetail.dashboard.quota.ruleEquals', { field: rule.contactField, value: rule.value })
+                                                        }
+                                                    </span>
+                                                    <span>{t('campaignDetail.dashboard.quota.achieved')} {rule.currentCount} / {rule.limit}</span>
+                                                </div>
+                                                <div className="w-full bg-slate-200 rounded-full h-2.5">
+                                                    <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${rule.limit > 0 ? (rule.currentCount / rule.limit) * 100 : 0}%` }}></div>
+                                                </div>
                                             </div>
-                                        </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-4 pt-4 border-t">
+                                <div className="flex justify-between items-center">
+                                    <Breadcrumbs />
+                                    {drilldownPath.length > 0 && (
+                                        <button onClick={() => setDrilldownPath([])} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1">
+                                            <XMarkIcon className="w-4 h-4" /> Réinitialiser
+                                        </button>
                                     )}
                                 </div>
-                                <div className="h-80 w-full bg-slate-50 p-4 rounded-lg border">
+                                <div className="bg-white p-4 rounded-lg border shadow-sm" style={{height: '400px'}}>
                                     <ChartComponent type="treemap" data={treemapDrilldownData} options={treemapDrilldownOptions} />
                                 </div>
                             </div>
-                             <div className="pt-4">
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">Détail des Fiches</h3>
-                                <div className="overflow-x-auto max-h-96 border rounded-md">
-                                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                                        <thead className="bg-slate-50 sticky top-0"><tr>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Contact</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Téléphone</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Agent</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Date Appel</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Qualification</th>
-                                        </tr></thead>
-                                        <tbody className="bg-white divide-y divide-slate-200">
-                                            {contactsForDrilldownTable.length > 0 ? contactsForDrilldownTable.map(contact => (
-                                                <tr key={contact.id}>
-                                                    <td className="px-4 py-2 font-medium">{contact.firstName} {contact.lastName}</td>
-                                                    <td className="px-4 py-2 font-mono">{contact.phoneNumber}</td>
-                                                    <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.agentId, users) : 'N/A'}</td>
-                                                    <td className="px-4 py-2">{contact.lastCall ? new Date(contact.lastCall.timestamp).toLocaleString('fr-FR') : 'N/A'}</td>
-                                                    <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.qualificationId, qualifications) : 'N/A'}</td>
-                                                </tr>
-                                            )) : (
-                                                <tr>
-                                                    <td colSpan={5} className="text-center py-8 text-slate-500 italic">
-                                                        Aucune fiche à afficher pour la sélection actuelle.
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
+                            
+                            {drilldownPath.length > 0 && (
+                                 <div className="pt-4">
+                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">Détail des Fiches pour la sélection</h3>
+                                    <div className="overflow-x-auto max-h-96 border rounded-md">
+                                        <table className="min-w-full divide-y divide-slate-200 text-sm">
+                                            <thead className="bg-slate-50 sticky top-0"><tr>
+                                                <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Contact</th>
+                                                <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Téléphone</th>
+                                                <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Agent</th>
+                                                <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Date Appel</th>
+                                                <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Qualification</th>
+                                            </tr></thead>
+                                            <tbody className="bg-white divide-y divide-slate-200">
+                                                {contactsForDrilldownTable.length > 0 ? contactsForDrilldownTable.map(contact => (
+                                                    <tr key={contact.id}>
+                                                        <td className="px-4 py-2 font-medium">{contact.firstName} {contact.lastName}</td>
+                                                        <td className="px-4 py-2 font-mono">{contact.phoneNumber}</td>
+                                                        <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.agentId, users) : 'N/A'}</td>
+                                                        <td className="px-4 py-2">{contact.lastCall ? new Date(contact.lastCall.timestamp).toLocaleString('fr-FR') : 'N/A'}</td>
+                                                        <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.qualificationId, qualifications) : 'N/A'}</td>
+                                                    </tr>
+                                                )) : (
+                                                    <tr>
+                                                        <td colSpan={5} className="text-center py-8 text-slate-500 italic">
+                                                            Aucune fiche à afficher pour la sélection actuelle.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     )}
                     {activeTab === 'settings' && (
