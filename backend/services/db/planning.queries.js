@@ -21,6 +21,14 @@ const savePlanningEvent = async (event, id) => {
 
 const deletePlanningEvent = async (id) => await pool.query('DELETE FROM planning_events WHERE id=$1', [id]);
 
+const deletePlanningEventsBulk = async (eventIds) => {
+    if (!eventIds || eventIds.length === 0) {
+        return 0;
+    }
+    const result = await pool.query('DELETE FROM planning_events WHERE id = ANY($1::text[])', [eventIds]);
+    return result.rowCount;
+};
+
 const getActivityTypes = async () => (await pool.query('SELECT * FROM activity_types ORDER BY name')).rows.map(keysToCamel);
 const getPersonalCallbacks = async () => (await pool.query('SELECT * FROM personal_callbacks ORDER BY scheduled_time')).rows.map(keysToCamel);
 
@@ -54,6 +62,7 @@ module.exports = {
     getPlanningEvents,
     savePlanningEvent,
     deletePlanningEvent,
+    deletePlanningEventsBulk,
     getActivityTypes,
     getPersonalCallbacks,
     createPersonalCallback,

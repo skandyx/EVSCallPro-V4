@@ -83,6 +83,42 @@ router.delete('/:id', async (req, res) => {
 
 /**
  * @openapi
+ * /planning-events/bulk-delete:
+ *   post:
+ *     summary: Supprime plusieurs événements de planning en masse.
+ *     tags: [Planning]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               eventIds:
+ *                 type: array
+ *                 items: { type: string }
+ *     responses:
+ *       '200':
+ *         description: "Événements supprimés avec succès."
+ */
+router.post('/bulk-delete', async (req, res) => {
+    const { eventIds } = req.body;
+    if (!eventIds || !Array.isArray(eventIds) || eventIds.length === 0) {
+        return res.status(400).json({ error: "Un tableau d'eventIds est requis." });
+    }
+
+    try {
+        const deletedCount = await db.deletePlanningEventsBulk(eventIds);
+        res.json({ message: `${deletedCount} événement(s) supprimé(s) avec succès.` });
+    } catch (error) {
+        console.error('Error bulk deleting planning events:', error);
+        res.status(500).json({ error: 'Échec de la suppression des événements.' });
+    }
+});
+
+
+/**
+ * @openapi
  * /planning-events/callbacks/{id}:
  *   put:
  *     summary: Met à jour le statut d'un rappel personnel.

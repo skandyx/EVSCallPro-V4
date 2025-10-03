@@ -11,6 +11,7 @@ interface PlanningManagerProps {
     userGroups: UserGroup[];
     onSavePlanningEvent: (event: PlanningEvent) => void;
     onDeletePlanningEvent: (eventId: string) => void;
+    apiCall: any; // AxiosInstance
 }
 
 const HOUR_HEIGHT = 60; // 60px per hour
@@ -220,7 +221,7 @@ const MassEditModal: React.FC<MassEditModalProps> = ({ onClose, onSave, activiti
 };
 
 
-const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEvents, activityTypes, users, userGroups, onSavePlanningEvent, onDeletePlanningEvent }) => {
+const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEvents, activityTypes, users, userGroups, onSavePlanningEvent, onDeletePlanningEvent, apiCall }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedTargetId, setSelectedTargetId] = useState('all');
     const [modalState, setModalState] = useState<{ isOpen: boolean; event: Partial<PlanningEvent> | null }>({ isOpen: false, event: null });
@@ -566,10 +567,21 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
         });
     }, [selectedUserIds, planningEvents, weekInfo.start, weekInfo.end]);
 
-    const handleMassDelete = () => {
-        if (window.confirm(t('planning.actions.confirmDelete', { eventCount: eventsForSelectedUsers.length, userCount: selectedUserIds.length }))) {
-            eventsForSelectedUsers.forEach(event => onDeletePlanningEvent(event.id));
-            setSelectedUserIds([]);
+    const handleMassDelete = async () => {
+        const eventIdsToDelete = eventsForSelectedUsers.map(e => e.id);
+        if (eventIdsToDelete.length === 0) return;
+        
+        if (window.confirm(t('planning.actions.confirmDelete', { eventCount: eventIdsToDelete.length, userCount: selectedUserIds.length }))) {
+            try {
+                // Call the new bulk delete endpoint
+                await apiCall.post('/planning-events/bulk-delete', { eventIds: eventIdsToDelete });
+                // Note: The frontend will auto-refresh via the application-data call in App.tsx after a successful API call.
+                // For a more instant UI, you'd filter the state here, but that's handled by the parent.
+                setSelectedUserIds([]);
+            } catch (error) {
+                console.error("Mass delete failed:", error);
+                alert("An error occurred during mass deletion.");
+            }
         }
     };
 
@@ -676,21 +688,28 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                                 const activity = activityTypes.find(a => a.id === originalEvent.activityId);
                                 const agent = users.find(u => u.id === originalEvent.agentId);
                                 const agentName = agent ? `${agent.firstName} ${agent.lastName}` : 'Agent inconnu';
+                                
+                                const startTimeStr = startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit'});
+                                const endTimeStr = endDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit'});
+                                const tooltipText = `${activity?.name}\n${agentName}\n${startTimeStr} - ${endTimeStr}`;
 
                                 return (
                                     <div
                                         key={segment.id}
                                         onClick={e => { e.stopPropagation(); setModalState({ isOpen: true, event: originalEvent })}}
                                         onMouseDown={e => handleEventMouseDown(e, originalEvent, false)}
-                                        className={`absolute p-1 rounded-sm shadow-sm border overflow-hidden flex flex-col pointer-events-auto transition-all duration-75 ${isDraggingGhost ? 'opacity-70 z-30' : 'cursor-grab'}`}
+                                        className={`group absolute p-1 rounded-sm shadow-sm border overflow-hidden flex flex-col pointer-events-auto transition-all duration-75 ${isDraggingGhost ? 'opacity-70 z-30' : 'cursor-pointer'}`}
                                         style={{ top: `${top}px`, height: `${Math.max(height, 15)}px`, left, width, backgroundColor: activity?.color || '#ccc', borderColor: activity ? `${activity.color}99` : '#bbb' }}
-                                        title={`${activity?.name} - ${agentName}`}
+                                        title={tooltipText}
                                     >
                                         {isStart && <p className="font-bold text-white text-xs truncate">{activity?.name}</p>}
                                         {isStart && totalInGroup > 1 && <p className="text-white text-xs opacity-80 truncate">{agent?.firstName}</p>}
                                         {isEnd && height > 20 && (
-                                            <div className="mt-auto h-3 w-full flex justify-center items-end pointer-events-auto">
-                                               <div onMouseDown={e => handleEventMouseDown(e, originalEvent, true)} className="resize-handle h-1.5 w-8 bg-white opacity-50 rounded-full cursor-ns-resize"/>
+                                            <div 
+                                                onMouseDown={e => handleEventMouseDown(e, originalEvent, true)} 
+                                                className="absolute bottom-0 left-0 right-0 h-2 flex justify-center items-center cursor-ns-resize opacity-0 group-hover:opacity-100 pointer-events-auto"
+                                            >
+                                               <div className="h-1 w-8 bg-white opacity-50 rounded-full"/>
                                             </div>
                                         )}
                                     </div>
