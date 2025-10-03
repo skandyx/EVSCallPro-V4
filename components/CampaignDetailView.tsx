@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { Campaign, SavedScript, Contact, CallHistoryRecord, Qualification, User, ContactNote, UserGroup, QualificationGroup } from '../types.ts';
-import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon, ChevronDownIcon } from './Icons';
+import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon, ChevronDownIcon, XMarkIcon } from './Icons';
 import ContactHistoryModal from './ContactHistoryModal.tsx';
 import { useI18n } from '../src/i18n/index.tsx';
 
@@ -81,6 +81,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const [contactSortConfig, setContactSortConfig] = useState<{ key: ContactSortKeys; direction: 'ascending' | 'descending' }>({ key: 'lastName', direction: 'ascending' });
     
     const [historyModal, setHistoryModal] = useState<{ isOpen: boolean, contact: Contact | null }>({ isOpen: false, contact: null });
+    const [treemapFilter, setTreemapFilter] = useState<{ type: Qualification['type'] | null, qualificationId: string | null }>({ type: null, qualificationId: null });
 
     const canDelete = currentUser.role === 'Administrateur' || currentUser.role === 'SuperAdmin';
 
@@ -125,27 +126,94 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             avgDuration: avgDuration
         };
     }, [campaign.contacts, campaignCallHistory, qualifications]);
-    
-    const qualificationDistribution = useMemo(() => {
-        const counts = { positive: 0, neutral: 0, negative: 0 };
-        campaignCallHistory.forEach(call => {
+
+    const filteredDataForTables = useMemo(() => {
+        if (!treemapFilter.type && !treemapFilter.qualificationId) {
+            return campaignCallHistory;
+        }
+        return campaignCallHistory.filter(call => {
+            if (!call.qualificationId) return false;
             const qual = qualifications.find(q => q.id === call.qualificationId);
-            if(qual && counts[qual.type] !== undefined) {
-                counts[qual.type]++;
+            if (!qual) return false;
+            if (treemapFilter.qualificationId) {
+                return qual.id === treemapFilter.qualificationId;
             }
+            if (treemapFilter.type) {
+                return qual.type === treemapFilter.type;
+            }
+            return true;
         });
-        return {
-            labels: [t('qualifications.types.positive'), t('qualifications.types.neutral'), t('qualifications.types.negative')],
-            datasets: [{
-                data: [counts.positive, counts.neutral, counts.negative],
-                backgroundColor: ['#10b981', '#64748b', '#ef4444'],
-            }]
-        };
-    }, [campaignCallHistory, qualifications, t]);
+    }, [campaignCallHistory, treemapFilter, qualifications]);
+    
+    const qualificationPerformanceForChart = useMemo(() => {
+        const campaignQuals = qualifications.filter(q => q.isStandard || q.groupId === campaign.qualificationGroupId);
+        const qualCounts = campaignCallHistory.reduce((acc, call) => {
+            if (call.qualificationId) {
+                acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
+            }
+            return acc;
+        }, {} as Record<string, number>);
+
+        return campaignQuals.map(qual => ({
+            ...qual,
+            count: qualCounts[qual.id] || 0,
+        }));
+    }, [qualifications, campaignCallHistory, campaign.qualificationGroupId]);
+
+    const treemapChartData = useMemo(() => ({
+        datasets: [{
+            tree: qualificationPerformanceForChart.filter(q => q.count > 0),
+            key: 'count',
+            groups: ['type', 'description'],
+            spacing: 1,
+            borderWidth: 2,
+            borderColor: 'white',
+            captions: { display: true, color: 'white', font: { weight: 'bold' } },
+            labels: { display: false },
+        }]
+    }), [qualificationPerformanceForChart]);
+
+    const treemapOptions = useMemo(() => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: (context: any) => {
+                        const node = context.raw?._data;
+                        if (!node) return '';
+                        if (node.g) return `${node.g}: ${node.v} appels`;
+                        if (node.s) return `${node.s.description}: ${node.s.count} appels`;
+                        return '';
+                    }
+                }
+            },
+            treemap: {
+                colorizer: (ctx: any) => {
+                    const item = ctx.raw?.s || ctx.raw?._data?.s;
+                    const group = ctx.raw?._data?.g;
+                    const type = item?.type || group;
+                    if (type === 'positive') return 'rgba(16, 185, 129, 0.9)';
+                    if (type === 'negative') return 'rgba(239, 68, 68, 0.9)';
+                    return 'rgba(100, 116, 139, 0.9)';
+                },
+            }
+        },
+        onClick: (evt: any, elements: any) => {
+            if (!elements.length) return;
+            const node = elements[0].element.$context.raw._data;
+            if (node.g) {
+                setTreemapFilter({ type: node.g, qualificationId: null });
+            } else if (node.s) {
+                setTreemapFilter({ type: node.s.type, qualificationId: node.s.id });
+            }
+        }
+    }), [qualifications]);
 
     const callsByHour = useMemo(() => {
         const hours = Array(24).fill(0);
-        campaignCallHistory.forEach(call => {
+        filteredDataForTables.forEach(call => {
             const qual = qualifications.find(q => q.id === call.qualificationId);
             if (qual?.type === 'positive') {
                 const hour = new Date(call.timestamp).getHours();
@@ -160,11 +228,11 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 backgroundColor: 'rgba(79, 70, 229, 0.7)',
             }]
         };
-    }, [campaignCallHistory, qualifications, t]);
+    }, [filteredDataForTables, qualifications, t]);
 
     const agentPerformance = useMemo(() => {
         const perf: {[key: string]: { name: string, calls: number, conversions: number }} = {};
-        campaignCallHistory.forEach(call => {
+        filteredDataForTables.forEach(call => {
             if (!perf[call.agentId]) {
                 const user = users.find(u => u.id === call.agentId);
                 perf[call.agentId] = { name: user ? `${user.firstName} ${user.lastName}` : 'Inconnu', calls: 0, conversions: 0 };
@@ -174,11 +242,11 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             if(qual?.type === 'positive') perf[call.agentId].conversions++;
         });
         return Object.values(perf).sort((a,b) => b.conversions - a.conversions || b.calls - a.calls);
-    }, [campaignCallHistory, users, qualifications]);
+    }, [filteredDataForTables, users, qualifications]);
 
     const qualificationPerformance = useMemo(() => {
         const campaignQuals = qualifications.filter(q => q.isStandard || q.groupId === campaign.qualificationGroupId);
-        const qualCounts = campaignCallHistory.reduce((acc, call) => {
+        const qualCounts = filteredDataForTables.reduce((acc, call) => {
             if (call.qualificationId) {
                 acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
             }
@@ -187,14 +255,10 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
 
         return campaignQuals.map(qual => {
             const count = qualCounts[qual.id] || 0;
-            const rate = campaignCallHistory.length > 0 ? (count / campaignCallHistory.length) * 100 : 0;
-            return {
-                ...qual,
-                count,
-                rate,
-            };
+            const rate = filteredDataForTables.length > 0 ? (count / filteredDataForTables.length) * 100 : 0;
+            return { ...qual, count, rate };
         }).sort((a,b) => b.count - a.count);
-    }, [campaign.qualificationGroupId, qualifications, campaignCallHistory]);
+    }, [campaign.qualificationGroupId, qualifications, filteredDataForTables]);
 
     const columnsToDisplay = useMemo(() => {
         const standardColumns: { id: ContactSortKeys; name: string }[] = [
@@ -408,8 +472,15 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                             )}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t">
                                 <div>
-                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.charts.qualifDistributionTitle')}</h3>
-                                    <div className="h-64"><ChartComponent type="doughnut" data={qualificationDistribution} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }} }} /></div>
+                                     <div className="flex justify-between items-start">
+                                        <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.charts.qualifDistributionTitle')}</h3>
+                                        {(treemapFilter.type || treemapFilter.qualificationId) && (
+                                            <button onClick={() => setTreemapFilter({ type: null, qualificationId: null })} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1">
+                                                <XMarkIcon className="w-4 h-4" /> Réinitialiser le filtre
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="h-64"><ChartComponent type="treemap" data={treemapChartData} options={treemapOptions} /></div>
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.charts.successByHourTitle')}</h3>

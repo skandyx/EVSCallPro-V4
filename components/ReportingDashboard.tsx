@@ -6,6 +6,8 @@
 
 
 
+
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import type { Feature, CallHistoryRecord, User, Campaign, Qualification, AgentSession } from '../types.ts';
 import { ArrowUpTrayIcon, TimeIcon, PhoneIcon, ChartBarIcon, XMarkIcon } from './Icons.tsx';
@@ -300,7 +302,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
     // Data for charts
     const dailyVolumeData = useMemo(() => {
         const counts: { [date: string]: number } = {};
-        filteredHistory.forEach(call => {
+        filteredDataForTables.forEach(call => {
             const date = new Date(call.timestamp).toLocaleDateString('fr-FR');
             counts[date] = (counts[date] || 0) + 1;
         });
@@ -316,7 +318,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 borderWidth: 1
             }]
         };
-    }, [filteredHistory]);
+    }, [filteredDataForTables]);
 
     const successRateByAgentData = useMemo(() => {
         return {
@@ -404,10 +406,10 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         }
     }), [qualifications]);
 
-    // FIX: Added 'callsByHour' calculation to provide data for the 'Heures de Succès' chart.
+    // FIX: Changed 'filteredHistory' to 'filteredDataForTables' to make the chart react to treemap filters.
     const callsByHour = useMemo(() => {
         const hours = Array(24).fill(0);
-        filteredHistory.forEach(call => {
+        filteredDataForTables.forEach(call => {
             const qual = qualifications.find(q => q.id === call.qualificationId);
             if (qual?.type === 'positive') {
                 const hour = new Date(call.timestamp).getHours();
@@ -422,7 +424,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 backgroundColor: 'rgba(79, 70, 229, 0.7)',
             }]
         };
-    }, [filteredHistory, qualifications, t]);
+    }, [filteredDataForTables, qualifications, t]);
 
 
     const handleExportPDF = () => {
