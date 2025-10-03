@@ -25,7 +25,7 @@ interface CampaignDetailViewProps {
     currentUser: User;
 }
 
-type DetailTab = 'contacts' | 'dashboard' | 'settings';
+type DetailTab = 'contacts' | 'dashboard' | 'dashboard2' | 'settings';
 type ContactSortKeys = 'firstName' | 'lastName' | 'phoneNumber' | 'postalCode' | 'status';
 
 const KpiCard: React.FC<{ title: string; value: string | number; }> = ({ title, value }) => (
@@ -87,6 +87,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     
     const [historyModal, setHistoryModal] = useState<{ isOpen: boolean, contact: Contact | null }>({ isOpen: false, contact: null });
     const [treemapFilter, setTreemapFilter] = useState<{ type: Qualification['type'] | null, qualificationId: string | null }>({ type: null, qualificationId: null });
+    const [treemapFilter2, setTreemapFilter2] = useState<{ type: Qualification['type'] | null, qualificationId: string | null }>({ type: null, qualificationId: null });
 
     const canDelete = currentUser.role === 'Administrateur' || currentUser.role === 'SuperAdmin';
 
@@ -245,6 +246,19 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             }
         }
     }), [t]);
+    
+    const treemapOptions2 = useMemo(() => ({
+        ...treemapOptions,
+        onClick: (evt: any, elements: any) => {
+            if (!elements.length) return;
+            const node = elements[0].element.$context.raw._data;
+            if (node.g) {
+                setTreemapFilter2({ type: node.g, qualificationId: null });
+            } else if (node.s) {
+                setTreemapFilter2({ type: node.s.type, qualificationId: node.s.id });
+            }
+        }
+    }), [treemapOptions]);
 
     const callsByHour = useMemo(() => {
         const hours = Array(24).fill(0);
@@ -264,6 +278,35 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             }]
         };
     }, [filteredDataForTables, qualifications, t]);
+    
+    const getFilteredDataForDashboard2 = useMemo(() => {
+        const isFilterActive = treemapFilter2.type || treemapFilter2.qualificationId;
+        if (!isFilterActive) return campaignCallHistory;
+        
+        return campaignCallHistory.filter(call => {
+            if (!call.qualificationId) return false;
+            const qual = qualifications.find(q => q.id === call.qualificationId);
+            if (!qual) return false;
+            if (treemapFilter2.qualificationId) return qual.id === treemapFilter2.qualificationId;
+            if (treemapFilter2.type) return qual.type === treemapFilter2.type;
+            return false;
+        });
+    }, [campaignCallHistory, treemapFilter2, qualifications]);
+
+    const agentPerformanceForDashboard2 = useMemo(() => {
+        const perf: {[key: string]: { name: string, calls: number, conversions: number }} = {};
+        getFilteredDataForDashboard2.forEach(call => {
+            if (!perf[call.agentId]) {
+                const user = users.find(u => u.id === call.agentId);
+                perf[call.agentId] = { name: user ? `${user.firstName} ${user.lastName}` : 'Inconnu', calls: 0, conversions: 0 };
+            }
+            perf[call.agentId].calls++;
+            const qual = qualifications.find(q => q.id === call.qualificationId);
+            if(qual?.type === 'positive') perf[call.agentId].conversions++;
+        });
+        return Object.values(perf).sort((a,b) => b.conversions - a.conversions || b.calls - a.calls);
+    }, [getFilteredDataForDashboard2, users, qualifications]);
+
 
     const agentPerformance = useMemo(() => {
         const perf: {[key: string]: { name: string, calls: number, conversions: number }} = {};
@@ -413,6 +456,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 <div className="border-b border-slate-200"><nav className="-mb-px flex space-x-4 px-6">
                     <TabButton tab="contacts" label={t('campaignDetail.tabs.contacts', { count: campaign.contacts.length })} icon={UsersIcon} />
                     <TabButton tab="dashboard" label={t('campaignDetail.tabs.dashboard')} icon={ChartBarIcon} />
+                    <TabButton tab="dashboard2" label="Dashboard2" icon={ChartBarIcon} />
                     <TabButton tab="settings" label={t('campaignDetail.tabs.settings')} icon={Cog6ToothIcon} />
                 </nav></div>
                 <div className="p-6">
@@ -554,6 +598,42 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                         </tr></thead>
                                         <tbody className="bg-white divide-y divide-slate-200">
                                             {agentPerformance.map(agent => (
+                                                <tr key={agent.name}>
+                                                    <td className="px-4 py-2 font-medium">{agent.name}</td>
+                                                    <td className="px-4 py-2">{agent.calls}</td>
+                                                    <td className="px-4 py-2">{agent.conversions}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'dashboard2' && (
+                        <div className="space-y-8">
+                            <div className="flex justify-between items-start">
+                                <h3 className="text-xl font-semibold text-slate-800">Analyse Détaillée par Qualification</h3>
+                                {(treemapFilter2.type || treemapFilter2.qualificationId) && (
+                                    <button onClick={() => setTreemapFilter2({ type: null, qualificationId: null })} className="text-sm font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1">
+                                        <XMarkIcon className="w-4 h-4" /> Réinitialiser le filtre
+                                    </button>
+                                )}
+                            </div>
+                            <div className="h-80 w-full bg-slate-50 p-4 rounded-lg border">
+                                <ChartComponent type="treemap" data={treemapChartData} options={treemapOptions2} />
+                            </div>
+                             <div className="pt-4 border-t">
+                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.tables.agentPerfTitle')}</h3>
+                                <div className="overflow-x-auto max-h-96 border rounded-md">
+                                    <table className="min-w-full divide-y divide-slate-200 text-sm">
+                                        <thead className="bg-slate-50 sticky top-0"><tr>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.agent')}</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.processedCalls')}</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.conversions')}</th>
+                                        </tr></thead>
+                                        <tbody className="bg-white divide-y divide-slate-200">
+                                            {agentPerformanceForDashboard2.map(agent => (
                                                 <tr key={agent.name}>
                                                     <td className="px-4 py-2 font-medium">{agent.name}</td>
                                                     <td className="px-4 py-2">{agent.calls}</td>
