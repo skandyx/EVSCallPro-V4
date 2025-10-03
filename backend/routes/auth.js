@@ -44,11 +44,11 @@ router.post('/login', async (req, res) => {
         const user = await db.authenticateUser(loginId, password);
         if (!user) {
             logger.logSecurity('WARNING', `Failed login attempt for: ${loginId} (Invalid credentials)`);
-            return res.status(401).json({ error: "Identifiant ou mot de passe incorrect." });
+            return res.status(401).json({ errorKey: "INVALID_CREDENTIALS" });
         }
         if (!user.isActive) {
             logger.logSecurity('WARNING', `Failed login attempt for: ${loginId} (Account disabled)`);
-            return res.status(401).json({ error: "Ce compte utilisateur est désactivé." });
+            return res.status(401).json({ errorKey: "ACCOUNT_DISABLED" });
         }
 
         // --- SESSION TRACKING ---
@@ -78,7 +78,7 @@ router.post('/login', async (req, res) => {
     } catch (error) {
         logger.logSystem('ERROR', 'Login', `Internal server error during login for ${loginId}: ${error.message}`);
         console.error("Login error:", error);
-        res.status(500).json({ error: "Erreur interne du serveur." });
+        res.status(500).json({ errorKey: "SERVER_ERROR" });
     }
 });
 

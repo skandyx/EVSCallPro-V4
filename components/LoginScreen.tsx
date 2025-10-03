@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { User } from '../types.ts';
 import { LogoIcon } from './Icons.tsx';
 import { publicApiClient } from '../src/lib/axios.ts';
+import { useI18n } from '../src/i18n/index.tsx';
 
 interface LoginScreenProps {
     onLoginSuccess: (data: { user: User, token: string }) => Promise<void>;
@@ -10,6 +11,7 @@ interface LoginScreenProps {
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, appLogoUrl, appName }) => {
+    const { t } = useI18n();
     const [loginId, setLoginId] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -23,19 +25,24 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, appLogoUrl, a
         try {
             // Use the public client to avoid token refresh interceptor on login
             const response = await publicApiClient.post('/auth/login', { loginId, password });
-            const data = response.data;
-
-            if (data.user && data.user.isActive) {
-                await onLoginSuccess({ user: data.user, token: data.accessToken });
-            } else {
-                 setError("Ce compte utilisateur est désactivé.");
-            }
+            await onLoginSuccess({ user: response.data.user, token: response.data.accessToken });
+            
         } catch (err: any) {
             console.error("Login request failed:", err);
-            if (err.response && err.response.data && err.response.data.error) {
-                setError(err.response.data.error);
+            if (err.response?.data?.errorKey) {
+                switch (err.response.data.errorKey) {
+                    case 'INVALID_CREDENTIALS':
+                        setError(t('login.invalidCredentials'));
+                        break;
+                    case 'ACCOUNT_DISABLED':
+                        setError(t('login.disabledAccount'));
+                        break;
+                    default:
+                        setError(t('login.serverError'));
+                        break;
+                }
             } else {
-                setError("Erreur de connexion au serveur.");
+                setError(t('login.serverError'));
             }
         } finally {
             setIsLoading(false);
@@ -54,12 +61,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, appLogoUrl, a
                     <h1 className="text-2xl font-bold text-slate-800 ml-3">{appName || 'Architecte de Solutions'}</h1>
                 </div>
                 <div className="bg-white rounded-lg shadow-lg p-8">
-                    <h2 className="text-xl font-semibold text-center text-slate-700 mb-1">Connexion</h2>
-                    <p className="text-sm text-slate-500 text-center mb-6">Veuillez entrer vos identifiants.</p>
+                    <h2 className="text-xl font-semibold text-center text-slate-700 mb-1">{t('login.title')}</h2>
+                    <p className="text-sm text-slate-500 text-center mb-6">{t('login.subtitle')}</p>
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label htmlFor="loginId" className="block text-sm font-medium text-slate-700">
-                                Identifiant / Extension
+                                {t('login.loginIdLabel')}
                             </label>
                             <div className="mt-1">
                                 <input
@@ -77,7 +84,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, appLogoUrl, a
 
                         <div>
                             <label htmlFor="password"  className="block text-sm font-medium text-slate-700">
-                                Mot de passe
+                                {t('common.password')}
                             </label>
                             <div className="mt-1">
                                 <input
@@ -101,7 +108,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess, appLogoUrl, a
                                 disabled={isLoading}
                                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-text bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                             >
-                                {isLoading ? 'Connexion...' : 'Entrer'}
+                                {isLoading ? `${t('login.title')}...` : t('login.button')}
                             </button>
                         </div>
                     </form>

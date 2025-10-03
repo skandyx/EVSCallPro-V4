@@ -137,12 +137,12 @@ app.get('/api/public-config', async (req, res) => {
         const envConfig = dotenv.parse(envFileContent);
         
         const appSettings = {
-            companyAddress: envConfig.COMPANY_ADDRESS || 'Votre Société\n123 Rue Principale\n75001 Paris, France',
+            companyAddress: envConfig.COMPANY_ADDRESS || 'Your Company\n123 Main Street\n12345 City, Country',
             appLogoUrl: envConfig.APP_LOGO_URL || '',
             colorPalette: envConfig.COLOR_PALETTE || 'default',
-            appName: envConfig.APP_NAME || 'Architecte de Solutions',
+            appName: envConfig.APP_NAME || 'Solutions Architect',
             // FIX: Expose default language to the frontend.
-            defaultLanguage: envConfig.DEFAULT_LANGUAGE || 'fr',
+            defaultLanguage: envConfig.DEFAULT_LANGUAGE || 'en',
         };
 
         res.json({ appSettings });
@@ -151,11 +151,11 @@ app.get('/api/public-config', async (req, res) => {
         // Send a default object on error to prevent the frontend from crashing.
         res.status(500).json({ 
             appSettings: {
-                appName: 'Architecte de Solutions',
+                appName: 'Solutions Architect',
                 appLogoUrl: '',
                 colorPalette: 'default',
                 companyAddress: '',
-                defaultLanguage: 'fr',
+                defaultLanguage: 'en',
             }
          });
     }
@@ -241,12 +241,12 @@ app.get('/api/application-data', async (req, res) => {
         };
         
         const appSettings = {
-            companyAddress: envConfig.COMPANY_ADDRESS || 'Votre Société\n123 Rue Principale\n75001 Paris, France',
+            companyAddress: envConfig.COMPANY_ADDRESS || 'Your Company\n123 Main Street\n12345 City, Country',
             appLogoUrl: envConfig.APP_LOGO_URL || '',
             colorPalette: envConfig.COLOR_PALETTE || 'default',
-            appName: envConfig.APP_NAME || 'Architecte de Solutions',
+            appName: envConfig.APP_NAME || 'Solutions Architect',
             // FIX: Expose default language to the frontend.
-            defaultLanguage: envConfig.DEFAULT_LANGUAGE || 'fr',
+            defaultLanguage: envConfig.DEFAULT_LANGUAGE || 'en',
         };
 
         res.json({

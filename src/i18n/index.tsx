@@ -12,7 +12,7 @@ interface I18nContextType {
 }
 
 const I18nContext = createContext<I18nContextType>({
-    language: 'fr',
+    language: 'en',
     setLanguage: () => {},
     t: (key) => key,
 });
@@ -20,7 +20,7 @@ const I18nContext = createContext<I18nContextType>({
 export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [language, setLanguageState] = useState(() => {
         const savedLang = localStorage.getItem('language');
-        return savedLang && ['fr', 'en'].includes(savedLang) ? savedLang : 'fr';
+        return savedLang && ['fr', 'en'].includes(savedLang) ? savedLang : 'en';
     });
 
     useEffect(() => {
@@ -38,8 +38,8 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
         let translation = key.split('.').reduce((obj, k) => obj?.[k], translations[language]);
 
         if (typeof translation !== 'string') {
-            // Fallback to French if key not found in current language
-            translation = key.split('.').reduce((obj, k) => obj?.[k], translations['fr']);
+            // Fallback to English if key not found in current language
+            translation = key.split('.').reduce((obj, k) => obj?.[k], translations['en']);
             if (typeof translation !== 'string') {
                  console.warn(`[i18n] Missing translation for key: ${key}`);
                 return key; // Return the key if no translation is found
