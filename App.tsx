@@ -366,7 +366,7 @@ const AppContent: React.FC = () => {
                 'users': 'users', 'user-groups': 'userGroups', 'scripts': 'savedScripts',
                 'campaigns': 'campaigns', 'qualifications': 'qualifications', 'qualification-groups': 'qualificationGroups',
                 'ivr-flows': 'ivrFlows', 'audio-files': 'audioFiles', 'trunks': 'trunks',
-                'dids': 'dids', 'sites': 'sites', 'planning-events': 'planningEvents',
+                'dids': 'dids', 'sites': 'sites',
                 'contacts': 'contacts'
             };
 
@@ -693,9 +693,7 @@ const AppContent: React.FC = () => {
             onDeleteDid: (id: string) => handleDelete('dids', id, '/telephony/dids'),
             onSaveSite: (site: Site) => handleSaveOrUpdate('sites', site),
             onDeleteSite: (id: string) => handleDelete('sites', id),
-            onSavePlanningEvent: (event: PlanningEvent) => handleSaveOrUpdate('planning-events', event),
-            onDeletePlanningEvent: (id: string) => handleDelete('planning-events', id),
-            onClearAllPlanningEvents: handleClearAllPlanningEvents,
+            // These planning props are now passed to the self-contained PlanningManager
             onSaveVisibilitySettings: handleSaveVisibilitySettings,
             onSaveSmtpSettings: handleSaveSmtpSettings,
             onSaveAppSettings: handleSaveAppSettings,

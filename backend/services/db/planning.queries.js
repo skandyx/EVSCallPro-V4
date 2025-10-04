@@ -4,17 +4,17 @@ const { keysToCamel } = require('./utils');
 const getPlanningEvents = async () => (await pool.query('SELECT * FROM planning_events')).rows.map(keysToCamel);
 
 const savePlanningEvent = async (event, id) => {
-    const { agentId, activityId, startDate, endDate } = event;
+    const { agentId, activityId, startDate, endDate, rrule, siteId } = event;
     if (id) {
         const res = await pool.query(
-            'UPDATE planning_events SET agent_id=$1, activity_id=$2, start_date=$3, end_date=$4, updated_at=NOW() WHERE id=$5 RETURNING *',
-            [agentId, activityId, startDate, endDate, id]
+            'UPDATE planning_events SET agent_id=$1, activity_id=$2, start_date=$3, end_date=$4, rrule=$5, site_id=$6, updated_at=NOW() WHERE id=$7 RETURNING *',
+            [agentId, activityId, startDate, endDate, rrule, siteId, id]
         );
         return keysToCamel(res.rows[0]);
     }
     const res = await pool.query(
-        'INSERT INTO planning_events (id, agent_id, activity_id, start_date, end_date) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [event.id, agentId, activityId, startDate, endDate]
+        'INSERT INTO planning_events (id, agent_id, activity_id, start_date, end_date, rrule, site_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+        [event.id, agentId, activityId, startDate, endDate, rrule, siteId]
     );
     return keysToCamel(res.rows[0]);
 };

@@ -2,12 +2,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../services/db');
+const { broadcast } = require('../services/webSocketServer');
 
 /**
  * @openapi
  * /planning-events:
  *   post:
- *     summary: Crée un nouvel événement de planning.
+ *     summary: Crée un ou plusieurs événements de planning, y compris récurrents.
  *     tags: [Planning]
  *     requestBody:
  *       required: true
@@ -17,15 +18,88 @@ const db = require('../services/db');
  *             $ref: '#/components/schemas/PlanningEvent'
  *     responses:
  *       '201':
- *         description: 'Événement créé'
+ *         description: 'Événement(s) créé(s)'
  */
 router.post('/', async (req, res) => {
-    try { res.status(201).json(await db.savePlanningEvent(req.body)); }
-    catch (e) {
+    try {
+        const { eventData, targetIds, isRecurring, recurringDays, recurrenceEndDate } = req.body;
+        const { activityId, startDate, endDate } = eventData;
+
+        const agentsToSchedule = new Set();
+        for (const targetId of targetIds) {
+            const type = targetId.substring(0, targetId.indexOf('-'));
+            const id = targetId.substring(targetId.indexOf('-') + 1);
+
+            if (type === 'group') {
+                const group = (await db.getUserGroups()).find(g => g.id === id);
+                if (group) group.memberIds.forEach(mid => agentsToSchedule.add(mid));
+            } else if (type === 'user') {
+                agentsToSchedule.add(id);
+            }
+        }
+        
+        const agentDetails = await db.getUsers();
+        const agentsWithSites = agentDetails.reduce((acc, user) => {
+            acc[user.id] = user.siteId;
+            return acc;
+        }, {});
+
+
+        const createdEvents = [];
+        
+        if (isRecurring && recurringDays?.length && recurrenceEndDate) {
+            const recurrenceStart = new Date(startDate);
+            const recurrenceEnd = new Date(recurrenceEndDate);
+            recurrenceEnd.setHours(23, 59, 59, 999);
+            const durationMs = new Date(endDate).getTime() - new Date(startDate).getTime();
+
+            for (const agentId of agentsToSchedule) {
+                let currentDate = new Date(recurrenceStart);
+                while (currentDate <= recurrenceEnd) {
+                    const dayOfWeek = currentDate.getDay() === 0 ? 7 : currentDate.getDay(); // Sunday is 7
+                    if (recurringDays.includes(dayOfWeek)) {
+                        const instanceStartDate = new Date(currentDate);
+                        instanceStartDate.setHours(recurrenceStart.getHours(), recurrenceStart.getMinutes(), 0, 0);
+                        const instanceEndDate = new Date(instanceStartDate.getTime() + durationMs);
+                        
+                        const eventToSave = {
+                            id: `plan-${Date.now()}-${Math.random()}`,
+                            agentId: agentId,
+                            activityId,
+                            startDate: instanceStartDate.toISOString(),
+                            endDate: instanceEndDate.toISOString(),
+                            siteId: agentsWithSites[agentId] || null
+                        };
+                        const newEvent = await db.savePlanningEvent(eventToSave);
+                        createdEvents.push(newEvent);
+                    }
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+            }
+        } else {
+            for (const agentId of agentsToSchedule) {
+                 const eventToSave = {
+                    id: `plan-${Date.now()}-${Math.random()}`,
+                    agentId: agentId,
+                    activityId,
+                    startDate,
+                    endDate,
+                    siteId: agentsWithSites[agentId] || null
+                };
+                const newEvent = await db.savePlanningEvent(eventToSave);
+                createdEvents.push(newEvent);
+            }
+        }
+
+        broadcast({ type: 'planningUpdated' });
+        res.status(201).json(createdEvents);
+
+    } catch (e) {
         console.error("Error saving planning event:", e);
         res.status(500).json({ error: e.message || 'Failed to save event' });
     }
 });
+
 
 /**
  * @openapi
@@ -50,8 +124,11 @@ router.post('/', async (req, res) => {
  *         description: 'Événement mis à jour'
  */
 router.put('/:id', async (req, res) => {
-    try { res.json(await db.savePlanningEvent(req.body, req.params.id)); }
-    catch (e) {
+    try {
+        const updatedEvent = await db.savePlanningEvent(req.body, req.params.id);
+        broadcast({ type: 'planningUpdated' });
+        res.json(updatedEvent);
+    } catch (e) {
         console.error("Error updating planning event:", e);
         res.status(500).json({ error: e.message || 'Failed to save event' });
     }
@@ -74,8 +151,11 @@ router.put('/:id', async (req, res) => {
  *         description: 'Événement supprimé'
  */
 router.delete('/:id', async (req, res) => {
-    try { await db.deletePlanningEvent(req.params.id); res.status(204).send(); }
-    catch (e) {
+    try {
+        await db.deletePlanningEvent(req.params.id);
+        broadcast({ type: 'planningUpdated' });
+        res.status(204).send();
+    } catch (e) {
         console.error("Error deleting planning event:", e);
         res.status(500).json({ error: e.message || 'Failed to delete event' });
     }
@@ -109,6 +189,7 @@ router.post('/bulk-delete', async (req, res) => {
 
     try {
         const deletedCount = await db.deletePlanningEventsBulk(eventIds);
+        broadcast({ type: 'planningUpdated' });
         res.json({ message: `${deletedCount} événement(s) supprimé(s) avec succès.` });
     } catch (error) {
         console.error('Error bulk deleting planning events:', error);
@@ -179,6 +260,7 @@ router.delete('/all', async (req, res) => {
 
     try {
         await db.clearAllPlanningEvents();
+        broadcast({ type: 'planningUpdated' });
         res.json({ message: 'Tous les événements du planning ont été supprimés avec succès.' });
     } catch (e) {
         console.error("Error clearing all planning events:", e);

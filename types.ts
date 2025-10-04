@@ -400,9 +400,12 @@ export interface PlanningEvent {
     activityId: string;
     startDate: string; // ISO String
     endDate: string; // ISO String
+    rrule?: string; // e.g., "FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=20251231T235959Z"
+    siteId?: string | null;
+    // FIX: Add properties for recurring events to align with their usage in PlanningManager.tsx.
     isRecurring?: boolean;
-    recurringDays?: number[]; // 1 for Monday, 7 for Sunday
-    recurrenceEndDate?: string; // ISO String for the end date of the recurrence
+    recurringDays?: number[];
+    recurrenceEndDate?: string;
 }
 
 export interface PersonalCallback {

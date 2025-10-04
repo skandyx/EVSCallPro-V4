@@ -125,6 +125,13 @@ function initializeWebSocketServer(server) {
                     };
                     broadcastToRoom('superviseur', broadcastEvent);
                 }
+                
+                // Added handler for planning updates
+                if (event.type === 'planningUpdated') {
+                    handled = true;
+                    console.log(`[WS] Planning updated by ${ws.user.id}. Broadcasting to supervisors.`);
+                    broadcastToRoom('superviseur', { type: 'planningUpdated' });
+                }
 
                 if (!handled) {
                     console.log(`[WS] Received unhandled message type '${event.type}' from user ${ws.user.id}`);
