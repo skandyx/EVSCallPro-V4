@@ -156,5 +156,34 @@ router.put('/callbacks/:id', async (req, res) => {
     }
 });
 
+/**
+ * @openapi
+ * /planning-events/all:
+ *   delete:
+ *     summary: Supprime TOUS les événements du planning.
+ *     tags: [Planning]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: 'Tous les événements ont été supprimés.'
+ *       '403':
+ *         description: 'Accès non autorisé.'
+ */
+router.delete('/all', async (req, res) => {
+    // Restrict this highly destructive action to Admins and SuperAdmins
+    const allowedRoles = ['Administrateur', 'SuperAdmin'];
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({ error: 'Accès non autorisé.' });
+    }
+
+    try {
+        await db.clearAllPlanningEvents();
+        res.json({ message: 'Tous les événements du planning ont été supprimés avec succès.' });
+    } catch (e) {
+        console.error("Error clearing all planning events:", e);
+        res.status(500).json({ error: e.message || 'Failed to clear all events' });
+    }
+});
 
 module.exports = router;

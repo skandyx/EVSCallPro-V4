@@ -743,7 +743,11 @@
         "massEdit": "Mass Edit",
         "massDelete": "Mass Delete",
         "confirmDelete": "Are you sure you want to delete {eventCount} event(s) for the {userCount} selected user(s) this week?"
-    }
+    },
+    "clearAllButton": "Clear Schedule",
+    "clearAllConfirm": "Are you sure you want to PERMANENTLY delete all schedule events for ALL users? This action is irreversible.",
+    "clearAllSuccess": "The schedule has been completely cleared.",
+    "clearAllError": "An error occurred while clearing the schedule."
   },
   "weekdays": {
     "monday": "Monday",

@@ -412,6 +412,23 @@ const AppContent: React.FC = () => {
             }
         }
     };
+    
+    // FIX: Added a handler to clear all planning events in a single operation. This function
+    // includes a confirmation dialog, calls a new dedicated backend endpoint, and then
+    // refreshes the application data to update the UI.
+    const handleClearAllPlanningEvents = async () => {
+        if (window.confirm(t('planning.clearAllConfirm'))) {
+            try {
+                await apiClient.delete('/planning-events/all');
+                await fetchApplicationData();
+                showAlert(t('planning.clearAllSuccess'), 'success');
+            } catch (error: any) {
+                const errorMessage = error.response?.data?.error || t('planning.clearAllError');
+                console.error(`Failed to clear all planning events:`, error);
+                showAlert(errorMessage, 'error');
+            }
+        }
+    };
 
     const handleDeleteContacts = async (contactIds: string[]) => {
         try {
@@ -678,6 +695,7 @@ const AppContent: React.FC = () => {
             onDeleteSite: (id: string) => handleDelete('sites', id),
             onSavePlanningEvent: (event: PlanningEvent) => handleSaveOrUpdate('planning-events', event),
             onDeletePlanningEvent: (id: string) => handleDelete('planning-events', id),
+            onClearAllPlanningEvents: handleClearAllPlanningEvents,
             onSaveVisibilitySettings: handleSaveVisibilitySettings,
             onSaveSmtpSettings: handleSaveSmtpSettings,
             onSaveAppSettings: handleSaveAppSettings,

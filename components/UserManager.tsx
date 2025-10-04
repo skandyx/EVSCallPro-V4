@@ -141,7 +141,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, users, campaigns, userGroup
     const isNewUser = user.id.startsWith('new-');
     
     const TabButton: React.FC<{tabName: 'general' | 'groups' | 'campaigns', labelKey: string}> = ({tabName, labelKey}) => (
-        <button type="button" onClick={() => setActiveTab(tabName)} className={`py-2 px-4 text-sm font-medium rounded-t-lg ${activeTab === tabName ? 'bg-white text-indigo-600 border-b-0' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
+        <button type="button" onClick={() => setActiveTab(tabName)} className={`py-2 px-4 text-sm font-medium rounded-t-lg ${activeTab === tabName ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-b-0' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'}`}>
             {t(labelKey)}
         </button>
     );

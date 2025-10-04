@@ -744,7 +744,11 @@
         "massEdit": "Éditer en masse",
         "massDelete": "Supprimer en masse",
         "confirmDelete": "Êtes-vous sûr de vouloir supprimer {eventCount} événement(s) pour les {userCount} utilisateur(s) sélectionné(s) cette semaine ?"
-    }
+    },
+    "clearAllButton": "Vider le planning",
+    "clearAllConfirm": "Êtes-vous sûr de vouloir supprimer DÉFINITIVEMENT tous les événements du planning pour TOUS les utilisateurs ? Cette action est irréversible.",
+    "clearAllSuccess": "Le planning a été entièrement vidé.",
+    "clearAllError": "Une erreur est survenue lors de la suppression du planning."
   },
   "weekdays": {
     "monday": "Lundi",

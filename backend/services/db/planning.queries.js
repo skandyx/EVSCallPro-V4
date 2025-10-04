@@ -29,6 +29,11 @@ const deletePlanningEventsBulk = async (eventIds) => {
     return result.rowCount;
 };
 
+const clearAllPlanningEvents = async () => {
+    await pool.query('TRUNCATE TABLE planning_events RESTART IDENTITY;');
+    return { message: 'All planning events have been deleted.' };
+};
+
 const getActivityTypes = async () => (await pool.query('SELECT * FROM activity_types ORDER BY name')).rows.map(keysToCamel);
 const getPersonalCallbacks = async () => (await pool.query('SELECT * FROM personal_callbacks ORDER BY scheduled_time')).rows.map(keysToCamel);
 
@@ -63,6 +68,7 @@ module.exports = {
     savePlanningEvent,
     deletePlanningEvent,
     deletePlanningEventsBulk,
+    clearAllPlanningEvents,
     getActivityTypes,
     getPersonalCallbacks,
     createPersonalCallback,
