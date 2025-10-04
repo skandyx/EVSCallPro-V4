@@ -21,7 +21,7 @@ const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) =>
     <button
         type="button"
         onClick={() => !disabled && onChange(!enabled)}
-        className={`${enabled ? 'bg-primary' : 'bg-slate-200'} ${disabled ? 'cursor-not-allowed opacity-50' : ''} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`}
+        className={`${enabled ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-600'} ${disabled ? 'cursor-not-allowed opacity-50' : ''} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`}
         role="switch"
         aria-checked={enabled}
         disabled={disabled}
@@ -93,13 +93,13 @@ const PlanningEventModal: React.FC<PlanningEventModalProps> = ({ event, onSave, 
 
     return (
         <div className="fixed inset-0 bg-slate-800 bg-opacity-75 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
                 <div className="p-6">
-                    <h3 className="text-lg font-medium text-slate-900">{isEditing ? t('planning.modal.editTitle') : t('planning.modal.newTitle')}</h3>
+                    <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">{isEditing ? t('planning.modal.editTitle') : t('planning.modal.newTitle')}</h3>
                     <div className="mt-4 space-y-4">
                         <div>
-                            <label className="text-sm font-medium text-slate-700">{t('planning.modal.for')}</label>
-                            <select value={targetId} onChange={e => setTargetId(e.target.value)} disabled={isEditing} className="mt-1 w-full p-2 border bg-white rounded-md disabled:bg-slate-100">
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('planning.modal.for')}</label>
+                            <select value={targetId} onChange={e => setTargetId(e.target.value)} disabled={isEditing} className="mt-1 w-full p-2 border bg-white rounded-md disabled:bg-slate-100 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200 dark:disabled:bg-slate-700">
                                 <option value="">{t('planning.modal.selectTarget')}</option>
                                 <optgroup label={t('planning.groups')}>
                                     {userGroups.map(g => <option key={g.id} value={`group-${g.id}`}>{g.name}</option>)}
@@ -110,52 +110,52 @@ const PlanningEventModal: React.FC<PlanningEventModalProps> = ({ event, onSave, 
                             </select>
                         </div>
                         <div>
-                            <label className="text-sm font-medium text-slate-700">{t('planning.modal.activity')}</label>
-                            <select value={formData.activityId} onChange={e => setFormData(f => ({...f, activityId: e.target.value}))} className="mt-1 w-full p-2 border bg-white rounded-md">
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('planning.modal.activity')}</label>
+                            <select value={formData.activityId} onChange={e => setFormData(f => ({...f, activityId: e.target.value}))} className="mt-1 w-full p-2 border bg-white rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
                                  <option value="">{t('planning.modal.selectActivity')}</option>
                                 {activities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                             </select>
                         </div>
                          <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="text-sm font-medium text-slate-700">{t('planning.modal.start')}</label>
-                                <input type="datetime-local" value={new Date(new Date(formData.startDate).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} onChange={e => setFormData(f => ({...f, startDate: new Date(e.target.value).toISOString()}))} className="mt-1 w-full p-2 border rounded-md"/>
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('planning.modal.start')}</label>
+                                <input type="datetime-local" value={new Date(new Date(formData.startDate).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} onChange={e => setFormData(f => ({...f, startDate: new Date(e.target.value).toISOString()}))} className="mt-1 w-full p-2 border rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"/>
                             </div>
                             <div>
-                                <label className="text-sm font-medium text-slate-700">{t('planning.modal.end')}</label>
-                                <input type="datetime-local" value={new Date(new Date(formData.endDate).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} onChange={e => setFormData(f => ({...f, endDate: new Date(e.target.value).toISOString()}))} className="mt-1 w-full p-2 border rounded-md"/>
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('planning.modal.end')}</label>
+                                <input type="datetime-local" value={new Date(new Date(formData.endDate).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} onChange={e => setFormData(f => ({...f, endDate: new Date(e.target.value).toISOString()}))} className="mt-1 w-full p-2 border rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"/>
                             </div>
                         </div>
-                        <div className="pt-4 border-t">
+                        <div className="pt-4 border-t dark:border-slate-700">
                             <div className="flex items-center justify-between">
-                                <label className={`text-sm font-medium ${isEditing ? 'text-slate-400' : 'text-slate-700'}`}>{t('planning.modal.recurringEvent')}</label>
+                                <label className={`text-sm font-medium ${isEditing ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'}`}>{t('planning.modal.recurringEvent')}</label>
                                 <ToggleSwitch enabled={isRecurring} onChange={setIsRecurring} disabled={isEditing} />
                             </div>
                             {isRecurring && !isEditing && (
                                 <div className="mt-4 space-y-4">
                                     <div>
-                                        <label className="text-sm font-medium text-slate-700">{t('planning.modal.repeatOn')}</label>
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('planning.modal.repeatOn')}</label>
                                         <div className="mt-2 flex justify-between">
                                             {WEEK_DAYS_SHORT.map(day => (
-                                                <button key={day.value} type="button" onClick={() => handleDayToggle(day.value)} className={`w-8 h-8 rounded-full font-bold text-xs transition-colors ${recurringDays.includes(day.value) ? 'bg-primary text-primary-text' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}>
+                                                <button key={day.value} type="button" onClick={() => handleDayToggle(day.value)} className={`w-8 h-8 rounded-full font-bold text-xs transition-colors ${recurringDays.includes(day.value) ? 'bg-primary text-primary-text' : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'}`}>
                                                     {day.label}
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-sm font-medium text-slate-700">{t('planning.modal.recurrenceEnd')}</label>
-                                        <input type="date" value={recurrenceEndDate} onChange={e => setRecurrenceEndDate(e.target.value)} className="mt-1 w-full p-2 border rounded-md"/>
+                                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('planning.modal.recurrenceEnd')}</label>
+                                        <input type="date" value={recurrenceEndDate} onChange={e => setRecurrenceEndDate(e.target.value)} className="mt-1 w-full p-2 border rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"/>
                                     </div>
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
-                <div className="bg-slate-50 p-3 flex justify-between">
-                     {isEditing && event?.id && <button onClick={() => { onDelete(event.id!); onClose(); }} className="bg-red-100 text-red-700 px-4 py-2 rounded-md hover:bg-red-200">{t('common.delete')}</button>}
+                <div className="bg-slate-50 dark:bg-slate-900 p-3 flex justify-between border-t dark:border-slate-700">
+                     {isEditing && event?.id && <button onClick={() => { onDelete(event.id!); onClose(); }} className="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 px-4 py-2 rounded-md hover:bg-red-200 dark:hover:bg-red-900">{t('common.delete')}</button>}
                     <div className="flex justify-end gap-2 w-full">
-                        <button onClick={onClose} className="bg-white border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50">{t('common.cancel')}</button>
+                        <button onClick={onClose} className="bg-white dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-600">{t('common.cancel')}</button>
                         <button onClick={handleSave} className="bg-primary text-primary-text px-4 py-2 rounded-md hover:bg-primary-hover">{t('common.save')}</button>
                     </div>
                 </div>
@@ -188,31 +188,31 @@ const MassEditModal: React.FC<MassEditModalProps> = ({ onClose, onSave, activiti
 
     return (
         <div className="fixed inset-0 bg-slate-800 bg-opacity-75 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
                 <div className="p-6">
-                    <h3 className="text-lg font-medium text-slate-900">{t('planning.modal.massEditTitle')}</h3>
-                    <p className="text-sm text-slate-500 mt-2">
+                    <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">{t('planning.modal.massEditTitle')}</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
                         {t('planning.modal.massEditDescription', { eventCount, userCount })}
                     </p>
                     <div className="mt-4 space-y-4">
                         <div>
-                            <label className="text-sm font-medium text-slate-700">{t('planning.modal.findActivity')}</label>
-                            <select value={findActivityId} onChange={e => setFindActivityId(e.target.value)} className="mt-1 w-full p-2 border bg-white rounded-md">
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('planning.modal.findActivity')}</label>
+                            <select value={findActivityId} onChange={e => setFindActivityId(e.target.value)} className="mt-1 w-full p-2 border bg-white rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
                                 <option value="all">{t('planning.modal.allActivities')}</option>
                                 {activities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="text-sm font-medium text-slate-700">{t('planning.modal.replaceWith')}</label>
-                            <select value={replaceWithActivityId} onChange={e => setReplaceWithActivityId(e.target.value)} className="mt-1 w-full p-2 border bg-white rounded-md">
+                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('planning.modal.replaceWith')}</label>
+                            <select value={replaceWithActivityId} onChange={e => setReplaceWithActivityId(e.target.value)} className="mt-1 w-full p-2 border bg-white rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
                                 <option value="">{t('planning.modal.selectActivity')}</option>
                                 {activities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                             </select>
                         </div>
                     </div>
                 </div>
-                 <div className="bg-slate-50 p-3 flex justify-end gap-2">
-                    <button onClick={onClose} className="bg-white border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50">{t('common.cancel')}</button>
+                 <div className="bg-slate-50 dark:bg-slate-900 p-3 flex justify-end gap-2 border-t dark:border-slate-700">
+                    <button onClick={onClose} className="bg-white dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-600">{t('common.cancel')}</button>
                     <button onClick={handleSave} className="bg-primary text-primary-text px-4 py-2 rounded-md hover:bg-primary-hover">{t('common.save')}</button>
                 </div>
             </div>
@@ -620,21 +620,21 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                 />
             )}
             <header className="mb-6">
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight flex items-center"><CalendarDaysIcon className="w-9 h-9 mr-3"/>{t(feature.titleKey)}</h1>
-                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center"><CalendarDaysIcon className="w-9 h-9 mr-3"/>{t(feature.titleKey)}</h1>
+                <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{t(feature.descriptionKey)}</p>
             </header>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 flex justify-between items-center">
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 flex justify-between items-center">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => handleDateChange(-7)} className="p-2 rounded-md hover:bg-slate-100"><ArrowLeftIcon className="w-5 h-5"/></button>
-                    <span className="text-lg font-semibold text-slate-700">
+                    <button onClick={() => handleDateChange(-7)} className="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowLeftIcon className="w-5 h-5"/></button>
+                    <span className="text-lg font-semibold text-slate-700 dark:text-slate-200">
                         {weekInfo.start.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })} - {weekInfo.end.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
                     </span>
-                    <button onClick={() => handleDateChange(7)} className="p-2 rounded-md hover:bg-slate-100"><ArrowRightIcon className="w-5 h-5"/></button>
+                    <button onClick={() => handleDateChange(7)} className="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowRightIcon className="w-5 h-5"/></button>
                      <button onClick={() => setCurrentDate(new Date())} className="text-sm font-semibold text-link hover:underline">{t('planning.today')}</button>
                 </div>
                 <div>
-                     <label className="text-sm font-medium text-slate-600 mr-2">{t('planning.show')}</label>
-                     <select value={selectedTargetId} onChange={e => setSelectedTargetId(e.target.value)} className="p-2 border bg-white rounded-md">
+                     <label className="text-sm font-medium text-slate-600 dark:text-slate-300 mr-2">{t('planning.show')}</label>
+                     <select value={selectedTargetId} onChange={e => setSelectedTargetId(e.target.value)} className="p-2 border bg-white rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
                         <option value="all">{t('planning.all')}</option>
                         <optgroup label={t('planning.groups')}>
                            {userGroups.map(g => <option key={g.id} value={`group-${g.id}`}>{g.name}</option>)}
@@ -645,26 +645,26 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                      </select>
                 </div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden flex-1 grid grid-cols-[1fr_280px] mt-6">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex-1 grid grid-cols-[1fr_280px] mt-6">
                 <div className="h-full overflow-auto relative grid grid-cols-[auto_1fr] text-sm select-none">
-                    <div className="sticky left-0 top-0 z-20 bg-white border-r">
-                        <div className="h-10 border-b flex items-center justify-center font-semibold text-slate-500">{t('planning.hour')}</div>
+                    <div className="sticky left-0 top-0 z-20 bg-white dark:bg-slate-800 border-r dark:border-slate-700">
+                        <div className="h-10 border-b dark:border-slate-700 flex items-center justify-center font-semibold text-slate-500 dark:text-slate-400">{t('planning.hour')}</div>
                         {Array.from({ length: 24 }).map((_, hour) => (
-                            <div key={hour} className="h-[60px] text-right pr-2 text-xs text-slate-400 border-t pt-1 font-mono">
+                            <div key={hour} className="h-[60px] text-right pr-2 text-xs text-slate-400 border-t dark:border-slate-700 pt-1 font-mono">
                                 {`${hour.toString().padStart(2, '0')}:00`}
                             </div>
                         ))}
                     </div>
                     <div className="grid grid-cols-7 relative" ref={gridRef}>
                         {weekInfo.days.map((day, i) => (
-                            <div key={i} className="sticky top-0 h-10 bg-white border-b border-r flex items-center justify-center font-semibold z-10">
-                                {WEEKDAYS[i]} <span className="text-slate-500 ml-2">{day.getDate()}</span>
+                            <div key={i} className="sticky top-0 h-10 bg-white dark:bg-slate-800 border-b border-r dark:border-slate-700 flex items-center justify-center font-semibold z-10">
+                                {WEEKDAYS[i]} <span className="text-slate-500 dark:text-slate-400 ml-2">{day.getDate()}</span>
                             </div>
                         ))}
                         {weekInfo.days.map((day, dayIndex) => (
-                            <div key={dayIndex} className="relative border-r day-column">
+                            <div key={dayIndex} className="relative border-r dark:border-slate-700 day-column">
                                 {Array.from({ length: 24 }).map((_, hour) => (
-                                    <div key={hour} onClick={() => handleCellClick(day, hour)} className="h-[60px] border-t hover:bg-indigo-50"/>
+                                    <div key={hour} onClick={() => handleCellClick(day, hour)} className="h-[60px] border-t dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"/>
                                 ))}
                             </div>
                         ))}
@@ -718,10 +718,10 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                         </div>
                     </div>
                 </div>
-                 <div className="border-l bg-slate-50 flex flex-col">
-                    <h3 className="text-lg font-semibold text-slate-800 p-4 border-b flex-shrink-0">{t('planning.legend.title')}</h3>
-                    <div className="p-4 border-b text-sm">
-                        <label className="flex items-center font-medium">
+                 <div className="border-l dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col">
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 p-4 border-b dark:border-slate-700 flex-shrink-0">{t('planning.legend.title')}</h3>
+                    <div className="p-4 border-b dark:border-slate-700 text-sm">
+                        <label className="flex items-center font-medium dark:text-slate-200">
                             <input
                                 type="checkbox"
                                 className="h-4 w-4 rounded border-slate-300 mr-3"
@@ -733,24 +733,24 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
                         {scheduledUsersInView.map(user => (
-                            <label key={user.id} className="flex items-center p-2 rounded-md hover:bg-slate-100 cursor-pointer">
+                            <label key={user.id} className="flex items-center p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
                                 <input
                                     type="checkbox"
                                     className="h-4 w-4 rounded border-slate-300 mr-3"
                                     checked={selectedUserIds.includes(user.id)}
                                     onChange={e => handleUserSelection(user.id, e.target.checked)}
                                 />
-                                <span className="text-sm font-medium text-slate-700">{user.lastName} {user.firstName}</span>
+                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{user.lastName} {user.firstName}</span>
                             </label>
                         ))}
                     </div>
                 </div>
             </div>
              {selectedUserIds.length > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white rounded-lg shadow-2xl p-3 flex items-center gap-4 border z-40 animate-fade-in-up">
-                    <p className="font-semibold text-slate-700">{t('planning.actions.selection', { count: selectedUserIds.length })}</p>
-                    <button onClick={() => setIsMassEditModalOpen(true)} className="flex items-center gap-2 text-sm font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 py-2 px-4 rounded-md"><EditIcon className="w-4 h-4"/>{t('planning.actions.massEdit')}</button>
-                    <button onClick={handleMassDelete} className="flex items-center gap-2 text-sm font-semibold bg-red-100 hover:bg-red-200 text-red-700 py-2 px-4 rounded-md"><TrashIcon className="w-4 h-4"/>{t('planning.actions.massDelete')}</button>
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-3 flex items-center gap-4 border dark:border-slate-700 z-40 animate-fade-in-up">
+                    <p className="font-semibold text-slate-700 dark:text-slate-200">{t('planning.actions.selection', { count: selectedUserIds.length })}</p>
+                    <button onClick={() => setIsMassEditModalOpen(true)} className="flex items-center gap-2 text-sm font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 py-2 px-4 rounded-md dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"><EditIcon className="w-4 h-4"/>{t('planning.actions.massEdit')}</button>
+                    <button onClick={handleMassDelete} className="flex items-center gap-2 text-sm font-semibold bg-red-100 hover:bg-red-200 text-red-700 py-2 px-4 rounded-md dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900"><TrashIcon className="w-4 h-4"/>{t('planning.actions.massDelete')}</button>
                 </div>
             )}
         </div>

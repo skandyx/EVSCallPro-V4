@@ -28,12 +28,12 @@ const formatDuration = (seconds: number): string => {
 };
 
 const KpiCard: React.FC<{ title: string, value: string | number, icon: React.FC<any> }> = ({ title, value, icon: Icon }) => (
-    <div className="bg-slate-50 p-3 rounded-lg border">
+    <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border dark:border-slate-700">
         <div className="flex items-center">
-            <Icon className="w-6 h-6 text-slate-500 mr-3" />
+            <Icon className="w-6 h-6 text-slate-500 dark:text-slate-400 mr-3" />
             <div>
-                <p className="text-xs text-slate-500">{title}</p>
-                <p className="text-xl font-bold text-slate-800">{value}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{title}</p>
+                <p className="text-xl font-bold text-slate-800 dark:text-slate-200">{value}</p>
             </div>
         </div>
     </div>
@@ -87,32 +87,32 @@ const ContactHistoryModal: React.FC<ContactHistoryModalProps> = ({ isOpen, onClo
 
     return (
         <div className="fixed inset-0 bg-slate-800 bg-opacity-75 flex items-center justify-center p-4 z-[70]">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col">
-                <div className="p-4 border-b flex justify-between items-center flex-shrink-0">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col">
+                <div className="p-4 border-b dark:border-slate-700 flex justify-between items-center flex-shrink-0">
                     <div>
-                        <h3 className="text-lg font-semibold text-slate-900">{t('contactHistory.title')}</h3>
-                        <p className="text-sm text-slate-500">{contact.firstName} {contact.lastName} ({contact.phoneNumber})</p>
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{t('contactHistory.title')}</h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{contact.firstName} {contact.lastName} ({contact.phoneNumber})</p>
                     </div>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200"><XMarkIcon className="w-6 h-6 text-slate-500" /></button>
+                    <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><XMarkIcon className="w-6 h-6 text-slate-500 dark:text-slate-400" /></button>
                 </div>
 
                 {isLoading ? (
                     <div className="flex-1 flex items-center justify-center">{t('contactHistory.loading')}</div>
                 ) : (
                     <>
-                        <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4 border-b flex-shrink-0">
+                        <div className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4 border-b dark:border-slate-700 flex-shrink-0">
                             <KpiCard title={t('contactHistory.kpis.totalCalls')} value={kpis.totalCalls} icon={PhoneIcon} />
                             <KpiCard title={t('contactHistory.kpis.talkTime')} value={formatDuration(kpis.totalDuration)} icon={TimeIcon} />
                             <KpiCard title={t('contactHistory.kpis.uniqueAgents')} value={kpis.uniqueAgents} icon={UsersIcon} />
                             <KpiCard title={t('contactHistory.kpis.positiveQuals')} value={kpis.positiveQuals} icon={ChartBarIcon} />
                         </div>
                         <div className="p-4 flex-1 overflow-y-auto">
-                            <h4 className="font-semibold text-slate-800 mb-4">{t('contactHistory.timelineTitle')}</h4>
+                            <h4 className="font-semibold text-slate-800 dark:text-slate-200 mb-4">{t('contactHistory.timelineTitle')}</h4>
                             {timeline.length > 0 ? (
                                 <div className="space-y-4">
                                     {timeline.map((item, index) => (
-                                        <div key={index} className="p-3 bg-slate-50 rounded-md border">
-                                            <div className="flex justify-between items-baseline text-xs text-slate-500 mb-1">
+                                        <div key={index} className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-md border dark:border-slate-700">
+                                            <div className="flex justify-between items-baseline text-xs text-slate-500 dark:text-slate-400 mb-1">
                                                 <p className="font-semibold">
                                                     {item.type === 'call' 
                                                         ? t('contactHistory.callBy', { agentName: findEntityName(item.data.agentId, users) })
@@ -122,25 +122,25 @@ const ContactHistoryModal: React.FC<ContactHistoryModalProps> = ({ isOpen, onClo
                                                 <p>{item.date.toLocaleString('fr-FR')}</p>
                                             </div>
                                             {item.type === 'call' ? (
-                                                <div className="text-sm grid grid-cols-2 gap-x-4">
+                                                <div className="text-sm grid grid-cols-2 gap-x-4 dark:text-slate-300">
                                                     <p><strong>{t('contactHistory.duration')}</strong> {formatDuration(item.data.duration)}</p>
                                                     <p><strong>{t('contactHistory.qualification')}</strong> {findEntityName(item.data.qualificationId, qualifications)}</p>
                                                 </div>
                                             ) : (
-                                                <p className="text-sm text-slate-700 whitespace-pre-wrap">{item.data.note}</p>
+                                                <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{item.data.note}</p>
                                             )}
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-center text-slate-500 pt-8">{t('contactHistory.noHistory')}</p>
+                                <p className="text-center text-slate-500 dark:text-slate-400 pt-8">{t('contactHistory.noHistory')}</p>
                             )}
                         </div>
                     </>
                 )}
 
-                <div className="bg-slate-50 p-3 flex justify-end flex-shrink-0">
-                    <button onClick={onClose} className="bg-white border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50">{t('common.close')}</button>
+                <div className="bg-slate-50 dark:bg-slate-900 p-3 flex justify-end flex-shrink-0 border-t dark:border-slate-700">
+                    <button onClick={onClose} className="bg-white dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-600">{t('common.close')}</button>
                 </div>
             </div>
         </div>

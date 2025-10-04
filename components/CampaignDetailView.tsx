@@ -31,9 +31,9 @@ type DrilldownLevel = { type: 'qualType' | 'agent' | 'qual', value: string, labe
 
 
 const KpiCard: React.FC<{ title: string; value: string | number; }> = ({ title, value }) => (
-    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-        <p className="text-sm text-slate-500">{title}</p>
-        <p className="text-3xl font-bold text-slate-900">{value}</p>
+    <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+        <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
+        <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
     </div>
 );
 
@@ -419,9 +419,9 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const Breadcrumbs = () => (
         <div className="flex items-center gap-2 text-sm">
             {drilldownPath.length === 0 ? (
-                <h3 className="text-lg font-semibold text-slate-800">Analyse Détaillée</h3>
+                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Analyse Détaillée</h3>
             ) : (
-                <button onClick={() => setDrilldownPath([])} className="font-semibold text-indigo-600 hover:underline">
+                <button onClick={() => setDrilldownPath([])} className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
                     Analyse Détaillée
                 </button>
             )}
@@ -430,7 +430,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                     <span className="text-slate-400">/</span>
                     <button 
                         onClick={() => setDrilldownPath(prev => prev.slice(0, index + 1))}
-                        className="font-semibold text-indigo-600 hover:underline"
+                        className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
                     >
                         {level.label}
                     </button>
@@ -580,13 +580,13 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     };
 
     const TabButton: React.FC<{ tab: DetailTab; label: string; icon: React.FC<any> }> = ({ tab, label, icon: Icon }) => (
-        <button onClick={() => setActiveTab(tab)} className={`flex items-center gap-2 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors ${activeTab === tab ? 'border-primary text-link' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'}`}>
+        <button onClick={() => setActiveTab(tab)} className={`flex items-center gap-2 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors ${activeTab === tab ? 'border-primary text-link' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'}`}>
             <Icon className="w-5 h-5" /> {label}
         </button>
     );
     
      const SortableHeader: React.FC<{ sortKey: ContactSortKeys; label: string }> = ({ sortKey, label }) => (
-        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">
+        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">
             <button onClick={() => requestSort(sortKey)} className="group inline-flex items-center gap-1">
                 {label}
                 <span className="opacity-0 group-hover:opacity-100"><ChevronDownIcon className={`w-4 h-4 transition-transform ${contactSortConfig.key === sortKey && contactSortConfig.direction === 'descending' ? 'rotate-180' : ''}`}/></span>
@@ -595,18 +595,18 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     );
 
     return (
-        <div className="max-w-7xl mx-auto space-y-6">
+        <div className="space-y-6">
             {historyModal.isOpen && historyModal.contact && (
                 <ContactHistoryModal isOpen={true} onClose={() => setHistoryModal({ isOpen: false, contact: null })} contact={historyModal.contact} users={users} qualifications={qualifications} />
             )}
             <header>
-                <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-800 mb-2"><ArrowLeftIcon className="w-5 h-5"/> {t('campaignDetail.backToCampaigns')}</button>
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{campaign.name}</h1>
-                <p className="mt-1 text-lg text-slate-600">{campaign.description || t('campaignDetail.associatedScript', { scriptName: script?.name || t('common.none')})}</p>
+                <button onClick={onBack} className="flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 mb-2"><ArrowLeftIcon className="w-5 h-5"/> {t('campaignDetail.backToCampaigns')}</button>
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{campaign.name}</h1>
+                <p className="mt-1 text-lg text-slate-600 dark:text-slate-400">{campaign.description || t('campaignDetail.associatedScript', { scriptName: script?.name || t('common.none')})}</p>
             </header>
 
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200">
-                <div className="border-b border-slate-200"><nav className="-mb-px flex space-x-4 px-6">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                <div className="border-b border-slate-200 dark:border-slate-700"><nav className="-mb-px flex space-x-4 px-6">
                     <TabButton tab="contacts" label={t('campaignDetail.tabs.contacts', { count: campaign.contacts.length })} icon={UsersIcon} />
                     <TabButton tab="dashboard" label={t('campaignDetail.tabs.dashboard')} icon={ChartBarIcon} />
                     <TabButton tab="dashboard2" label="Dashboard2" icon={ChartBarIcon} />
@@ -616,45 +616,45 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                     {activeTab === 'contacts' && (
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <input type="search" placeholder={t('campaignDetail.contacts.searchPlaceholder')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full max-w-sm p-2 border border-slate-300 rounded-md"/>
-                                {canDelete && selectedContactIds.length > 0 && <button onClick={handleDeleteSelected} className="bg-red-100 text-red-700 font-bold py-2 px-4 rounded-lg inline-flex items-center gap-2"><TrashIcon className="w-5 h-5"/>{t('campaignDetail.contacts.deleteSelection', { count: selectedContactIds.length })}</button>}
+                                <input type="search" placeholder={t('campaignDetail.contacts.searchPlaceholder')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full max-w-sm p-2 border border-slate-300 rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"/>
+                                {canDelete && selectedContactIds.length > 0 && <button onClick={handleDeleteSelected} className="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 font-bold py-2 px-4 rounded-lg inline-flex items-center gap-2"><TrashIcon className="w-5 h-5"/>{t('campaignDetail.contacts.deleteSelection', { count: selectedContactIds.length })}</button>}
                             </div>
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-slate-200"><thead className="bg-slate-50"><tr>
+                                <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700"><thead className="bg-slate-50 dark:bg-slate-700"><tr>
                                     <th className="p-4 w-4"><input type="checkbox" checked={isAllOnPageSelected} onChange={handleSelectAllOnPage} className="h-4 w-4 rounded" /></th>
                                     <SortableHeader sortKey="lastName" label={t('campaignDetail.contacts.headers.lastName')} />
                                     <SortableHeader sortKey="firstName" label={t('campaignDetail.contacts.headers.firstName')} />
                                     <SortableHeader sortKey="phoneNumber" label={t('campaignDetail.contacts.headers.phone')} />
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">QUERRY</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">QUERRY</th>
                                     <SortableHeader sortKey="status" label={t('campaignDetail.contacts.headers.status')} />
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('campaignDetail.contacts.headers.lastQualif')}</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">{t('campaignDetail.contacts.headers.lastNote')}</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.contacts.headers.lastQualif')}</th>
+                                    <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.contacts.headers.lastNote')}</th>
                                 </tr></thead>
-                                <tbody className="bg-white divide-y divide-slate-200 text-sm">
+                                <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700 text-sm">
                                     {paginatedContacts.map(contact => {
                                         const lastCall = [...campaignCallHistory].filter(c => c.contactId === contact.id).sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
                                         const lastNote = [...contactNotes].filter(n => n.contactId === contact.id).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
                                         return (
-                                        <tr key={contact.id} onClick={() => setHistoryModal({ isOpen: true, contact })} className={`cursor-pointer hover:bg-slate-50 ${selectedContactIds.includes(contact.id) ? 'bg-indigo-50' : ''}`}>
+                                        <tr key={contact.id} onClick={() => setHistoryModal({ isOpen: true, contact })} className={`cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 ${selectedContactIds.includes(contact.id) ? 'bg-indigo-50 dark:bg-indigo-900/30' : ''}`}>
                                             <td className="p-4 w-4" onClick={e => e.stopPropagation()}><input type="checkbox" checked={selectedContactIds.includes(contact.id)} onChange={e => handleSelectContact(contact.id, e.target.checked)} className="h-4 w-4 rounded" /></td>
-                                            <td className="px-4 py-3 font-medium">{contact.lastName}</td>
-                                            <td className="px-4 py-3">{contact.firstName}</td>
-                                            <td className="px-4 py-3 font-mono">{contact.phoneNumber}</td>
-                                            <td className="px-4 py-3">{contact.customFields?.querry || ''}</td>
-                                            <td className="px-4 py-3"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${contact.status === 'pending' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'}`}>{contact.status}</span></td>
-                                            <td className="px-4 py-3">{lastCall ? props.qualifications.find(q => q.id === lastCall.qualificationId)?.description : 'N/A'}</td>
-                                            <td className="px-4 py-3 truncate max-w-xs" title={lastNote?.note}>{lastNote?.note || 'N/A'}</td>
+                                            <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{contact.lastName}</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{contact.firstName}</td>
+                                            <td className="px-4 py-3 font-mono text-slate-600 dark:text-slate-400">{contact.phoneNumber}</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{contact.customFields?.querry || ''}</td>
+                                            <td className="px-4 py-3"><span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${contact.status === 'pending' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200' : 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-200'}`}>{contact.status}</span></td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{lastCall ? props.qualifications.find(q => q.id === lastCall.qualificationId)?.description : 'N/A'}</td>
+                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 truncate max-w-xs" title={lastNote?.note}>{lastNote?.note || 'N/A'}</td>
                                         </tr>
                                     )})}
                                 </tbody>
                                 </table>
-                                {filteredContacts.length === 0 && <p className="text-center py-8 text-slate-500">{t('campaignDetail.contacts.noContacts')}</p>}
+                                {filteredContacts.length === 0 && <p className="text-center py-8 text-slate-500 dark:text-slate-400">{t('campaignDetail.contacts.noContacts')}</p>}
                             </div>
                             {totalPages > 1 && <div className="flex justify-between items-center mt-4 text-sm">
-                                <p className="text-slate-600">{t('campaignDetail.contacts.pagination', { currentPage, totalPages })}</p>
+                                <p className="text-slate-600 dark:text-slate-400">{t('campaignDetail.contacts.pagination', { currentPage, totalPages })}</p>
                                 <div className="flex gap-2">
-                                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border rounded-md disabled:opacity-50">{t('common.previous')}</button>
-                                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border rounded-md disabled:opacity-50">{t('common.next')}</button>
+                                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1 border rounded-md disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-700">{t('common.previous')}</button>
+                                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1 border rounded-md disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-700">{t('common.next')}</button>
                                 </div>
                             </div>}
                         </div>
@@ -668,33 +668,33 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                 <KpiCard title={t('campaignDetail.dashboard.kpis.aht')} value={formatDuration(campaignStats.avgDuration)} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.fileProgress.title')}</h3>
-                                <div className="w-full bg-slate-200 rounded-full h-4">
+                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.fileProgress.title')}</h3>
+                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4">
                                     <div className="bg-indigo-600 h-4 rounded-full text-center text-white text-xs font-bold" style={{ width: `${campaignStats.completionRate}%` }}>
                                         {campaignStats.completionRate.toFixed(0)}%
                                     </div>
                                 </div>
-                                <div className="flex justify-between text-sm mt-1">
+                                <div className="flex justify-between text-sm mt-1 text-slate-600 dark:text-slate-400">
                                     <span>{t('campaignDetail.dashboard.fileProgress.processed')} {campaignStats.processed}</span>
                                     <span>{t('campaignDetail.dashboard.fileProgress.remaining')} {campaignStats.pending}</span>
                                 </div>
                             </div>
                             {campaign.quotaRules.length > 0 && (
                                 <div>
-                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.quota.title')}</h3>
+                                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.quota.title')}</h3>
                                     <div className="space-y-3">
                                         {campaign.quotaRules.map(rule => (
                                             <div key={rule.id}>
-                                                <div className="flex justify-between text-sm font-medium mb-1">
+                                                <div className="flex justify-between text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
                                                     <span>
                                                         {rule.operator === 'starts_with' 
                                                             ? t('campaignDetail.dashboard.quota.ruleStartsWith', { field: rule.contactField, value: rule.value })
                                                             : t('campaignDetail.dashboard.quota.ruleEquals', { field: rule.contactField, value: rule.value })
                                                         }
                                                     </span>
-                                                    <span>{t('campaignDetail.dashboard.quota.achieved')} {rule.currentCount} / {rule.limit}</span>
+                                                    <span className="dark:text-slate-400">{t('campaignDetail.dashboard.quota.achieved')} {rule.currentCount} / {rule.limit}</span>
                                                 </div>
-                                                <div className="w-full bg-slate-200 rounded-full h-2.5">
+                                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
                                                     <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${rule.limit > 0 ? (rule.currentCount / rule.limit) * 100 : 0}%` }}></div>
                                                 </div>
                                             </div>
@@ -702,12 +702,12 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                     </div>
                                 </div>
                             )}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t dark:border-slate-700">
                                 <div>
                                      <div className="flex justify-between items-start">
-                                        <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.charts.qualifDistributionTitle')}</h3>
+                                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.charts.qualifDistributionTitle')}</h3>
                                         {(treemapFilter.type || treemapFilter.qualificationId) && (
-                                            <button onClick={() => setTreemapFilter({ type: null, qualificationId: null })} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1">
+                                            <button onClick={() => setTreemapFilter({ type: null, qualificationId: null })} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1 dark:text-indigo-400">
                                                 <XMarkIcon className="w-4 h-4" /> Réinitialiser le filtre
                                             </button>
                                         )}
@@ -715,46 +715,46 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                     <div className="h-64"><ChartComponent type="treemap" data={treemapChartData} options={treemapOptions} /></div>
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.charts.successByHourTitle')}</h3>
+                                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.charts.successByHourTitle')}</h3>
                                     <div className="h-64"><ChartComponent type="bar" data={callsByHour} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }} /></div>
                                 </div>
                             </div>
-                             <div className="pt-4 border-t">
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.tables.qualifPerfTitle')}</h3>
-                                <div className="overflow-x-auto max-h-60 border rounded-md">
-                                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                                        <thead className="bg-slate-50 sticky top-0"><tr>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.qualification')}</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.processedRecords')}</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.rate')}</th>
+                             <div className="pt-4 border-t dark:border-slate-700">
+                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.tables.qualifPerfTitle')}</h3>
+                                <div className="overflow-x-auto max-h-60 border dark:border-slate-700 rounded-md">
+                                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+                                        <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0"><tr>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.dashboard.tables.headers.qualification')}</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.dashboard.tables.headers.processedRecords')}</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.dashboard.tables.headers.rate')}</th>
                                         </tr></thead>
-                                        <tbody className="bg-white divide-y divide-slate-200">
+                                        <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                                             {qualificationPerformance.map(qual => (
                                                 <tr key={qual.id}>
-                                                    <td className="px-4 py-2 font-medium">{qual.description}</td>
-                                                    <td className="px-4 py-2">{qual.count}</td>
-                                                    <td className="px-4 py-2">{qual.rate.toFixed(2)}%</td>
+                                                    <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-200">{qual.description}</td>
+                                                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{qual.count}</td>
+                                                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{qual.rate.toFixed(2)}%</td>
                                                 </tr>
                                             ))}
                                         </tbody>
                                     </table>
                                 </div>
                             </div>
-                            <div className="pt-4 border-t">
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.tables.agentPerfTitle')}</h3>
-                                <div className="overflow-x-auto max-h-60 border rounded-md">
-                                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                                        <thead className="bg-slate-50 sticky top-0"><tr>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.agent')}</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.processedCalls')}</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.dashboard.tables.headers.conversions')}</th>
+                            <div className="pt-4 border-t dark:border-slate-700">
+                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.tables.agentPerfTitle')}</h3>
+                                <div className="overflow-x-auto max-h-60 border dark:border-slate-700 rounded-md">
+                                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+                                        <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0"><tr>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.dashboard.tables.headers.agent')}</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.dashboard.tables.headers.processedCalls')}</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.dashboard.tables.headers.conversions')}</th>
                                         </tr></thead>
-                                        <tbody className="bg-white divide-y divide-slate-200">
+                                        <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                                             {agentPerformance.map(agent => (
                                                 <tr key={agent.name}>
-                                                    <td className="px-4 py-2 font-medium">{agent.name}</td>
-                                                    <td className="px-4 py-2">{agent.calls}</td>
-                                                    <td className="px-4 py-2">{agent.conversions}</td>
+                                                    <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-200">{agent.name}</td>
+                                                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{agent.calls}</td>
+                                                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{agent.conversions}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -772,33 +772,33 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                 <KpiCard title={t('campaignDetail.dashboard.kpis.aht')} value={formatDuration(campaignStats.avgDuration)} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.fileProgress.title')}</h3>
-                                <div className="w-full bg-slate-200 rounded-full h-4">
+                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.fileProgress.title')}</h3>
+                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4">
                                     <div className="bg-blue-600 h-4 rounded-full text-center text-white text-xs font-bold" style={{ width: `${campaignStats.completionRate}%` }}>
                                         {campaignStats.completionRate > 10 && `${campaignStats.completionRate.toFixed(0)}%`}
                                     </div>
                                 </div>
-                                <div className="flex justify-between text-sm mt-1">
+                                <div className="flex justify-between text-sm mt-1 text-slate-600 dark:text-slate-400">
                                     <span>{t('campaignDetail.dashboard.fileProgress.processed')} {campaignStats.processed}</span>
                                     <span>{t('campaignDetail.dashboard.fileProgress.remaining')} {campaignStats.pending}</span>
                                 </div>
                             </div>
                             {campaign.quotaRules.length > 0 && (
                                 <div>
-                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.dashboard.quota.title')}</h3>
+                                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.quota.title')}</h3>
                                     <div className="space-y-3">
                                         {campaign.quotaRules.map(rule => (
                                             <div key={rule.id}>
-                                                <div className="flex justify-between text-sm font-medium mb-1">
+                                                <div className="flex justify-between text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
                                                     <span>
                                                         {rule.operator === 'starts_with' 
                                                             ? t('campaignDetail.dashboard.quota.ruleStartsWith', { field: rule.contactField, value: rule.value })
                                                             : t('campaignDetail.dashboard.quota.ruleEquals', { field: rule.contactField, value: rule.value })
                                                         }
                                                     </span>
-                                                    <span>{t('campaignDetail.dashboard.quota.achieved')} {rule.currentCount} / {rule.limit}</span>
+                                                    <span className="dark:text-slate-400">{t('campaignDetail.dashboard.quota.achieved')} {rule.currentCount} / {rule.limit}</span>
                                                 </div>
-                                                <div className="w-full bg-slate-200 rounded-full h-2.5">
+                                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
                                                     <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${rule.limit > 0 ? (rule.currentCount / rule.limit) * 100 : 0}%` }}></div>
                                                 </div>
                                             </div>
@@ -807,44 +807,44 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                 </div>
                             )}
 
-                            <div className="space-y-4 pt-4 border-t">
+                            <div className="space-y-4 pt-4 border-t dark:border-slate-700">
                                 <div className="flex justify-between items-center">
                                     <Breadcrumbs />
                                     {drilldownPath.length > 0 && (
-                                        <button onClick={() => setDrilldownPath([])} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1">
+                                        <button onClick={() => setDrilldownPath([])} className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
                                             <XMarkIcon className="w-4 h-4" /> Réinitialiser
                                         </button>
                                     )}
                                 </div>
-                                <div className="bg-white p-4 rounded-lg border shadow-sm" style={{height: '400px'}}>
+                                <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border dark:border-slate-700 shadow-sm" style={{height: '400px'}}>
                                     <ChartComponent type="treemap" data={treemapDrilldownData} options={treemapDrilldownOptions} />
                                 </div>
                             </div>
                             
                             {drilldownPath.length > 0 && (
                                  <div className="pt-4">
-                                    <h3 className="text-lg font-semibold text-slate-800 mb-2">Détail des Fiches pour la sélection</h3>
-                                    <div className="overflow-x-auto max-h-96 border rounded-md">
-                                        <table className="min-w-full divide-y divide-slate-200 text-sm">
-                                            <thead className="bg-slate-50 sticky top-0"><tr>
-                                                <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Contact</th>
-                                                <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Téléphone</th>
-                                                <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Agent</th>
-                                                <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Date Appel</th>
-                                                <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">Qualification</th>
+                                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">Détail des Fiches pour la sélection</h3>
+                                    <div className="overflow-x-auto max-h-96 border dark:border-slate-700 rounded-md">
+                                        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+                                            <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0"><tr>
+                                                <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">Contact</th>
+                                                <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">Téléphone</th>
+                                                <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">Agent</th>
+                                                <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">Date Appel</th>
+                                                <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">Qualification</th>
                                             </tr></thead>
-                                            <tbody className="bg-white divide-y divide-slate-200">
+                                            <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                                                 {contactsForDrilldownTable.length > 0 ? contactsForDrilldownTable.map(contact => (
                                                     <tr key={contact.id}>
-                                                        <td className="px-4 py-2 font-medium">{contact.firstName} {contact.lastName}</td>
-                                                        <td className="px-4 py-2 font-mono">{contact.phoneNumber}</td>
-                                                        <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.agentId, users) : 'N/A'}</td>
-                                                        <td className="px-4 py-2">{contact.lastCall ? new Date(contact.lastCall.timestamp).toLocaleString('fr-FR') : 'N/A'}</td>
-                                                        <td className="px-4 py-2">{contact.lastCall ? findEntityName(contact.lastCall.qualificationId, qualifications) : 'N/A'}</td>
+                                                        <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-200">{contact.firstName} {contact.lastName}</td>
+                                                        <td className="px-4 py-2 font-mono text-slate-600 dark:text-slate-400">{contact.phoneNumber}</td>
+                                                        <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{contact.lastCall ? findEntityName(contact.lastCall.agentId, users) : 'N/A'}</td>
+                                                        <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{contact.lastCall ? new Date(contact.lastCall.timestamp).toLocaleString('fr-FR') : 'N/A'}</td>
+                                                        <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{contact.lastCall ? findEntityName(contact.lastCall.qualificationId, qualifications) : 'N/A'}</td>
                                                     </tr>
                                                 )) : (
                                                     <tr>
-                                                        <td colSpan={5} className="text-center py-8 text-slate-500 italic">
+                                                        <td colSpan={5} className="text-center py-8 text-slate-500 dark:text-slate-400 italic">
                                                             Aucune fiche à afficher pour la sélection actuelle.
                                                         </td>
                                                     </tr>
@@ -859,24 +859,24 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                     {activeTab === 'settings' && (
                         <div className="space-y-6">
                              <div>
-                                <h3 className="text-lg font-semibold text-slate-800 mb-2">{t('campaignDetail.settings.recycling.title')}</h3>
-                                <p className="text-sm text-slate-500 mb-4">{t('campaignDetail.settings.recycling.description')}</p>
-                                <div className="overflow-x-auto max-h-96 border rounded-md">
-                                    <table className="min-w-full divide-y divide-slate-200 text-sm">
-                                        <thead className="bg-slate-50 sticky top-0"><tr>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.settings.recycling.headers.qualification')}</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 uppercase">{t('campaignDetail.settings.recycling.headers.processedRecords')}</th>
-                                            <th className="px-4 py-2 text-right font-medium text-slate-500 uppercase">{t('campaignDetail.settings.recycling.headers.action')}</th>
+                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.settings.recycling.title')}</h3>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{t('campaignDetail.settings.recycling.description')}</p>
+                                <div className="overflow-x-auto max-h-96 border dark:border-slate-700 rounded-md">
+                                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+                                        <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0"><tr>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.settings.recycling.headers.qualification')}</th>
+                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.settings.recycling.headers.processedRecords')}</th>
+                                            <th className="px-4 py-2 text-right font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.settings.recycling.headers.action')}</th>
                                         </tr></thead>
-                                        <tbody className="bg-white divide-y divide-slate-200">
+                                        <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                                             {qualificationPerformance.filter(q => q.count > 0).map(qual => (
                                                 <tr key={qual.id}>
-                                                    <td className="px-4 py-2 font-medium">{qual.description}</td>
-                                                    <td className="px-4 py-2">{qual.count}</td>
+                                                    <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-200">{qual.description}</td>
+                                                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{qual.count}</td>
                                                     <td className="px-4 py-2 text-right">
                                                         <button 
                                                             onClick={() => handleRecycleClick(qual.id)}
-                                                            className="bg-indigo-100 text-indigo-700 font-semibold text-xs py-1 px-3 rounded-md hover:bg-indigo-200"
+                                                            className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold text-xs py-1 px-3 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-900"
                                                         >
                                                             {t('campaignDetail.settings.recycling.recycleButton')}
                                                         </button>
