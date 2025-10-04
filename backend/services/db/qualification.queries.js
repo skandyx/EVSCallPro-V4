@@ -5,11 +5,20 @@ const getQualifications = async () => (await pool.query('SELECT * FROM qualifica
 const getQualificationGroups = async () => (await pool.query('SELECT * FROM qualification_groups ORDER BY name')).rows.map(keysToCamel);
 
 const saveQualification = async (q, id) => {
+    // isRecyclable defaults to true if not provided
+    const isRecyclable = q.isRecyclable === false ? false : true;
+
     if (id) {
-        const res = await pool.query('UPDATE qualifications SET code=$1, description=$2, type=$3, parent_id=$4, updated_at=NOW() WHERE id=$5 AND is_standard = FALSE RETURNING *', [q.code, q.description, q.type, q.parentId, id]);
+        const res = await pool.query(
+            'UPDATE qualifications SET code=$1, description=$2, type=$3, parent_id=$4, is_recyclable=$5, updated_at=NOW() WHERE id=$6 AND is_standard = FALSE RETURNING *', 
+            [q.code, q.description, q.type, q.parentId, isRecyclable, id]
+        );
         return keysToCamel(res.rows[0]);
     }
-    const res = await pool.query('INSERT INTO qualifications (id, code, description, type, parent_id, is_standard) VALUES ($1, $2, $3, $4, $5, FALSE) RETURNING *', [q.id, q.code, q.description, q.type, q.parentId]);
+    const res = await pool.query(
+        'INSERT INTO qualifications (id, code, description, type, parent_id, is_standard, is_recyclable) VALUES ($1, $2, $3, $4, $5, FALSE, $6) RETURNING *', 
+        [q.id, q.code, q.description, q.type, q.parentId, isRecyclable]
+    );
     return keysToCamel(res.rows[0]);
 };
 

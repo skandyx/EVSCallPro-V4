@@ -432,7 +432,24 @@
       "name": "Nom du Groupe",
       "count": "Qualifications"
     },
-    "noGroups": "Aucun groupe trouvé."
+    "noGroups": "Aucun groupe trouvé.",
+    "modal": {
+      "editTitle": "Modifier la Qualification",
+      "addTitle": "Ajouter une Qualification",
+      "parent": "Parent (Optionnel)",
+      "noParent": "Aucun parent",
+      "code": "Code",
+      "codeUsed": "Ce code est déjà utilisé.",
+      "description": "Description",
+      "type": "Type",
+      "types": {
+        "positive": "Positif",
+        "neutral": "Neutre",
+        "negative": "Négatif"
+      },
+      "recyclable": "Recyclable",
+      "recyclableHelp": "Permet de réinjecter les fiches avec cette qualification."
+    }
   },
   "supervision": {
     "controlPanel": "Panneau de Contrôle",
@@ -548,7 +565,9 @@
           "processedRecords": "Fiches Traitées",
           "action": "Action"
         },
-        "recycleButton": "Recycler"
+        "recycleButton": "Recycler",
+        "recycleButtonTooltip": "Réinitialiser le statut de toutes les fiches avec cette qualification.",
+        "notRecyclableTooltip": "Cette qualification n'est pas marquée comme recyclable."
       }
     }
   },

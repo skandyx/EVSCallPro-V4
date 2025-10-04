@@ -432,7 +432,24 @@
       "name": "Group Name",
       "count": "Qualifications"
     },
-    "noGroups": "No groups found."
+    "noGroups": "No groups found.",
+    "modal": {
+      "editTitle": "Edit Qualification",
+      "addTitle": "Add Qualification",
+      "parent": "Parent (Optional)",
+      "noParent": "No parent",
+      "code": "Code",
+      "codeUsed": "This code is already in use.",
+      "description": "Description",
+      "type": "Type",
+      "types": {
+        "positive": "Positive",
+        "neutral": "Neutral",
+        "negative": "Negative"
+      },
+      "recyclable": "Recyclable",
+      "recyclableHelp": "Allows records with this qualification to be re-injected."
+    }
   },
   "supervision": {
     "controlPanel": "Control Panel",
@@ -543,7 +560,9 @@
           "processedRecords": "Processed Records",
           "action": "Action"
         },
-        "recycleButton": "Recycle"
+        "recycleButton": "Recycle",
+        "recycleButtonTooltip": "Reset the status of all records with this qualification.",
+        "notRecyclableTooltip": "This qualification is not marked as recyclable."
       }
     }
   },

@@ -214,6 +214,7 @@ export interface Qualification {
     groupId: string | null;
     isStandard: boolean;
     parentId?: string | null;
+    isRecyclable?: boolean;
 }
 
 export interface QualificationGroup {

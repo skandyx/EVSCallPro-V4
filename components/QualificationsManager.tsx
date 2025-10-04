@@ -20,6 +20,22 @@ const getNextAvailableCode = (allQualifications: Qualification[]): string => {
     return (Math.max(maxCode, 99) + 1).toString();
 };
 
+const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void; }> = ({ enabled, onChange }) => (
+    <button
+        type="button"
+        onClick={() => onChange(!enabled)}
+        className={`${enabled ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-600'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`}
+        role="switch"
+        aria-checked={enabled}
+    >
+        <span
+            aria-hidden="true"
+            className={`${enabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+        />
+    </button>
+);
+
+
 // --- MODAL: Create/Edit Qualification ---
 interface QualificationModalProps {
     qualificationToEdit?: Qualification | null;
@@ -29,11 +45,13 @@ interface QualificationModalProps {
 }
 
 const QualificationModal: React.FC<QualificationModalProps> = ({ qualificationToEdit, allQualifications, onSave, onClose }) => {
+    const { t } = useI18n();
     const [formData, setFormData] = useState<Omit<Qualification, 'id' | 'groupId' | 'isStandard'>>({
         code: qualificationToEdit ? qualificationToEdit.code : getNextAvailableCode(allQualifications),
         description: qualificationToEdit ? qualificationToEdit.description : '',
         type: qualificationToEdit ? qualificationToEdit.type : 'neutral',
         parentId: qualificationToEdit ? qualificationToEdit.parentId : null,
+        isRecyclable: qualificationToEdit?.isRecyclable ?? true,
     });
     const [error, setError] = useState('');
     
@@ -43,7 +61,7 @@ const QualificationModal: React.FC<QualificationModalProps> = ({ qualificationTo
         
         const isCodeUsed = allQualifications.some(q => q.code.trim() === formData.code.trim() && q.id !== qualificationToEdit?.id);
         if (isCodeUsed) {
-            setError('Ce code est déjà utilisé.');
+            setError(t('qualificationsManager.modal.codeUsed'));
             return;
         }
         
@@ -65,37 +83,47 @@ const QualificationModal: React.FC<QualificationModalProps> = ({ qualificationTo
             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
-                        <h3 className="text-lg font-medium leading-6 text-slate-900 dark:text-slate-100">{isEditing ? 'Modifier la Qualification' : 'Ajouter une Qualification'}</h3>
+                        <h3 className="text-lg font-medium leading-6 text-slate-900 dark:text-slate-100">{isEditing ? t('qualificationsManager.modal.editTitle') : t('qualificationsManager.modal.addTitle')}</h3>
                         <div className="mt-4 space-y-4">
                              <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Parent (Optionnel)</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('qualificationsManager.modal.parent')}</label>
                                 <select value={formData.parentId || ''} onChange={e => setFormData(f => ({ ...f, parentId: e.target.value || null }))} className="mt-1 block w-full p-2 border bg-white border-slate-300 rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
-                                    <option value="">Aucun parent</option>
+                                    <option value="">{t('qualificationsManager.modal.noParent')}</option>
                                     {parentCandidates.map(p => <option key={p.id} value={p.id}>{p.description}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Code</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('qualificationsManager.modal.code')}</label>
                                 <input type="number" value={formData.code} onChange={e => { setFormData(f => ({ ...f, code: e.target.value })); if (error) setError(''); }} required className="mt-1 block w-full p-2 border border-slate-300 rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"/>
                                 {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Description</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('qualificationsManager.modal.description')}</label>
                                 <input type="text" value={formData.description} onChange={e => setFormData(f => ({ ...f, description: e.target.value }))} required className="mt-1 block w-full p-2 border border-slate-300 rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"/>
                             </div>
                              <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Type</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{t('qualificationsManager.modal.type')}</label>
                                 <select value={formData.type} onChange={e => setFormData(f => ({ ...f, type: e.target.value as Qualification['type'] }))} className="mt-1 block w-full p-2 border bg-white border-slate-300 rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
-                                    <option value="positive">Positif</option>
-                                    <option value="neutral">Neutre</option>
-                                    <option value="negative">Négatif</option>
+                                    <option value="positive">{t('qualificationsManager.modal.types.positive')}</option>
+                                    <option value="neutral">{t('qualificationsManager.modal.types.neutral')}</option>
+                                    <option value="negative">{t('qualificationsManager.modal.types.negative')}</option>
                                 </select>
+                            </div>
+                            <div className="flex items-center justify-between pt-4 border-t dark:border-slate-700">
+                                <div>
+                                    <label className="font-medium text-slate-700 dark:text-slate-300">{t('qualificationsManager.modal.recyclable')}</label>
+                                    <p className="text-xs text-slate-400">{t('qualificationsManager.modal.recyclableHelp')}</p>
+                                </div>
+                                <ToggleSwitch
+                                    enabled={formData.isRecyclable ?? true}
+                                    onChange={isEnabled => setFormData(f => ({ ...f, isRecyclable: isEnabled }))}
+                                />
                             </div>
                         </div>
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-900 px-4 py-3 sm:flex sm:flex-row-reverse rounded-b-lg border-t dark:border-slate-700">
-                        <button type="submit" className="inline-flex w-full justify-center rounded-md border border-transparent bg-primary px-4 py-2 font-medium text-primary-text shadow-sm hover:bg-primary-hover sm:ml-3 sm:w-auto">Enregistrer</button>
-                        <button type="button" onClick={onClose} className="mt-3 inline-flex w-full justify-center rounded-md border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-600">Annuler</button>
+                        <button type="submit" className="inline-flex w-full justify-center rounded-md border border-transparent bg-primary px-4 py-2 font-medium text-primary-text shadow-sm hover:bg-primary-hover sm:ml-3 sm:w-auto">{t('common.save')}</button>
+                        <button type="button" onClick={onClose} className="mt-3 inline-flex w-full justify-center rounded-md border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-600">{t('common.cancel')}</button>
                     </div>
                 </form>
             </div>
@@ -329,16 +357,16 @@ const QualificationsManager: React.FC<QualificationsManagerProps> = ({ feature, 
             
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">Groupes de Qualifications</h2>
+                    <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">{t('qualificationsManager.title')}</h2>
                      <button onClick={() => { setEditingGroup(null); setIsGroupModalOpen(true); }} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md inline-flex items-center">
-                        <PlusIcon className="w-5 h-5 mr-2"/>Créer un Groupe
+                        <PlusIcon className="w-5 h-5 mr-2"/>{t('qualificationsManager.createGroup')}
                     </button>
                 </div>
 
                  <div className="mb-4">
                     <input
                         type="text"
-                        placeholder="Rechercher un groupe..."
+                        placeholder={t('qualificationsManager.searchPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full max-w-lg p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"
@@ -349,9 +377,9 @@ const QualificationsManager: React.FC<QualificationsManagerProps> = ({ feature, 
                     <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                         <thead className="bg-slate-50 dark:bg-slate-700">
                             <tr>
-                                <SortableHeader sortKey="name" label="Nom du Groupe" />
-                                <SortableHeader sortKey="qualCount" label="Qualifications" />
-                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Actions</th>
+                                <SortableHeader sortKey="name" label={t('qualificationsManager.headers.name')} />
+                                <SortableHeader sortKey="qualCount" label={t('qualificationsManager.headers.count')} />
+                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">{t('common.actions')}</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
@@ -363,17 +391,17 @@ const QualificationsManager: React.FC<QualificationsManagerProps> = ({ feature, 
                                     </td>
                                     <td className="px-6 py-4 text-right text-sm font-medium space-x-4">
                                         <button onClick={() => { setEditingGroup(group); setIsGroupModalOpen(true); }} className="text-link hover:underline inline-flex items-center">
-                                            <EditIcon className="w-4 h-4 mr-1"/> Modifier
+                                            <EditIcon className="w-4 h-4 mr-1"/> {t('common.edit')}
                                         </button>
                                         <button onClick={() => onDeleteQualificationGroup(group.id)} className="text-red-600 hover:text-red-900 dark:hover:text-red-400 inline-flex items-center">
-                                            <TrashIcon className="w-4 h-4 mr-1"/> Supprimer
+                                            <TrashIcon className="w-4 h-4 mr-1"/> {t('common.delete')}
                                         </button>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-                     {filteredAndSortedGroups.length === 0 && <p className="text-center py-8 text-slate-500 dark:text-slate-400">Aucun groupe trouvé.</p>}
+                     {filteredAndSortedGroups.length === 0 && <p className="text-center py-8 text-slate-500 dark:text-slate-400">{t('qualificationsManager.noGroups')}</p>}
                 </div>
             </div>
         </div>
