@@ -598,7 +598,7 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
 
 
     return (
-        <div className="max-w-7xl mx-auto space-y-6 flex flex-col h-full">
+        <div className="space-y-6 flex flex-col h-full">
             {modalState.isOpen && (
                 <PlanningEventModal
                     event={modalState.event}

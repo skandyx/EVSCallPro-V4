@@ -514,7 +514,7 @@ const UserManager: React.FC<UserManagerProps> = ({ feature, users, campaigns, us
 
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
+    <div className="space-y-8">
       {isModalOpen && editingUser && <UserModal user={editingUser} users={users} campaigns={campaigns} userGroups={userGroups} sites={sites} currentUser={currentUser} onSave={handleSave} onClose={() => setIsModalOpen(false)} />}
       {isImportModalOpen && <ImportUsersModal onClose={() => setIsImportModalOpen(false)} onImport={onImportUsers} existingUsers={users} />}
       {isGeneratingModalOpen && <GenerateModal onClose={() => setIsGeneratingModalOpen(false)} onConfirm={handleConfirmGeneration} />}
