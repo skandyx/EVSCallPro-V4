@@ -7,6 +7,44 @@ const { broadcast } = require('../services/webSocketServer');
 /**
  * @openapi
  * /planning-events:
+ *   get:
+ *     summary: Récupère les événements de planning pour une période donnée.
+ *     tags: [Planning]
+ *     parameters:
+ *       - in: query
+ *         name: start
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *       - in: query
+ *         name: end
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *     responses:
+ *       '200':
+ *         description: 'Liste des événements.'
+ */
+router.get('/', async (req, res) => {
+    try {
+        const { start, end } = req.query;
+        if (!start || !end) {
+            return res.status(400).json({ error: 'Les paramètres start et end sont requis.' });
+        }
+        const events = await db.getPlanningEventsInRange(new Date(start), new Date(end));
+        res.json(events);
+    } catch (e) {
+        console.error("Error fetching planning events:", e);
+        res.status(500).json({ error: e.message || 'Failed to fetch events' });
+    }
+});
+
+
+/**
+ * @openapi
+ * /planning-events:
  *   post:
  *     summary: Crée un ou plusieurs événements de planning, y compris récurrents.
  *     tags: [Planning]
@@ -22,8 +60,8 @@ const { broadcast } = require('../services/webSocketServer');
  */
 router.post('/', async (req, res) => {
     try {
-        const { eventData, targetIds, isRecurring, recurringDays, recurrenceEndDate } = req.body;
-        const { activityId, startDate, endDate } = eventData;
+        const { eventData, targetIds } = req.body;
+        const { activityId, startDate, endDate, rrule } = eventData;
 
         const agentsToSchedule = new Set();
         for (const targetId of targetIds) {
@@ -47,48 +85,18 @@ router.post('/', async (req, res) => {
 
         const createdEvents = [];
         
-        if (isRecurring && recurringDays?.length && recurrenceEndDate) {
-            const recurrenceStart = new Date(startDate);
-            const recurrenceEnd = new Date(recurrenceEndDate);
-            recurrenceEnd.setHours(23, 59, 59, 999);
-            const durationMs = new Date(endDate).getTime() - new Date(startDate).getTime();
-
-            for (const agentId of agentsToSchedule) {
-                let currentDate = new Date(recurrenceStart);
-                while (currentDate <= recurrenceEnd) {
-                    const dayOfWeek = currentDate.getDay() === 0 ? 7 : currentDate.getDay(); // Sunday is 7
-                    if (recurringDays.includes(dayOfWeek)) {
-                        const instanceStartDate = new Date(currentDate);
-                        instanceStartDate.setHours(recurrenceStart.getHours(), recurrenceStart.getMinutes(), 0, 0);
-                        const instanceEndDate = new Date(instanceStartDate.getTime() + durationMs);
-                        
-                        const eventToSave = {
-                            id: `plan-${Date.now()}-${Math.random()}`,
-                            agentId: agentId,
-                            activityId,
-                            startDate: instanceStartDate.toISOString(),
-                            endDate: instanceEndDate.toISOString(),
-                            siteId: agentsWithSites[agentId] || null
-                        };
-                        const newEvent = await db.savePlanningEvent(eventToSave);
-                        createdEvents.push(newEvent);
-                    }
-                    currentDate.setDate(currentDate.getDate() + 1);
-                }
-            }
-        } else {
-            for (const agentId of agentsToSchedule) {
-                 const eventToSave = {
-                    id: `plan-${Date.now()}-${Math.random()}`,
-                    agentId: agentId,
-                    activityId,
-                    startDate,
-                    endDate,
-                    siteId: agentsWithSites[agentId] || null
-                };
-                const newEvent = await db.savePlanningEvent(eventToSave);
-                createdEvents.push(newEvent);
-            }
+        for (const agentId of agentsToSchedule) {
+             const eventToSave = {
+                id: `plan-${Date.now()}-${Math.random()}`,
+                agentId: agentId,
+                activityId,
+                startDate,
+                endDate,
+                rrule: rrule || null,
+                siteId: agentsWithSites[agentId] || null
+            };
+            const newEvent = await db.savePlanningEvent(eventToSave);
+            createdEvents.push(newEvent);
         }
 
         broadcast({ type: 'planningUpdated' });
