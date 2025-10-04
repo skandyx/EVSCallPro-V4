@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo } from 'react';
 import type { Feature, SavedScript, Page, ScriptBlock } from '../types.ts';
 import ScriptBuilder from './ScriptBuilder.tsx';
@@ -62,7 +61,7 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
     };
 
     const SortableHeader: React.FC<{ sortKey: keyof SavedScript; label: string }> = ({ sortKey, label }) => (
-        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             <button onClick={() => requestSort(sortKey)} className="group inline-flex items-center gap-1">
                 {label}
                 <span className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -141,17 +140,17 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
     }
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="space-y-8">
             <header>
                 {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{t(feature.titleKey)}</h1>
                 {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
-                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
+                <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{t(feature.descriptionKey)}</p>
             </header>
             
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-semibold text-slate-800">{t('scriptManager.title')}</h2>
+                    <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">{t('scriptManager.title')}</h2>
                     <button
                         onClick={handleCreateNew}
                         className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md transition-colors inline-flex items-center"
@@ -167,29 +166,29 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
                         placeholder={t('scriptManager.searchPlaceholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full max-w-lg p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full max-w-lg p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"
                     />
                 </div>
 
                 {filteredAndSortedScripts.length > 0 ? (
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-slate-200">
-                            <thead className="bg-slate-50">
+                        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                            <thead className="bg-slate-50 dark:bg-slate-700">
                                 <tr>
                                     <SortableHeader sortKey="id" label={t('scriptManager.headers.id')} />
                                     <SortableHeader sortKey="name" label={t('scriptManager.headers.name')} />
-                                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">{t('common.actions')}</th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('common.actions')}</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-slate-200">
+                            <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                                 {filteredAndSortedScripts.map(script => (
                                     <tr key={script.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono">{script.id}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap font-medium text-slate-800">{script.name}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 font-mono">{script.id}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap font-medium text-slate-800 dark:text-slate-200">{script.name}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
                                             <button onClick={() => handleEdit(script)} className="text-link hover:underline inline-flex items-center"><EditIcon className="w-4 h-4 mr-1"/> {t('common.edit')}</button>
-                                            <button onClick={() => onDuplicateScript(script.id)} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 inline-flex items-center"><DuplicateIcon className="w-4 h-4 mr-1"/> {t('common.duplicate')}</button>
-                                            <button onClick={() => onDeleteScript(script.id)} className="text-red-600 hover:text-red-900 inline-flex items-center"><TrashIcon className="w-4 h-4 mr-1"/> {t('common.delete')}</button>
+                                            <button onClick={() => onDuplicateScript(script.id)} className="text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100 inline-flex items-center"><DuplicateIcon className="w-4 h-4 mr-1"/> {t('common.duplicate')}</button>
+                                            <button onClick={() => onDeleteScript(script.id)} className="text-red-600 hover:text-red-900 dark:hover:text-red-400 inline-flex items-center"><TrashIcon className="w-4 h-4 mr-1"/> {t('common.delete')}</button>
                                         </td>
                                     </tr>
                                 ))}
@@ -197,7 +196,7 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
                         </table>
                     </div>
                 ) : (
-                    <p className="text-slate-500 text-center py-8">{t('scriptManager.noScripts')}</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-center py-8">{t('scriptManager.noScripts')}</p>
                 )}
             </div>
         </div>

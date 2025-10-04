@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo } from 'react';
 import type { Feature, Site } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ChevronDownIcon } from './Icons.tsx';
@@ -98,7 +97,7 @@ const SiteManager: React.FC<SiteManagerProps> = ({ feature, sites, onSaveSite, o
     };
 
     const SortableHeader: React.FC<{ sortKey: keyof Site; label: string }> = ({ sortKey, label }) => (
-        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             <button onClick={() => requestSort(sortKey)} className="group inline-flex items-center gap-1">
                 {label}
                 <span className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -128,7 +127,7 @@ const SiteManager: React.FC<SiteManagerProps> = ({ feature, sites, onSaveSite, o
     };
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="space-y-8">
             {isModalOpen && <SiteModal site={editingSite} onSave={handleSave} onClose={() => setIsModalOpen(false)} />}
             <header>
                 {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
@@ -160,15 +159,15 @@ const SiteManager: React.FC<SiteManagerProps> = ({ feature, sites, onSaveSite, o
                         <thead className="bg-slate-50 dark:bg-slate-700">
                             <tr>
                                 <SortableHeader sortKey="name" label="Nom" />
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Adresse IP</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Actions</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Adresse IP</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                             {filteredAndSortedSites.map(site => (
                                 <tr key={site.id}>
                                     <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200">{site.name}</td>
-                                    <td className="px-6 py-4 font-mono text-sm text-slate-500">{site.ipAddress}</td>
+                                    <td className="px-6 py-4 font-mono text-sm text-slate-500 dark:text-slate-400">{site.ipAddress}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium space-x-4">
                                         <button onClick={() => handleEdit(site)} className="text-link hover:underline"><EditIcon className="w-4 h-4 inline-block -mt-1"/> Modifier</button>
                                         <button onClick={() => onDeleteSite(site.id)} className="text-red-600 hover:text-red-900 dark:hover:text-red-400"><TrashIcon className="w-4 h-4 inline-block -mt-1"/> Supprimer</button>

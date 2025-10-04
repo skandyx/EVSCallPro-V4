@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Feature } from '../types.ts';
 import { InformationCircleIcon } from './Icons.tsx';
@@ -11,7 +12,7 @@ const LanguageManager: React.FC<LanguageManagerProps> = ({ feature }) => {
     const { t } = useI18n();
     
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="space-y-8">
             <header>
                 <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{t(feature.titleKey)}</h1>
                 <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{t(feature.descriptionKey)}</p>

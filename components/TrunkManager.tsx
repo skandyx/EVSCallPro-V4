@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import type { Feature, Trunk } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, InformationCircleIcon } from './Icons.tsx';
@@ -129,7 +128,7 @@ const TrunkManager: React.FC<TrunkManagerProps> = ({ feature, trunks, onSaveTrun
     };
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="space-y-8">
             {isModalOpen && <TrunkModal trunk={editingTrunk} onSave={handleSave} onClose={() => setIsModalOpen(false)} />}
             <header>
                 {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
@@ -150,11 +149,11 @@ const TrunkManager: React.FC<TrunkManagerProps> = ({ feature, trunks, onSaveTrun
                     <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                         <thead className="bg-slate-50 dark:bg-slate-700">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nom</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Domaine / IP</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Type Auth.</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Dial Pattern</th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Actions</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Nom</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Domaine / IP</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Type Auth.</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Dial Pattern</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">

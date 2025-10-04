@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo } from 'react';
 import type { Feature, Did, Trunk, IvrFlow } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ChevronDownIcon } from './Icons.tsx';
@@ -141,7 +140,7 @@ const DidManager: React.FC<DidManagerProps> = ({ feature, dids, trunks, ivrFlows
     };
 
     const SortableHeader: React.FC<{ sortKey: keyof Did | 'destination'; label: string }> = ({ sortKey, label }) => (
-        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             <button onClick={() => requestSort(sortKey)} className="group inline-flex items-center gap-1">
                 {label}
                 <span className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -175,7 +174,7 @@ const DidManager: React.FC<DidManagerProps> = ({ feature, dids, trunks, ivrFlows
     };
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="space-y-8">
             {isModalOpen && <DidModal did={editingDid} trunks={trunks} ivrFlows={ivrFlows} onSave={handleSave} onClose={() => setIsModalOpen(false)} />}
             <header>
                 {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
@@ -209,7 +208,7 @@ const DidManager: React.FC<DidManagerProps> = ({ feature, dids, trunks, ivrFlows
                                 <SortableHeader sortKey="number" label="Numéro" />
                                 <SortableHeader sortKey="description" label="Description" />
                                 <SortableHeader sortKey="destination" label="Destination" />
-                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Actions</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">

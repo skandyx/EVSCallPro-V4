@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import type { Feature, AudioFile } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, PlayIcon, PauseIcon, XMarkIcon, ChevronDownIcon } from './Icons.tsx';
@@ -67,32 +68,32 @@ const AudioModal: React.FC<AudioModalProps> = ({ audioFile, onSave, onClose }) =
 
     return (
         <div className="fixed inset-0 bg-slate-800 bg-opacity-75 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
                 <form onSubmit={handleSubmit}>
                     <div className="p-6">
-                        <h3 className="text-lg font-medium leading-6 text-slate-900">{isEditing ? 'Modifier le Fichier Audio' : 'Importer un Fichier Audio'}</h3>
+                        <h3 className="text-lg font-medium leading-6 text-slate-900 dark:text-slate-100">{isEditing ? 'Modifier le Fichier Audio' : 'Importer un Fichier Audio'}</h3>
                         <div className="mt-4 space-y-4">
                             <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-slate-700">Nom d'affichage</label>
-                                <input type="text" name="name" id="name" value={name} onChange={(e) => setName(e.target.value)} required className="mt-1 block w-full p-2 border border-slate-300 rounded-md" placeholder="Ex: Message d'accueil"/>
+                                <label htmlFor="name" className="block text-sm font-medium text-slate-700 dark:text-slate-300">Nom d'affichage</label>
+                                <input type="text" name="name" id="name" value={name} onChange={(e) => setName(e.target.value)} required className="mt-1 block w-full p-2 border border-slate-300 rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200" placeholder="Ex: Message d'accueil"/>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-700">Fichier</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Fichier</label>
                                 <div className="mt-1">
                                     <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".mp3,.wav" className="hidden"/>
-                                    <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full text-center p-4 border-2 border-dashed border-slate-300 rounded-md hover:border-indigo-500">
-                                        <p className="text-sm text-slate-500">
+                                    <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full text-center p-4 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-md hover:border-indigo-500">
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">
                                             {selectedFile ? `Fichier sélectionné : ${selectedFile.name}` : isEditing ? `Fichier actuel : ${audioFile.fileName}` : 'Cliquez pour sélectionner un fichier (.mp3, .wav)'}
                                         </p>
                                     </button>
                                 </div>
-                                {selectedFile && <p className="text-xs text-slate-500 mt-1">Taille: {formatBytes(selectedFile.size)}</p>}
+                                {selectedFile && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Taille: {formatBytes(selectedFile.size)}</p>}
                             </div>
                         </div>
                     </div>
-                    <div className="bg-slate-50 px-4 py-3 sm:flex sm:flex-row-reverse rounded-b-lg">
+                    <div className="bg-slate-50 dark:bg-slate-900 px-4 py-3 sm:flex sm:flex-row-reverse rounded-b-lg">
                         <button type="submit" className="inline-flex w-full justify-center rounded-md border border-transparent bg-primary px-4 py-2 font-medium text-primary-text shadow-sm hover:bg-primary-hover sm:ml-3 sm:w-auto">Enregistrer</button>
-                        <button type="button" onClick={onClose} className="mt-3 inline-flex w-full justify-center rounded-md border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50 sm:mt-0 sm:w-auto">Annuler</button>
+                        <button type="button" onClick={onClose} className="mt-3 inline-flex w-full justify-center rounded-md border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 shadow-sm hover:bg-slate-50 sm:mt-0 sm:w-auto dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-600">Annuler</button>
                     </div>
                 </form>
             </div>
@@ -203,7 +204,7 @@ const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSave
     };
 
     const SortableHeader: React.FC<{ sortKey: keyof AudioFile; label: string }> = ({ sortKey, label }) => (
-        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             <button onClick={() => requestSort(sortKey)} className="group inline-flex items-center gap-1">
                 {label}
                 <span className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -304,19 +305,19 @@ const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSave
     };
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="space-y-8">
             {isModalOpen && <AudioModal audioFile={editingFile} onSave={handleSave} onClose={() => setIsModalOpen(false)} />}
             <audio ref={audioRef} />
 
             <header>
                 {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{t(feature.titleKey)}</h1>
                 {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
-                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
+                <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{t(feature.descriptionKey)}</p>
             </header>
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-semibold text-slate-800">Fichiers Audio</h2>
+                    <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200">Fichiers Audio</h2>
                     <button onClick={handleAddNew} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md inline-flex items-center">
                         <PlusIcon className="w-5 h-5 mr-2" />
                         Importer un fichier
@@ -329,43 +330,43 @@ const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSave
                         placeholder="Rechercher par nom ou nom de fichier..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full max-w-lg p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full max-w-lg p-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"
                     />
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50">
+                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                        <thead className="bg-slate-50 dark:bg-slate-700">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase"></th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase"></th>
                                 <SortableHeader sortKey="name" label="Nom" />
                                 <SortableHeader sortKey="fileName" label="Nom du Fichier" />
                                 <SortableHeader sortKey="duration" label="Durée" />
                                 <SortableHeader sortKey="size" label="Taille" />
                                 <SortableHeader sortKey="uploadDate" label="Date d'import" />
-                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Actions</th>
+                                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-slate-200">
+                        <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                             {filteredAndSortedFiles.map(file => (
                                 <tr key={file.id}>
                                     <td className="px-6 py-4">
-                                        <button onClick={() => handlePlayPauseClick(file.id)} className="p-2 rounded-full hover:bg-slate-100">
+                                        <button onClick={() => handlePlayPauseClick(file.id)} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
                                             {playingFileId === file.id && isPlaying
-                                                ? <PauseIcon className="w-5 h-5 text-indigo-600" />
-                                                : <PlayIcon className="w-5 h-5 text-slate-500" />}
+                                                ? <PauseIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                                                : <PlayIcon className="w-5 h-5 text-slate-500 dark:text-slate-400" />}
                                         </button>
                                     </td>
-                                    <td className="px-6 py-4 font-medium text-slate-800">{file.name}</td>
-                                    <td className="px-6 py-4 text-slate-600 font-mono text-sm">{file.fileName}</td>
-                                    <td className="px-6 py-4 text-slate-600 font-mono text-sm">{formatDuration(file.duration)}</td>
-                                    <td className="px-6 py-4 text-slate-600 text-sm">{formatBytes(file.size)}</td>
-                                    <td className="px-6 py-4 text-slate-600 text-sm">{new Date(file.uploadDate).toLocaleDateString('fr-FR')}</td>
+                                    <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200">{file.name}</td>
+                                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-mono text-sm">{file.fileName}</td>
+                                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-mono text-sm">{formatDuration(file.duration)}</td>
+                                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400 text-sm">{formatBytes(file.size)}</td>
+                                    <td className="px-6 py-4 text-slate-600 dark:text-slate-400 text-sm">{new Date(file.uploadDate).toLocaleDateString('fr-FR')}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium space-x-4">
                                         <button onClick={() => handleEdit(file)} className="text-link hover:underline inline-flex items-center">
                                             <EditIcon className="w-4 h-4 mr-1" /> Modifier
                                         </button>
-                                        <button onClick={() => handleDelete(file.id, file.name)} className="text-red-600 hover:text-red-900 inline-flex items-center">
+                                        <button onClick={() => handleDelete(file.id, file.name)} className="text-red-600 hover:text-red-900 dark:hover:text-red-400 inline-flex items-center">
                                             <TrashIcon className="w-4 h-4 mr-1" /> Supprimer
                                         </button>
                                     </td>
