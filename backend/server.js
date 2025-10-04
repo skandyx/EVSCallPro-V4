@@ -45,6 +45,9 @@ app.use(cors());
 app.use(express.json({ limit: '5mb' })); // Increased limit for base64 images
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(express.static(path.join(__dirname, '..', 'dist')));
+// Serve exported files and recordings
+app.use('/files', express.static(path.join(__dirname, '..', 'files')));
+
 
 // --- SWAGGER CONFIGURATION ---
 const swaggerOptions = {
@@ -127,6 +130,8 @@ const contactsRoutes = require(path.join(__dirname, 'routes', 'contacts.js'));
 const systemRoutes = require(path.join(__dirname, 'routes', 'system.js'));
 const audioRoutes = require(path.join(__dirname, 'routes', 'audio.js'));
 const supervisorRoutes = require(path.join(__dirname, 'routes', 'supervisor.js'));
+const filesRoutes = require(path.join(__dirname, 'routes', 'files.js'));
+
 
 // Public routes
 app.use('/api/auth', authRoutes);
@@ -182,6 +187,8 @@ app.use('/api/contacts', contactsRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/audio-files', audioRoutes);
 app.use('/api/supervisor', supervisorRoutes);
+app.use('/api/files', filesRoutes);
+
 
 
 // --- SPECIAL SYSTEM ROUTES ---

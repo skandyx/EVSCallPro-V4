@@ -19,6 +19,7 @@ export type FeatureId =
   | 'maintenance'
   | 'monitoring'
   | 'help'
+  | 'files'
   | 'module-settings'
   | 'sites-config'
   | 'system-connection'
