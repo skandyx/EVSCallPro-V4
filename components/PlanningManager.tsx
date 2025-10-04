@@ -2,15 +2,13 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import type { Feature, PlanningEvent, ActivityType, User, UserGroup } from '../types.ts';
 import { PlusIcon, ArrowLeftIcon, ArrowRightIcon, CalendarDaysIcon, TrashIcon, EditIcon } from './Icons.tsx';
 import { useI18n } from '../src/i18n/index.tsx';
+import wsClient from '../src/services/wsClient.ts';
 
 interface PlanningManagerProps {
     feature: Feature;
-    planningEvents: PlanningEvent[];
     activityTypes: ActivityType[];
     users: User[];
     userGroups: UserGroup[];
-    onSavePlanningEvent: (event: PlanningEvent) => void;
-    onDeletePlanningEvent: (eventId: string) => void;
     apiCall: any; // AxiosInstance
 }
 
@@ -37,7 +35,7 @@ const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) =>
 // --- PlanningEventModal ---
 interface PlanningEventModalProps {
     event: Partial<PlanningEvent> | null;
-    onSave: (eventData: Omit<PlanningEvent, 'id' | 'agentId'>, targetId: string) => void;
+    onSave: (eventData: Partial<PlanningEvent>, targetIds: string[]) => void;
     onDelete: (eventId: string) => void;
     onClose: () => void;
     agents: User[];
@@ -49,45 +47,63 @@ const PlanningEventModal: React.FC<PlanningEventModalProps> = ({ event, onSave, 
     const { t } = useI18n();
     const isEditing = !!event?.id;
     
-    const [targetId, setTargetId] = useState(() => (event?.agentId ? `user-${event.agentId}` : ''));
+    const [targetIds, setTargetIds] = useState<string[]>(() => (event?.agentId ? [`user-${event.agentId}`] : []));
     
     const [formData, setFormData] = useState({
         activityId: event?.activityId || '',
         startDate: event?.startDate || new Date().toISOString(),
         endDate: event?.endDate || new Date().toISOString(),
+        rrule: event?.rrule || '',
     });
 
-    const [isRecurring, setIsRecurring] = useState(event?.isRecurring || false);
-    const [recurringDays, setRecurringDays] = useState<number[]>(event?.recurringDays || []);
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 7);
-    const [recurrenceEndDate, setRecurrenceEndDate] = useState(
-        event?.recurrenceEndDate ? new Date(event.recurrenceEndDate).toISOString().split('T')[0] : tomorrow.toISOString().split('T')[0]
-    );
+    const [isRecurring, setIsRecurring] = useState(!!event?.rrule);
+    const [recurringDays, setRecurringDays] = useState<string[]>([]);
+    const [recurrenceEndDate, setRecurrenceEndDate] = useState('');
     
-    const WEEK_DAYS_SHORT = useMemo(() => [
-        { label: t('weekdays.short.monday'), value: 1 }, { label: t('weekdays.short.tuesday'), value: 2 },
-        { label: t('weekdays.short.wednesday'), value: 3 }, { label: t('weekdays.short.thursday'), value: 4 },
-        { label: t('weekdays.short.friday'), value: 5 }, { label: t('weekdays.short.saturday'), value: 6 },
-        { label: t('weekdays.short.sunday'), value: 7 }
+    useEffect(() => {
+        if (event?.rrule) {
+            const parts = event.rrule.split(';');
+            const bydayPart = parts.find(p => p.startsWith('BYDAY='));
+            const untilPart = parts.find(p => p.startsWith('UNTIL='));
+            if (bydayPart) {
+                setRecurringDays(bydayPart.replace('BYDAY=', '').split(','));
+            }
+            if(untilPart) {
+                const dateStr = untilPart.replace('UNTIL=', '').substring(0, 8);
+                const formattedDate = `${dateStr.substring(0,4)}-${dateStr.substring(4,6)}-${dateStr.substring(6,8)}`;
+                setRecurrenceEndDate(formattedDate);
+            }
+        }
+    }, [event]);
+
+
+    const WEEK_DAYS_RRule = useMemo(() => [
+        { label: t('weekdays.short.monday'), value: 'MO' }, { label: t('weekdays.short.tuesday'), value: 'TU' },
+        { label: t('weekdays.short.wednesday'), value: 'WE' }, { label: t('weekdays.short.thursday'), value: 'TH' },
+        { label: t('weekdays.short.friday'), value: 'FR' }, { label: t('weekdays.short.saturday'), value: 'SA' },
+        { label: t('weekdays.short.sunday'), value: 'SU' }
     ], [t]);
 
-    const handleDayToggle = (dayValue: number) => {
+    const handleDayToggle = (dayValue: string) => {
         setRecurringDays(prev => prev.includes(dayValue) ? prev.filter(d => d !== dayValue) : [...prev, dayValue]);
     };
 
     const handleSave = () => {
-        if (!targetId || !formData.activityId) {
+        if (targetIds.length === 0 || !formData.activityId) {
             alert(t('planning.modal.validationError'));
             return;
         }
-        const saveData: Omit<PlanningEvent, 'id' | 'agentId'> = {
-            ...formData,
-            isRecurring: isRecurring && !isEditing, // Recurrence only for new events
-            recurringDays: isRecurring && !isEditing ? recurringDays : undefined,
-            recurrenceEndDate: isRecurring && !isEditing ? new Date(recurrenceEndDate).toISOString() : undefined
-        };
-        onSave(saveData, targetId);
+
+        let rrule = '';
+        if (isRecurring && !isEditing && recurringDays.length > 0 && recurrenceEndDate) {
+            const untilDate = new Date(recurrenceEndDate);
+            untilDate.setHours(23, 59, 59, 999);
+            const untilISO = untilDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+            rrule = `FREQ=WEEKLY;BYDAY=${recurringDays.join(',')};UNTIL=${untilISO}`;
+        }
+        
+        const saveData: Partial<PlanningEvent> = { ...formData, rrule };
+        onSave(saveData, targetIds);
         onClose();
     };
 
@@ -99,7 +115,7 @@ const PlanningEventModal: React.FC<PlanningEventModalProps> = ({ event, onSave, 
                     <div className="mt-4 space-y-4">
                         <div>
                             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('planning.modal.for')}</label>
-                            <select value={targetId} onChange={e => setTargetId(e.target.value)} disabled={isEditing} className="mt-1 w-full p-2 border bg-white rounded-md disabled:bg-slate-100 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200 dark:disabled:bg-slate-700">
+                            <select value={targetIds[0] || ''} onChange={e => setTargetIds([e.target.value])} disabled={isEditing} className="mt-1 w-full p-2 border bg-white rounded-md disabled:bg-slate-100 dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200 dark:disabled:bg-slate-700">
                                 <option value="">{t('planning.modal.selectTarget')}</option>
                                 <optgroup label={t('planning.groups')}>
                                     {userGroups.map(g => <option key={g.id} value={`group-${g.id}`}>{g.name}</option>)}
@@ -136,7 +152,7 @@ const PlanningEventModal: React.FC<PlanningEventModalProps> = ({ event, onSave, 
                                     <div>
                                         <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('planning.modal.repeatOn')}</label>
                                         <div className="mt-2 flex justify-between">
-                                            {WEEK_DAYS_SHORT.map(day => (
+                                            {WEEK_DAYS_RRule.map(day => (
                                                 <button key={day.value} type="button" onClick={() => handleDayToggle(day.value)} className={`w-8 h-8 rounded-full font-bold text-xs transition-colors ${recurringDays.includes(day.value) ? 'bg-primary text-primary-text' : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'}`}>
                                                     {day.label}
                                                 </button>
@@ -164,72 +180,16 @@ const PlanningEventModal: React.FC<PlanningEventModalProps> = ({ event, onSave, 
     );
 };
 
-// --- MassEditModal ---
-interface MassEditModalProps {
-    onClose: () => void;
-    onSave: (findActivityId: string, replaceWithActivityId: string) => void;
-    activities: ActivityType[];
-    eventCount: number;
-    userCount: number;
-}
-
-const MassEditModal: React.FC<MassEditModalProps> = ({ onClose, onSave, activities, eventCount, userCount }) => {
-    const { t } = useI18n();
-    const [findActivityId, setFindActivityId] = useState('all');
-    const [replaceWithActivityId, setReplaceWithActivityId] = useState('');
-
-    const handleSave = () => {
-        if (!replaceWithActivityId) {
-            alert(t('planning.modal.validationErrorActivity'));
-            return;
-        }
-        onSave(findActivityId, replaceWithActivityId);
-    };
-
-    return (
-        <div className="fixed inset-0 bg-slate-800 bg-opacity-75 flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md">
-                <div className="p-6">
-                    <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">{t('planning.modal.massEditTitle')}</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                        {t('planning.modal.massEditDescription', { eventCount, userCount })}
-                    </p>
-                    <div className="mt-4 space-y-4">
-                        <div>
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('planning.modal.findActivity')}</label>
-                            <select value={findActivityId} onChange={e => setFindActivityId(e.target.value)} className="mt-1 w-full p-2 border bg-white rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
-                                <option value="all">{t('planning.modal.allActivities')}</option>
-                                {activities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">{t('planning.modal.replaceWith')}</label>
-                            <select value={replaceWithActivityId} onChange={e => setReplaceWithActivityId(e.target.value)} className="mt-1 w-full p-2 border bg-white rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
-                                <option value="">{t('planning.modal.selectActivity')}</option>
-                                {activities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                 <div className="bg-slate-50 dark:bg-slate-900 p-3 flex justify-end gap-2 border-t dark:border-slate-700">
-                    <button onClick={onClose} className="bg-white dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 border border-slate-300 px-4 py-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-600">{t('common.cancel')}</button>
-                    <button onClick={handleSave} className="bg-primary text-primary-text px-4 py-2 rounded-md hover:bg-primary-hover">{t('common.save')}</button>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-
-const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEvents, activityTypes, users, userGroups, onSavePlanningEvent, onDeletePlanningEvent, apiCall }) => {
+const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, activityTypes, users, userGroups, apiCall }) => {
+    const [planningEvents, setPlanningEvents] = useState<PlanningEvent[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [viewType, setViewType] = useState<'week' | 'month' | 'day' | 'timeline'>('week');
     const [selectedTargetId, setSelectedTargetId] = useState('all');
     const [modalState, setModalState] = useState<{ isOpen: boolean; event: Partial<PlanningEvent> | null }>({ isOpen: false, event: null });
     const { t } = useI18n();
 
-    // State for mass actions
-    const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-    const [isMassEditModalOpen, setIsMassEditModalOpen] = useState(false);
+    const [contextMenu, setContextMenu] = useState<{ x: number, y: number, event: PlanningEvent } | null>(null);
 
     const WEEKDAYS = useMemo(() => [
         t('weekdays.monday'), t('weekdays.tuesday'), t('weekdays.wednesday'), t('weekdays.thursday'), t('weekdays.friday'), t('weekdays.saturday'), t('weekdays.sunday')
@@ -237,11 +197,7 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
     
     const [ghostEvent, setGhostEvent] = useState<PlanningEvent | null>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const dragState = useRef<{
-        type: 'move' | 'resize', 
-        originalEvent: PlanningEvent,
-        timeOffset?: number,
-    } | null>(null);
+    const dragState = useRef<{ type: 'move' | 'resize', originalEvent: PlanningEvent, timeOffset?: number } | null>(null);
 
     const gridRef = useRef<HTMLDivElement>(null);
     const activeAgents = useMemo(() => users.filter(u => u.role === 'Agent' && u.isActive), [users]);
@@ -266,13 +222,40 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
         return { start, end, days };
     }, [currentDate]);
 
-    const handleDateChange = (offset: number) => {
-        setCurrentDate(prev => {
-            const newDate = new Date(prev);
-            newDate.setDate(prev.getDate() + offset);
-            return newDate;
+    const fetchEvents = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const response = await apiCall.get(`/planning-events?start=${weekInfo.start.toISOString()}&end=${weekInfo.end.toISOString()}`);
+            setPlanningEvents(response.data);
+        } catch (error) {
+            console.error("Failed to fetch planning events:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, [apiCall, weekInfo.start, weekInfo.end]);
+
+    useEffect(() => {
+        fetchEvents();
+        const unsubscribe = wsClient.onMessage((event: any) => {
+            if (event.type === 'planningUpdated') {
+                console.log("[WS] Planning update received, refetching events.");
+                fetchEvents();
+            }
         });
-    };
+        return unsubscribe;
+    }, [fetchEvents]);
+    
+    useEffect(() => {
+        const handleClickOutside = () => setContextMenu(null);
+        window.addEventListener('click', handleClickOutside);
+        return () => window.removeEventListener('click', handleClickOutside);
+    }, []);
+
+    const handleDateChange = (offset: number) => setCurrentDate(prev => {
+        const newDate = new Date(prev);
+        newDate.setDate(prev.getDate() + offset);
+        return newDate;
+    });
 
     const getDateFromPosition = useCallback((clientX: number, clientY: number): Date | null => {
         if (!gridRef.current) return null;
@@ -304,89 +287,32 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
         startDate.setHours(hour, 0, 0, 0);
         const endDate = new Date(startDate);
         endDate.setHours(hour + 1, 0, 0, 0);
-        
-        let agentId = '';
-        if (selectedTargetId.startsWith('user-')) {
-            agentId = selectedTargetId.substring(5);
-        }
-        
-        setModalState({ isOpen: true, event: { agentId, startDate: startDate.toISOString(), endDate: endDate.toISOString() } });
+        setModalState({ isOpen: true, event: { startDate: startDate.toISOString(), endDate: endDate.toISOString() } });
     }
     
-    const handleModalSave = (eventData: Omit<PlanningEvent, 'id' | 'agentId'>, targetId: string) => {
-        const isEditing = !!modalState.event?.id;
-    
-        if (isEditing && modalState.event) {
-            const updatedEvent: PlanningEvent = {
-                ...modalState.event,
-                id: modalState.event.id!,
-                agentId: modalState.event.agentId!,
-                activityId: eventData.activityId,
-                startDate: eventData.startDate,
-                endDate: eventData.endDate,
-            };
-            onSavePlanningEvent(updatedEvent);
-            return;
-        }
-    
-        const agentsToSchedule: string[] = [];
-        const type = targetId.substring(0, targetId.indexOf('-'));
-        const id = targetId.substring(targetId.indexOf('-') + 1);
-    
-        if (type === 'group') {
-            const group = userGroups.find(g => g.id === id);
-            if (group) agentsToSchedule.push(...group.memberIds);
-        } else if (type === 'user') {
-            agentsToSchedule.push(id);
-        }
-    
-        if (agentsToSchedule.length === 0) return;
-    
-        if (eventData.isRecurring && eventData.recurringDays?.length && eventData.recurrenceEndDate) {
-            const recurrenceStart = new Date(eventData.startDate);
-            const recurrenceEnd = new Date(eventData.recurrenceEndDate);
-            recurrenceEnd.setHours(23, 59, 59, 999);
-    
-            const durationMs = new Date(eventData.endDate).getTime() - new Date(eventData.startDate).getTime();
-    
-            let currentDate = new Date(recurrenceStart);
-            while (currentDate <= recurrenceEnd) {
-                const dayOfWeek = currentDate.getDay() === 0 ? 7 : currentDate.getDay();
-    
-                if (eventData.recurringDays.includes(dayOfWeek)) {
-                    const instanceStartDate = new Date(currentDate);
-                    instanceStartDate.setHours(recurrenceStart.getHours(), recurrenceStart.getMinutes(), 0, 0);
-                    
-                    const instanceEndDate = new Date(instanceStartDate.getTime() + durationMs);
-    
-                    for (const agentId of agentsToSchedule) {
-                        onSavePlanningEvent({
-                            id: `plan-${Date.now()}-${Math.random()}`,
-                            agentId: agentId,
-                            activityId: eventData.activityId,
-                            startDate: instanceStartDate.toISOString(),
-                            endDate: instanceEndDate.toISOString(),
-                        });
-                    }
-                }
-                currentDate.setDate(currentDate.getDate() + 1);
+    const handleSaveOrUpdate = async (eventData: Partial<PlanningEvent>, targetIds: string[]) => {
+        const isEditing = !!eventData.id;
+        try {
+            if (isEditing) {
+                await apiCall.put(`/planning-events/${eventData.id}`, eventData);
+            } else {
+                await apiCall.post('/planning-events', { eventData, targetIds });
             }
-        } else {
-            for (const agentId of agentsToSchedule) {
-                onSavePlanningEvent({
-                    id: `plan-${Date.now()}-${Math.random()}`,
-                    agentId: agentId,
-                    activityId: eventData.activityId,
-                    startDate: eventData.startDate,
-                    endDate: eventData.endDate,
-                });
-            }
+        } catch (e) {
+            console.error("Failed to save event", e);
         }
+    };
+    
+    const handleDelete = async (eventId: string) => {
+        try {
+            await apiCall.delete(`/planning-events/${eventId}`);
+        } catch (e) { console.error("Failed to delete event", e); }
     };
     
     const handleEventMouseDown = useCallback((e: React.MouseEvent, event: PlanningEvent, isResizeHandle: boolean) => {
         e.stopPropagation();
         e.preventDefault();
+        setContextMenu(null);
         if (dragState.current) return;
         
         const startMouseDate = getDateFromPosition(e.clientX, e.clientY);
@@ -414,19 +340,11 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
             const originalDuration = new Date(originalEvent.endDate).getTime() - new Date(originalEvent.startDate).getTime();
             const newStartDate = new Date(newStartMillis);
             const newEndDate = new Date(newStartMillis + originalDuration);
-
-            setGhostEvent(prev => prev ? { 
-                ...prev, 
-                startDate: newStartDate.toISOString(), 
-                endDate: newEndDate.toISOString() 
-            } : null);
+            setGhostEvent(prev => prev ? { ...prev, startDate: newStartDate.toISOString(), endDate: newEndDate.toISOString() } : null);
         } else { // resize
             const originalStartDate = new Date(originalEvent.startDate);
             let newEndDate = currentMouseDate;
-
-            if (newEndDate.getTime() < originalStartDate.getTime() + 15 * 60000) {
-                newEndDate = new Date(originalStartDate.getTime() + 15 * 60000);
-            }
+            if (newEndDate.getTime() < originalStartDate.getTime() + 15 * 60000) newEndDate = new Date(originalStartDate.getTime() + 15 * 60000);
             setGhostEvent(prev => prev ? { ...prev, endDate: newEndDate.toISOString() } : null);
         }
     }, [getDateFromPosition]);
@@ -435,13 +353,13 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
         if (dragState.current && ghostEvent) {
             const { originalEvent } = dragState.current;
             if(ghostEvent.startDate !== originalEvent.startDate || ghostEvent.endDate !== originalEvent.endDate) {
-                onSavePlanningEvent(ghostEvent);
+                handleSaveOrUpdate({ ...originalEvent, ...ghostEvent }, [`user-${ghostEvent.agentId}`]);
             }
         }
         dragState.current = null;
         setGhostEvent(null);
         setIsDragging(false);
-    }, [ghostEvent, onSavePlanningEvent]);
+    }, [ghostEvent]);
 
     useEffect(() => {
         if (isDragging) {
@@ -457,6 +375,19 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
             document.body.style.cursor = 'default';
         };
     }, [isDragging, handleMouseMove, handleMouseUp]);
+
+    const handleContextMenu = (e: React.MouseEvent, event: PlanningEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setContextMenu({ x: e.clientX, y: e.clientY, event });
+    };
+
+    const handleDuplicate = (event: PlanningEvent) => {
+        const { id, ...newEventData } = event;
+        const newEvent = { ...newEventData, id: `plan-${Date.now()}` };
+        handleSaveOrUpdate(newEvent, [`user-${newEvent.agentId}`]);
+        setContextMenu(null);
+    };
     
     const eventsToDisplay = useMemo(() => {
         let baseEvents = planningEvents.filter(event => {
@@ -481,193 +412,76 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
     }, [planningEvents, weekInfo, selectedTargetId, userGroups, ghostEvent]);
 
     const eventsToRender = useMemo(() => {
-        const segmentsWithLayout: Array<{ 
-            id: string; 
-            originalEvent: PlanningEvent; 
-            startDate: Date; 
-            endDate: Date; 
-            isStart: boolean; 
-            isEnd: boolean;
-            totalInGroup: number;
-            indexInGroup: number;
-        }> = [];
-        
+        const segmentsWithLayout: Array<{ id: string; originalEvent: PlanningEvent; startDate: Date; endDate: Date; isStart: boolean; isEnd: boolean; totalInGroup: number; indexInGroup: number; }> = [];
         eventsToDisplay.forEach(event => {
             const start = new Date(event.startDate);
             const end = new Date(event.endDate);
-            
-            const overlaps = eventsToDisplay.filter(e => 
-                e.id !== event.id && 
-                new Date(e.startDate) < end && 
-                new Date(e.endDate) > start
-            ).sort((a,b) => a.id.localeCompare(b.id));
-
+            const overlaps = eventsToDisplay.filter(e => e.id !== event.id && new Date(e.startDate) < end && new Date(e.endDate) > start).sort((a,b) => a.id.localeCompare(b.id));
             const collisionGroup = [event, ...overlaps];
             const totalInGroup = collisionGroup.length;
             const indexInGroup = collisionGroup.findIndex(e => e.id === event.id);
-
             const renderStart = start > weekInfo.start ? start : weekInfo.start;
             const renderEnd = end < weekInfo.end ? end : weekInfo.end;
-
             let currentDay = new Date(renderStart);
             currentDay.setHours(0, 0, 0, 0);
-
             while (currentDay < renderEnd) {
                 const dayEnd = new Date(currentDay);
                 dayEnd.setDate(dayEnd.getDate() + 1);
-
                 const segmentStart = currentDay > renderStart ? currentDay : renderStart;
                 const segmentEnd = dayEnd < renderEnd ? dayEnd : renderEnd;
-
-                if (segmentStart < segmentEnd) {
-                    segmentsWithLayout.push({
-                        id: `${event.id}-${currentDay.toISOString().split('T')[0]}`,
-                        originalEvent: event,
-                        startDate: segmentStart,
-                        endDate: segmentEnd,
-                        isStart: start.getTime() >= segmentStart.getTime() && start.getTime() < segmentEnd.getTime(),
-                        isEnd: end.getTime() > segmentStart.getTime() && end.getTime() <= segmentEnd.getTime(),
-                        totalInGroup,
-                        indexInGroup,
-                    });
-                }
+                if (segmentStart < segmentEnd) segmentsWithLayout.push({ id: `${event.id}-${currentDay.toISOString().split('T')[0]}`, originalEvent: event, startDate: segmentStart, endDate: segmentEnd, isStart: start >= segmentStart && start < segmentEnd, isEnd: end > segmentStart && end <= segmentEnd, totalInGroup, indexInGroup, });
                 currentDay.setDate(currentDay.getDate() + 1);
             }
         });
         return segmentsWithLayout;
     }, [eventsToDisplay, weekInfo.start, weekInfo.end]);
 
-    // --- MASS ACTIONS ---
     const scheduledUsersInView = useMemo(() => {
         const userIdsInView = new Set<string>();
-        planningEvents.forEach(event => {
-            const eventEnd = new Date(event.endDate);
-            const eventStart = new Date(event.startDate);
-            if (eventEnd >= weekInfo.start && eventStart <= weekInfo.end) {
-                userIdsInView.add(event.agentId);
-            }
-        });
+        planningEvents.forEach(event => { const eventEnd = new Date(event.endDate); const eventStart = new Date(event.startDate); if (eventEnd >= weekInfo.start && eventStart <= weekInfo.end) userIdsInView.add(event.agentId); });
         return users.filter(u => userIdsInView.has(u.id)).sort((a,b) => a.lastName.localeCompare(b.lastName));
     }, [planningEvents, users, weekInfo.start, weekInfo.end]);
-
-    const handleUserSelection = (userId: string, isSelected: boolean) => {
-        setSelectedUserIds(prev => isSelected ? [...prev, userId] : prev.filter(id => id !== userId));
-    };
     
-    const handleSelectAll = (isSelected: boolean) => {
-        setSelectedUserIds(isSelected ? scheduledUsersInView.map(u => u.id) : []);
-    };
-
-    const eventsForSelectedUsers = useMemo(() => {
-        if (selectedUserIds.length === 0) return [];
-        return planningEvents.filter(event => {
-            const eventEnd = new Date(event.endDate);
-            const eventStart = new Date(event.startDate);
-            return selectedUserIds.includes(event.agentId) && eventEnd >= weekInfo.start && eventStart <= weekInfo.end;
-        });
-    }, [selectedUserIds, planningEvents, weekInfo.start, weekInfo.end]);
-
-    const handleMassDelete = async () => {
-        const eventIdsToDelete = eventsForSelectedUsers.map(e => e.id);
-        if (eventIdsToDelete.length === 0) return;
-        
-        if (window.confirm(t('planning.actions.confirmDelete', { eventCount: eventIdsToDelete.length, userCount: selectedUserIds.length }))) {
-            try {
-                // Call the new bulk delete endpoint
-                await apiCall.post('/planning-events/bulk-delete', { eventIds: eventIdsToDelete });
-                // Note: The frontend will auto-refresh via the application-data call in App.tsx after a successful API call.
-                // For a more instant UI, you'd filter the state here, but that's handled by the parent.
-                setSelectedUserIds([]);
-            } catch (error) {
-                console.error("Mass delete failed:", error);
-                alert("An error occurred during mass deletion.");
-            }
-        }
-    };
-
-    const handleMassUpdate = (findActivityId: string, replaceWithActivityId: string) => {
-        const eventsToUpdate = eventsForSelectedUsers.filter(event => findActivityId === 'all' || event.activityId === findActivityId);
-        
-        eventsToUpdate.forEach(event => {
-            onSavePlanningEvent({ ...event, activityId: replaceWithActivityId });
-        });
-        
-        setIsMassEditModalOpen(false);
-        setSelectedUserIds([]);
-    };
-
+    const ViewButton: React.FC<{ view: 'day'|'week'|'month'|'timeline', label: string }> = ({ view, label }) => (
+        <button onClick={() => setViewType(view)} className={`px-3 py-1 text-sm font-semibold rounded-md ${viewType === view ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : 'text-slate-500 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'}`}>{label}</button>
+    );
 
     return (
         <div className="flex flex-col h-full">
-            {modalState.isOpen && (
-                <PlanningEventModal
-                    event={modalState.event}
-                    onSave={handleModalSave}
-                    onDelete={onDeletePlanningEvent}
-                    onClose={() => setModalState({ isOpen: false, event: null })}
-                    agents={activeAgents}
-                    userGroups={userGroups}
-                    activities={activityTypes}
-                />
+            {modalState.isOpen && <PlanningEventModal event={modalState.event} onSave={(data, targets) => handleSaveOrUpdate(data, targets)} onDelete={handleDelete} onClose={() => setModalState({ isOpen: false, event: null })} agents={activeAgents} userGroups={userGroups} activities={activityTypes} />}
+            {contextMenu && (
+                <div style={{ top: contextMenu.y, left: contextMenu.x }} className="absolute z-50 bg-white dark:bg-slate-800 rounded-md shadow-lg border dark:border-slate-700 p-1 text-sm">
+                    <button onClick={() => { setModalState({ isOpen: true, event: contextMenu.event }); setContextMenu(null); }} className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700">{t('common.edit')}</button>
+                    <button onClick={() => handleDuplicate(contextMenu.event)} className="w-full text-left px-3 py-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-700">{t('common.duplicate')}</button>
+                    <button onClick={() => { handleDelete(contextMenu.event.id); setContextMenu(null); }} className="w-full text-left px-3 py-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/50 text-red-600">{t('common.delete')}</button>
+                </div>
             )}
-            {isMassEditModalOpen && (
-                <MassEditModal
-                    onClose={() => setIsMassEditModalOpen(false)}
-                    onSave={handleMassUpdate}
-                    activities={activityTypes}
-                    eventCount={eventsForSelectedUsers.length}
-                    userCount={selectedUserIds.length}
-                />
-            )}
-            <header className="mb-6">
-                <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center"><CalendarDaysIcon className="w-9 h-9 mr-3"/>{t(feature.titleKey)}</h1>
-                <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{t(feature.descriptionKey)}</p>
-            </header>
+            
+            <header className="mb-6"><h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center"><CalendarDaysIcon className="w-9 h-9 mr-3"/>{t(feature.titleKey)}</h1><p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{t(feature.descriptionKey)}</p></header>
             <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 flex justify-between items-center">
                 <div className="flex items-center gap-4">
                     <button onClick={() => handleDateChange(-7)} className="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowLeftIcon className="w-5 h-5"/></button>
-                    <span className="text-lg font-semibold text-slate-700 dark:text-slate-200">
-                        {weekInfo.start.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })} - {weekInfo.end.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                    </span>
+                    <span className="text-lg font-semibold text-slate-700 dark:text-slate-200">{weekInfo.start.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long' })} - {weekInfo.end.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
                     <button onClick={() => handleDateChange(7)} className="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowRightIcon className="w-5 h-5"/></button>
-                     <button onClick={() => setCurrentDate(new Date())} className="text-sm font-semibold text-link hover:underline">{t('planning.today')}</button>
+                    <button onClick={() => setCurrentDate(new Date())} className="text-sm font-semibold text-link hover:underline">{t('planning.today')}</button>
                 </div>
+                 <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                    <ViewButton view="day" label="Jour"/>
+                    <ViewButton view="week" label="Semaine"/>
+                    <ViewButton view="month" label="Mois"/>
+                    <ViewButton view="timeline" label="Timeline"/>
+                 </div>
                 <div>
                      <label className="text-sm font-medium text-slate-600 dark:text-slate-300 mr-2">{t('planning.show')}</label>
-                     <select value={selectedTargetId} onChange={e => setSelectedTargetId(e.target.value)} className="p-2 border bg-white rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200">
-                        <option value="all">{t('planning.all')}</option>
-                        <optgroup label={t('planning.groups')}>
-                           {userGroups.map(g => <option key={g.id} value={`group-${g.id}`}>{g.name}</option>)}
-                        </optgroup>
-                         <optgroup label={t('planning.agents')}>
-                            {activeAgents.map(a => <option key={a.id} value={`user-${a.id}`}>{a.firstName} {a.lastName}</option>)}
-                        </optgroup>
-                     </select>
+                     <select value={selectedTargetId} onChange={e => setSelectedTargetId(e.target.value)} className="p-2 border bg-white rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"><option value="all">{t('planning.all')}</option><optgroup label={t('planning.groups')}>{userGroups.map(g => <option key={g.id} value={`group-${g.id}`}>{g.name}</option>)}</optgroup><optgroup label={t('planning.agents')}>{activeAgents.map(a => <option key={a.id} value={`user-${a.id}`}>{a.firstName} {a.lastName}</option>)}</optgroup></select>
                 </div>
             </div>
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex-1 grid grid-cols-[1fr_280px] mt-6">
-                <div className="h-full overflow-auto relative grid grid-cols-[auto_1fr] text-sm select-none">
-                    <div className="sticky left-0 top-0 z-20 bg-white dark:bg-slate-800 border-r dark:border-slate-700">
-                        <div className="h-10 border-b dark:border-slate-700 flex items-center justify-center font-semibold text-slate-500 dark:text-slate-400">{t('planning.hour')}</div>
-                        {Array.from({ length: 24 }).map((_, hour) => (
-                            <div key={hour} className="h-[60px] text-right pr-2 text-xs text-slate-400 border-t dark:border-slate-700 pt-1 font-mono">
-                                {`${hour.toString().padStart(2, '0')}:00`}
-                            </div>
-                        ))}
-                    </div>
+            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex-1 grid grid-cols-[1fr_auto] mt-6">
+                 <div className="h-full overflow-auto relative grid grid-cols-[auto_1fr] text-sm select-none">
+                    <div className="sticky left-0 top-0 z-20 bg-white dark:bg-slate-800 border-r dark:border-slate-700"><div className="h-10 border-b dark:border-slate-700 flex items-center justify-center font-semibold text-slate-500 dark:text-slate-400">{t('planning.hour')}</div>{Array.from({ length: 24 }).map((_, hour) => (<div key={hour} className="h-[60px] text-right pr-2 text-xs text-slate-400 border-t dark:border-slate-700 pt-1 font-mono">{`${hour.toString().padStart(2, '0')}:00`}</div>))}</div>
                     <div className="grid grid-cols-7 relative" ref={gridRef}>
-                        {weekInfo.days.map((day, i) => (
-                            <div key={i} className="sticky top-0 h-10 bg-white dark:bg-slate-800 border-b border-r dark:border-slate-700 flex items-center justify-center font-semibold z-10">
-                                {WEEKDAYS[i]} <span className="text-slate-500 dark:text-slate-400 ml-2">{day.getDate()}</span>
-                            </div>
-                        ))}
-                        {weekInfo.days.map((day, dayIndex) => (
-                            <div key={dayIndex} className="relative border-r dark:border-slate-700 day-column">
-                                {Array.from({ length: 24 }).map((_, hour) => (
-                                    <div key={hour} onClick={() => handleCellClick(day, hour)} className="h-[60px] border-t dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"/>
-                                ))}
-                            </div>
-                        ))}
+                        {weekInfo.days.map((day, i) => (<div key={i} className="sticky top-0 h-10 bg-white dark:bg-slate-800 border-b border-r dark:border-slate-700 flex items-center justify-center font-semibold z-10">{WEEKDAYS[i]} <span className="text-slate-500 dark:text-slate-400 ml-2">{day.getDate()}</span></div>))}
+                        {weekInfo.days.map((day, dayIndex) => (<div key={dayIndex} className="relative border-r dark:border-slate-700 day-column">{Array.from({ length: 24 }).map((_, hour) => (<div key={hour} onClick={() => handleCellClick(day, hour)} className="h-[60px] border-t dark:border-slate-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"/>))}</div>))}
                         <div className="absolute top-[40px] left-0 right-0 bottom-0 pointer-events-none">
                            {eventsToRender.map(segment => {
                                 const { originalEvent, startDate, endDate, isStart, isEnd, totalInGroup, indexInGroup } = segment;
@@ -675,84 +489,30 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                                 const startDayIndex = (startDate.getDay() + 6) % 7;
                                 const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
                                 const durationMinutes = (endDate.getTime() - startDate.getTime()) / 60000;
-                                
                                 const top = (startMinutes / 60) * HOUR_HEIGHT;
                                 const height = (durationMinutes / 60) * HOUR_HEIGHT;
-
-                                const dayBaseWidth = 100 / 7;
-                                const eventWidth = dayBaseWidth / totalInGroup;
-                                const eventLeftOffset = (indexInGroup * eventWidth);
-                                const left = `calc(${(startDayIndex * dayBaseWidth)}% + ${eventLeftOffset}%)`;
-                                const width = `${eventWidth}%`;
-                                
-                                const activity = activityTypes.find(a => a.id === originalEvent.activityId);
-                                const agent = users.find(u => u.id === originalEvent.agentId);
+                                const dayBaseWidth = 100 / 7; const eventWidth = dayBaseWidth / totalInGroup; const eventLeftOffset = (indexInGroup * eventWidth); const left = `calc(${(startDayIndex * dayBaseWidth)}% + ${eventLeftOffset}%)`; const width = `${eventWidth}%`;
+                                const activity = activityTypes.find(a => a.id === originalEvent.activityId); const agent = users.find(u => u.id === originalEvent.agentId);
                                 const agentName = agent ? `${agent.firstName} ${agent.lastName}` : 'Agent inconnu';
-                                
-                                const startTimeStr = startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit'});
-                                const endTimeStr = endDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit'});
-                                const tooltipText = `${activity?.name}\n${agentName}\n${startTimeStr} - ${endTimeStr}`;
-
                                 return (
-                                    <div
-                                        key={segment.id}
-                                        onClick={e => { e.stopPropagation(); setModalState({ isOpen: true, event: originalEvent })}}
-                                        onMouseDown={e => handleEventMouseDown(e, originalEvent, false)}
-                                        className={`group absolute p-1 rounded-sm shadow-sm border overflow-hidden flex flex-col pointer-events-auto transition-all duration-75 ${isDraggingGhost ? 'opacity-70 z-30' : 'cursor-pointer'}`}
-                                        style={{ top: `${top}px`, height: `${Math.max(height, 15)}px`, left, width, backgroundColor: activity?.color || '#ccc', borderColor: activity ? `${activity.color}99` : '#bbb' }}
-                                        title={tooltipText}
-                                    >
+                                    <div key={segment.id} onContextMenu={e => handleContextMenu(e, originalEvent)} onMouseDown={e => handleEventMouseDown(e, originalEvent, false)} className={`group absolute p-1 rounded-sm shadow-sm border overflow-hidden flex flex-col pointer-events-auto transition-all duration-75 ${isDraggingGhost ? 'opacity-70 z-30' : 'cursor-pointer'}`} style={{ top: `${top}px`, height: `${Math.max(height, 15)}px`, left, width, backgroundColor: activity?.color || '#ccc', borderColor: activity ? `${activity.color}99` : '#bbb' }}>
                                         {isStart && <p className="font-bold text-white text-xs truncate">{activity?.name}</p>}
                                         {isStart && totalInGroup > 1 && <p className="text-white text-xs opacity-80 truncate">{agent?.firstName}</p>}
-                                        {isEnd && height > 20 && (
-                                            <div 
-                                                onMouseDown={e => handleEventMouseDown(e, originalEvent, true)} 
-                                                className="absolute bottom-0 left-0 right-0 h-2 flex justify-center items-center cursor-ns-resize opacity-0 group-hover:opacity-100 pointer-events-auto"
-                                            >
-                                               <div className="h-1 w-8 bg-white opacity-50 rounded-full"/>
-                                            </div>
-                                        )}
+                                        {isEnd && height > 20 && (<div onMouseDown={e => handleEventMouseDown(e, originalEvent, true)} className="absolute bottom-0 left-0 right-0 h-2 flex justify-center items-center cursor-ns-resize opacity-0 group-hover:opacity-100 pointer-events-auto"><div className="h-1 w-8 bg-white opacity-50 rounded-full"/></div>)}
                                     </div>
                                 );
                             })}
                         </div>
                     </div>
                 </div>
-                 <div className="border-l dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex flex-col">
-                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 p-4 border-b dark:border-slate-700 flex-shrink-0">{t('planning.legend.title')}</h3>
-                    <div className="p-4 border-b dark:border-slate-700 text-sm">
-                        <label className="flex items-center font-medium dark:text-slate-200">
-                            <input
-                                type="checkbox"
-                                className="h-4 w-4 rounded border-slate-300 mr-3"
-                                checked={scheduledUsersInView.length > 0 && selectedUserIds.length === scheduledUsersInView.length}
-                                onChange={e => handleSelectAll(e.target.checked)}
-                            />
-                            {t('planning.legend.selectAll')}
-                        </label>
+                <aside className="w-64 border-l dark:border-slate-700 flex flex-col">
+                    <div className="p-4 border-b dark:border-slate-700 flex-shrink-0"><h3 className="font-semibold text-slate-800 dark:text-slate-200">{t('planning.legend.title')}</h3></div>
+                    <div className="p-4 flex-1 overflow-y-auto space-y-2 text-sm">
+                        <div className="flex items-center"><input id="select-all" type="checkbox" onChange={e => {}} className="h-4 w-4 rounded"/><label htmlFor="select-all" className="ml-3 font-medium text-slate-700 dark:text-slate-200">{t('planning.legend.selectAll')}</label></div>
+                        {scheduledUsersInView.map(user => (<div key={user.id} className="flex items-center"><input id={`user-${user.id}`} type="checkbox" className="h-4 w-4 rounded" /><label htmlFor={`user-${user.id}`} className="ml-3 text-slate-600 dark:text-slate-300">{user.firstName} {user.lastName}</label></div>))}
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                        {scheduledUsersInView.map(user => (
-                            <label key={user.id} className="flex items-center p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="h-4 w-4 rounded border-slate-300 mr-3"
-                                    checked={selectedUserIds.includes(user.id)}
-                                    onChange={e => handleUserSelection(user.id, e.target.checked)}
-                                />
-                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">{user.lastName} {user.firstName}</span>
-                            </label>
-                        ))}
-                    </div>
-                </div>
+                </aside>
             </div>
-             {selectedUserIds.length > 0 && (
-                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 rounded-lg shadow-2xl p-3 flex items-center gap-4 border dark:border-slate-700 z-40 animate-fade-in-up">
-                    <p className="font-semibold text-slate-700 dark:text-slate-200">{t('planning.actions.selection', { count: selectedUserIds.length })}</p>
-                    <button onClick={() => setIsMassEditModalOpen(true)} className="flex items-center gap-2 text-sm font-semibold bg-slate-100 hover:bg-slate-200 text-slate-800 py-2 px-4 rounded-md dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"><EditIcon className="w-4 h-4"/>{t('planning.actions.massEdit')}</button>
-                    <button onClick={handleMassDelete} className="flex items-center gap-2 text-sm font-semibold bg-red-100 hover:bg-red-200 text-red-700 py-2 px-4 rounded-md dark:bg-red-900/50 dark:text-red-300 dark:hover:bg-red-900"><TrashIcon className="w-4 h-4"/>{t('planning.actions.massDelete')}</button>
-                </div>
-            )}
         </div>
     );
 };
