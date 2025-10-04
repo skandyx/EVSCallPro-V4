@@ -814,6 +814,44 @@
       "sunday": "S"
     }
   },
+  "monitoring": {
+    "title": "System Status",
+    "health": {
+      "up": "Operational",
+      "degraded": "Degraded Performance",
+      "down": "Major Outage"
+    },
+    "kpis": {
+      "cpu": "CPU Load",
+      "ram": "RAM Usage",
+      "disk": "Disk Space",
+      "recordings": "Recordings",
+      "latency": "API Latency",
+      "totalSize": "Total size"
+    },
+    "logs": {
+      "title": "System Event Log",
+      "tabs": {
+        "system": "System",
+        "ami": "AMI",
+        "security": "Security"
+      },
+      "noLogs": "No logs to display."
+    },
+    "versions": {
+      "title": "Versions"
+    },
+    "purgeLogs": "Purge old logs",
+    "connectivity": {
+      "title": "Connectivity Tester",
+      "sitePrefix": "Site: ",
+      "testButton": "Test",
+      "success": "Success",
+      "failure": "Failure",
+      "testing": "Testing...",
+      "idle": "Idle"
+    }
+  },
   "features": {
     "users": {
       "title": "Users",

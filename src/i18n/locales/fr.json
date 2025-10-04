@@ -819,6 +819,44 @@
         "sunday": "D"
     }
   },
+  "monitoring": {
+    "title": "État du Système",
+    "health": {
+      "up": "Opérationnel",
+      "degraded": "Performance Dégradée",
+      "down": "Panne Majeure"
+    },
+    "kpis": {
+      "cpu": "Charge CPU",
+      "ram": "Utilisation RAM",
+      "disk": "Espace Disque",
+      "recordings": "Enregistrements",
+      "latency": "Latence API",
+      "totalSize": "Taille totale"
+    },
+    "logs": {
+      "title": "Journal des Événements Système",
+      "tabs": {
+        "system": "Système",
+        "ami": "AMI",
+        "security": "Sécurité"
+      },
+      "noLogs": "Aucun journal à afficher."
+    },
+    "versions": {
+      "title": "Versions"
+    },
+    "purgeLogs": "Purger les anciens logs",
+    "connectivity": {
+      "title": "Testeur de Connectivité",
+      "sitePrefix": "Site: ",
+      "testButton": "Tester",
+      "success": "Succès",
+      "failure": "Échec",
+      "testing": "Test en cours...",
+      "idle": "Inactif"
+    }
+  },
   "features": {
     "users": {
       "title": "Utilisateurs",
