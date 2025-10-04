@@ -329,15 +329,17 @@ CREATE TABLE planning_events (
     activity_id TEXT NOT NULL REFERENCES activity_types(id) ON DELETE CASCADE,
     start_date TIMESTAMPTZ NOT NULL,
     end_date TIMESTAMPTZ NOT NULL,
-    rrule TEXT, -- Pour stocker les règles de récurrence (ex: "FREQ=WEEKLY;BYDAY=MO,WE")
-    site_id TEXT REFERENCES sites(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT check_dates CHECK (start_date < end_date)
 );
 COMMENT ON TABLE planning_events IS 'Stocke les événements du calendrier pour chaque agent.';
 CREATE INDEX idx_planning_events_agent_id_dates ON planning_events(agent_id, start_date, end_date);
-CREATE INDEX idx_planning_events_site_id ON planning_events(site_id);
+
+-- Commandes de mise à jour pour les installations existantes (à exécuter manuellement)
+ALTER TABLE planning_events ADD COLUMN IF NOT EXISTS rrule TEXT;
+ALTER TABLE planning_events ADD COLUMN IF NOT EXISTS site_id TEXT REFERENCES sites(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_planning_events_site_id ON planning_events(site_id);
 
 
 -- =============================================================================

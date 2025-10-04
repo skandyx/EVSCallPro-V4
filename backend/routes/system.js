@@ -430,5 +430,37 @@ router.put('/app-settings', isSuperAdmin, async (req, res) => {
     }
 });
 
+// --- NEW BACKUP ENDPOINTS ---
+router.post('/backups', isSuperAdmin, (req, res) => {
+    logger.logSystem('INFO', 'Backup', `Manual backup initiated by ${req.user.id}`);
+    // SIMULATION: In a real app, this would trigger `pg_dump`.
+    setTimeout(() => {
+        res.status(201).json({ message: 'Sauvegarde manuelle lancée avec succès.' });
+    }, 1500);
+});
+
+router.put('/backup-schedule', isSuperAdmin, (req, res) => {
+    const { frequency, time } = req.body;
+    logger.logSystem('INFO', 'Backup', `Backup schedule updated by ${req.user.id} to: ${frequency} at ${time}`);
+    // SIMULATION: In a real app, this would update a cron job.
+    res.json({ message: 'Planification de sauvegarde mise à jour.' });
+});
+
+router.post('/backups/restore', isSuperAdmin, (req, res) => {
+    const { fileName } = req.body;
+    logger.logSystem('WARNING', 'Backup', `Restore from backup '${fileName}' initiated by ${req.user.id}. THIS IS A DESTRUCTIVE ACTION.`);
+    // SIMULATION: In a real app, this would trigger `pg_restore`.
+    setTimeout(() => {
+        res.json({ message: `Restauration depuis ${fileName} terminée.` });
+    }, 5000);
+});
+
+router.delete('/backups/:fileName', isSuperAdmin, (req, res) => {
+    const { fileName } = req.params;
+    logger.logSystem('INFO', 'Backup', `Backup file '${fileName}' deleted by ${req.user.id}`);
+    // SIMULATION: In a real app, this would delete the file from disk.
+    res.status(204).send();
+});
+
 
 module.exports = router;

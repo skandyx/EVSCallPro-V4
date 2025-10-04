@@ -625,6 +625,16 @@ export const features: Feature[] = [
         }
     },
     {
+        id: 'maintenance',
+        titleKey: 'features.maintenance.title',
+        category: 'Système',
+        descriptionKey: 'features.maintenance.description',
+        component: MaintenanceManager,
+        userJourney: { titleKey: '', stepsKeys: [] },
+        specs: { titleKey: '', pointsKeys: [] },
+        simplificationTip: { titleKey: '', contentKey: '' }
+    },
+    {
         id: 'api-docs',
         titleKey: 'features.api-docs.title',
         category: 'Paramètres',

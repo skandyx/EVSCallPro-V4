@@ -432,24 +432,7 @@
       "name": "Group Name",
       "count": "Qualifications"
     },
-    "noGroups": "No groups found.",
-    "modal": {
-      "editTitle": "Edit Qualification",
-      "addTitle": "Add Qualification",
-      "parent": "Parent (Optional)",
-      "noParent": "No parent",
-      "code": "Code",
-      "codeUsed": "This code is already in use.",
-      "description": "Description",
-      "type": "Type",
-      "types": {
-        "positive": "Positive",
-        "neutral": "Neutral",
-        "negative": "Negative"
-      },
-      "recyclable": "Recyclable",
-      "recyclableHelp": "Allows records with this qualification to be re-injected."
-    }
+    "noGroups": "No groups found."
   },
   "supervision": {
     "controlPanel": "Control Panel",
@@ -497,7 +480,6 @@
     "tabs": {
       "contacts": "Contacts ({count})",
       "dashboard": "Dashboard",
-      "dashboard2": "Detailed Analysis",
       "settings": "Settings"
     },
     "contacts": {
@@ -560,9 +542,7 @@
           "processedRecords": "Processed Records",
           "action": "Action"
         },
-        "recycleButton": "Recycle",
-        "recycleButtonTooltip": "Reset the status of all records with this qualification.",
-        "notRecyclableTooltip": "This qualification is not marked as recyclable."
+        "recycleButton": "Recycle"
       }
     }
   },
@@ -852,6 +832,52 @@
       "idle": "Idle"
     }
   },
+  "maintenance": {
+    "manual": {
+      "title": "Manual Backup",
+      "description": "Run a full backup of the system configuration at any time. Useful before major changes.",
+      "button": "Run a backup now",
+      "info": "The backup includes users, groups, scripts, IVRs, campaigns, and all settings. Call recordings are not included.",
+      "confirm": "Are you sure you want to run a manual backup now?",
+      "success": "Manual backup started successfully.",
+      "error": "Failed to start backup."
+    },
+    "schedule": {
+      "title": "Scheduling",
+      "frequency": "Frequency",
+      "frequencies": {
+        "none": "None",
+        "daily": "Daily",
+        "weekly": "Weekly"
+      },
+      "time": "Time (UTC)",
+      "saveSuccess": "Schedule saved!",
+      "saveError": "Failed to save schedule.",
+      "saving": "Saving...",
+      "saveButton": "Save Schedule"
+    },
+    "history": {
+      "title": "Backup History",
+      "headers": {
+        "datetime": "Date & Time",
+        "status": "Status",
+        "filename": "File Name"
+      },
+      "statuses": {
+        "success": "Success",
+        "failure": "Failure"
+      },
+      "download": "Download",
+      "restore": "Restore",
+      "confirmRestore": "Are you sure you want to restore the backup '{fileName}'? All current data will be overwritten.",
+      "confirmRestore_final": "IRREVERSIBLE ACTION. Do you confirm the restore? The application will be temporarily unavailable.",
+      "restoreSuccess": "Restore completed. The application will restart.",
+      "restoreError": "Failed to restore.",
+      "deleteSuccess": "Backup deleted.",
+      "deleteError": "Failed to delete backup.",
+      "noBackups": "No backups available."
+    }
+  },
   "features": {
     "users": {
       "title": "Users",
@@ -942,6 +968,10 @@
     "system-connection": {
       "title": "System Connection",
       "description": "Configure connections to the database and the Asterisk telephony server."
+    },
+    "maintenance": {
+        "title": "Maintenance",
+        "description": "Manage backups, restores, and overall system health."
     },
     "api-docs": {
       "title": "API Docs",

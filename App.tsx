@@ -604,6 +604,41 @@ const AppContent: React.FC = () => {
             showAlert(t('alerts.messageSentTo', { agentName }), 'info');
         }
     }, [currentUser, showAlert, t]);
+    
+    // --- Backup Handlers ---
+    const handleRunBackup = async () => {
+        try {
+            await apiClient.post('/system/backups');
+            showAlert(t('maintenance.manual.success'), 'success');
+            await fetchApplicationData();
+        } catch (e: any) { showAlert(e.response?.data?.error || t('maintenance.manual.error'), 'error'); }
+    };
+    
+    const handleSaveBackupSchedule = async (schedule: BackupSchedule) => {
+        try {
+            await apiClient.put('/system/backup-schedule', schedule);
+            await fetchApplicationData();
+            // The component itself shows a success message, so no global alert needed here.
+        } catch(e: any) { showAlert(e.response?.data?.error || t('maintenance.schedule.saveError'), 'error'); }
+    };
+
+    const handleDeleteBackup = async (fileName: string) => {
+        try {
+            await apiClient.delete(`/system/backups/${fileName}`);
+            showAlert(t('maintenance.history.deleteSuccess'), 'success');
+            await fetchApplicationData();
+        } catch (e: any) { showAlert(e.response?.data?.error || t('maintenance.history.deleteError'), 'error'); }
+    };
+    
+    const handleRestoreBackup = async (fileName: string) => {
+         try {
+            await apiClient.post('/system/backups/restore', { fileName });
+            showAlert(t('maintenance.history.restoreSuccess'), 'info');
+            await fetchApplicationData();
+        } catch (e: any) { showAlert(e.response?.data?.error || t('maintenance.history.restoreError'), 'error'); }
+    };
+    
+    
 
     const currentUserAgentState: AgentState | undefined = useMemo(() => {
         if (!currentUser) return undefined;
@@ -693,12 +728,16 @@ const AppContent: React.FC = () => {
             onDeleteDid: (id: string) => handleDelete('dids', id, '/telephony/dids'),
             onSaveSite: (site: Site) => handleSaveOrUpdate('sites', site),
             onDeleteSite: (id: string) => handleDelete('sites', id),
-            // These planning props are now passed to the self-contained PlanningManager
             onSaveVisibilitySettings: handleSaveVisibilitySettings,
             onSaveSmtpSettings: handleSaveSmtpSettings,
             onSaveAppSettings: handleSaveAppSettings,
             onContactAgent: handleContactAgent,
             apiCall: apiClient,
+            // Backup props
+            onRunBackup: handleRunBackup,
+            onSaveBackupSchedule: handleSaveBackupSchedule,
+            onDeleteBackup: handleDeleteBackup,
+            onRestoreBackup: handleRestoreBackup,
         };
         
         return <FeatureComponent {...componentProps} />;

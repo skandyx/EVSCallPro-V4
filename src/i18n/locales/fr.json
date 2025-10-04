@@ -857,6 +857,52 @@
       "idle": "Inactif"
     }
   },
+  "maintenance": {
+    "manual": {
+        "title": "Sauvegarde Manuelle",
+        "description": "Lancez une sauvegarde complète de la configuration du système à tout moment. Utile avant des modifications importantes.",
+        "button": "Lancer une sauvegarde maintenant",
+        "info": "La sauvegarde inclut les utilisateurs, les groupes, les scripts, les SVI, les campagnes et tous les paramètres. Les enregistrements d'appels ne sont pas inclus.",
+        "confirm": "Êtes-vous sûr de vouloir lancer une sauvegarde manuelle maintenant ?",
+        "success": "Sauvegarde manuelle lancée avec succès.",
+        "error": "Échec du lancement de la sauvegarde."
+    },
+    "schedule": {
+        "title": "Planification",
+        "frequency": "Fréquence",
+        "frequencies": {
+            "none": "Aucune",
+            "daily": "Quotidienne",
+            "weekly": "Hebdomadaire"
+        },
+        "time": "Heure (UTC)",
+        "saveSuccess": "Planification enregistrée !",
+        "saveError": "Échec de l'enregistrement de la planification.",
+        "saving": "Enregistrement...",
+        "saveButton": "Enregistrer la planification"
+    },
+    "history": {
+        "title": "Historique des Sauvegardes",
+        "headers": {
+            "datetime": "Date & Heure",
+            "status": "Statut",
+            "filename": "Nom du Fichier"
+        },
+        "statuses": {
+            "success": "Succès",
+            "failure": "Échec"
+        },
+        "download": "Télécharger",
+        "restore": "Restaurer",
+        "confirmRestore": "Êtes-vous sûr de vouloir restaurer la sauvegarde '{fileName}' ? Toutes les données actuelles seront écrasées.",
+        "confirmRestore_final": "ACTION IRRÉVERSIBLE. Confirmez-vous la restauration ? L'application sera momentanément indisponible.",
+        "restoreSuccess": "Restauration terminée. L'application va redémarrer.",
+        "restoreError": "Échec de la restauration.",
+        "deleteSuccess": "Sauvegarde supprimée.",
+        "deleteError": "Échec de la suppression de la sauvegarde.",
+        "noBackups": "Aucune sauvegarde disponible."
+    }
+  },
   "features": {
     "users": {
       "title": "Utilisateurs",
@@ -947,6 +993,10 @@
     "system-connection": {
       "title": "Connexion Système",
       "description": "Configurez les connexions à la base de données et au serveur de téléphonie Asterisk."
+    },
+    "maintenance": {
+        "title": "Maintenance",
+        "description": "Gérez les sauvegardes, les restaurations et la santé générale du système."
     },
     "api-docs": {
       "title": "Documentation API",

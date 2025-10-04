@@ -207,13 +207,13 @@ app.get('/api/application-data', async (req, res) => {
         const [
             users, userGroups, savedScripts, campaigns, qualifications,
             qualificationGroups, ivrFlows, audioFiles, trunks, dids, sites,
-            planningEvents, activityTypes, personalCallbacks, callHistory, agentSessions,
+            activityTypes, personalCallbacks, callHistory, agentSessions,
             contactNotes
         ] = await Promise.all([
             db.getUsers(), db.getUserGroups(), db.getScripts(), db.getCampaigns(),
             db.getQualifications(), db.getQualificationGroups(), db.getIvrFlows(),
             db.getAudioFiles(), db.getTrunks(), db.getDids(), db.getSites(),
-            db.getPlanningEvents(), db.getActivityTypes(), db.getPersonalCallbacks(),
+            db.getActivityTypes(), db.getPersonalCallbacks(),
             db.getCallHistory(), db.getAgentSessions(), db.getContactNotes()
         ]);
         
@@ -250,16 +250,21 @@ app.get('/api/application-data', async (req, res) => {
             defaultLanguage: envConfig.DEFAULT_LANGUAGE || 'fr',
         };
 
+        const backupLogs = [
+            { id: 'backup-1', timestamp: new Date(Date.now() - 86400000).toISOString(), status: 'success', fileName: 'backup-2024-07-27.sql.gz' },
+            { id: 'backup-2', timestamp: new Date(Date.now() - 172800000).toISOString(), status: 'success', fileName: 'backup-2024-07-26.sql.gz' }
+        ];
+
         res.json({
             users, userGroups, savedScripts, campaigns, qualifications,
             qualificationGroups, ivrFlows, audioFiles, trunks, dids, sites,
-            planningEvents, activityTypes, personalCallbacks, callHistory, agentSessions,
+            activityTypes, personalCallbacks, callHistory, agentSessions,
             contactNotes,
             systemConnectionSettings,
             smtpSettings,
             appSettings,
             moduleVisibility: { categories: {}, features: {} },
-            backupLogs: [],
+            backupLogs,
             backupSchedule: { frequency: 'daily', time: '02:00' },
             systemLogs: [],
             versionInfo: { application: '1.0.0', asterisk: '18.x', database: '14.x', 'asteriskagi': '1.2.2' },
