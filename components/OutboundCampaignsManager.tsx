@@ -417,7 +417,7 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
     }
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8">
+        <div className="space-y-8">
             {isModalOpen && (
                 <CampaignModal
                     campaign={editingCampaign}
@@ -458,50 +458,36 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
                                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Nom</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">ID</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Statut</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Mode</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Contacts</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Restants</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase">Mode</th>
                                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-slate-200">
                             {campaigns.map(campaign => {
-                                const remainingContacts = campaign.contacts.filter(c => c.status === 'pending').length;
-                                const deletionState = {
-                                    canDelete: !campaign.isActive,
-                                    tooltip: campaign.isActive ? "Désactivez la campagne pour la supprimer." : "Supprimer la campagne"
-                                };
+                                const contactCount = campaign.contacts.length;
+                                const processedCount = campaign.contacts.filter(c => c.status !== 'pending').length;
+                                const progress = contactCount > 0 ? (processedCount / contactCount) * 100 : 0;
+                                
                                 return (
-                                    <tr key={campaign.id}>
-                                        <td className="px-6 py-4 font-medium">
-                                            <button onClick={() => handleShowDetail(campaign)} className="text-link hover:underline">
-                                                {campaign.name}
-                                            </button>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-slate-500 font-mono">{campaign.id}</td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${campaign.isActive ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-800'}`}>
-                                                {campaign.isActive ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-slate-600">{campaign.dialingMode}</td>
-                                        <td className="px-6 py-4 text-sm text-slate-600 font-semibold">{campaign.contacts.length}</td>
-                                        <td className="px-6 py-4 text-sm text-slate-600">{remainingContacts}</td>
-                                        <td className="px-6 py-4 text-right text-sm font-medium space-x-4">
-                                            <button onClick={() => handleOpenImportModal(campaign)} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 inline-flex items-center"><ArrowUpTrayIcon className="w-4 h-4 mr-1"/> Importer</button>
-                                            <button onClick={() => handleEdit(campaign)} className="text-link hover:underline inline-flex items-center"><EditIcon className="w-4 h-4 mr-1"/> Modifier</button>
-                                            <button 
-                                                onClick={() => onDeleteCampaign(campaign.id)} 
-                                                disabled={!deletionState.canDelete}
-                                                title={deletionState.tooltip}
-                                                className="inline-flex items-center disabled:text-slate-400 disabled:cursor-not-allowed text-red-600 hover:text-red-900"
-                                            >
-                                                <TrashIcon className="w-4 h-4 mr-1"/> Supprimer
-                                            </button>
-                                        </td>
-                                    </tr>
-                                )
-                            })}
+                                <tr key={campaign.id}>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <button onClick={() => handleShowDetail(campaign)} className="font-medium text-indigo-600 hover:text-indigo-900">{campaign.name}</button>
+                                        <div className="w-full bg-slate-200 rounded-full h-1.5 mt-1">
+                                            <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: `${progress}%` }}></div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 font-mono">{campaign.id}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${campaign.isActive ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-800'}`}>{campaign.isActive ? 'Active' : 'Inactive'}</span></td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{processedCount} / {contactCount} ({progress.toFixed(0)}%)</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{campaign.dialingMode}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                        <button onClick={() => handleOpenImportModal(campaign)} className="text-link hover:underline inline-flex items-center"><ArrowUpTrayIcon className="w-4 h-4 mr-1"/> Importer</button>
+                                        <button onClick={() => handleEdit(campaign)} className="text-link hover:underline inline-flex items-center"><EditIcon className="w-4 h-4 mr-1"/> Modifier</button>
+                                        <button onClick={() => onDeleteCampaign(campaign.id)} className="text-red-600 hover:text-red-900 inline-flex items-center"><TrashIcon className="w-4 h-4 mr-1"/> Supprimer</button>
+                                    </td>
+                                </tr>
+                            )})}
                         </tbody>
                     </table>
                 </div>
@@ -510,4 +496,5 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
     );
 };
 
-export default React.memo(OutboundCampaignsManager);
+// FIX: Added a default export for the OutboundCampaignsManager component to resolve the module import error in `data/features.ts`.
+export default OutboundCampaignsManager;

@@ -598,7 +598,7 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
 
 
     return (
-        <div className="space-y-6 flex flex-col h-full">
+        <div className="flex flex-col h-full">
             {modalState.isOpen && (
                 <PlanningEventModal
                     event={modalState.event}
@@ -619,7 +619,7 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                     userCount={selectedUserIds.length}
                 />
             )}
-            <header>
+            <header className="mb-6">
                 <h1 className="text-4xl font-bold text-slate-900 tracking-tight flex items-center"><CalendarDaysIcon className="w-9 h-9 mr-3"/>{t(feature.titleKey)}</h1>
                 <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
             </header>
@@ -645,7 +645,7 @@ const PlanningManager: React.FC<PlanningManagerProps> = ({ feature, planningEven
                      </select>
                 </div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden flex-1 grid grid-cols-[1fr_280px]">
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden flex-1 grid grid-cols-[1fr_280px] mt-6">
                 <div className="h-full overflow-auto relative grid grid-cols-[auto_1fr] text-sm select-none">
                     <div className="sticky left-0 top-0 z-20 bg-white border-r">
                         <div className="h-10 border-b flex items-center justify-center font-semibold text-slate-500">{t('planning.hour')}</div>

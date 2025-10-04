@@ -10,7 +10,7 @@ interface BillingManagerProps {
 const BillingManager: React.FC<BillingManagerProps> = ({ feature }) => {
     const { t } = useI18n();
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="space-y-8">
             <header>
                 <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center">
                     <CreditCardIcon className="w-9 h-9 mr-3 text-indigo-600"/>

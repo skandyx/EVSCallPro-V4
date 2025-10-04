@@ -754,7 +754,7 @@ const AppContent: React.FC = () => {
                             onClearNotifications={() => setNotifications([])}
                             onRespondToAgent={handleRespondToAgent}
                         />
-                        <main className="flex-1 overflow-y-auto p-8">
+                        <main className="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full">
                              {activeView === 'app' ? renderFeatureComponent() : <MonitoringDashboard {...({ ...allData, ...liveState, apiCall: apiClient } as any)} />}
                         </main>
                     </div>

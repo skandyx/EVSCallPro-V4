@@ -41,7 +41,7 @@ const MaintenanceManager: React.FC<MaintenanceManagerProps> = ({ feature, backup
     };
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
+        <div className="space-y-8">
             <header>
                 {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
                 <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
