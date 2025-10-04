@@ -29,7 +29,6 @@ import DatabaseManager from '../components/DatabaseManager.tsx';
 import BillingManager from '../components/BillingManager.tsx';
 import SystemSettingsManager from '../components/SystemSettingsManager.tsx';
 import LanguageManager from '../components/LanguageManager.tsx';
-import FileManager from '../components/FileManager.tsx';
 
 export const features: Feature[] = [
     {
@@ -693,14 +692,4 @@ export const features: Feature[] = [
         specs: { titleKey: '', pointsKeys: [] },
         simplificationTip: { titleKey: '', contentKey: '' }
     },
-    {
-        id: 'files',
-        titleKey: 'features.files.title',
-        category: 'Système',
-        descriptionKey: 'features.files.description',
-        component: FileManager,
-        userJourney: { titleKey: '', stepsKeys: [] },
-        specs: { titleKey: '', pointsKeys: [] },
-        simplificationTip: { titleKey: '', contentKey: '' }
-    }
 ];

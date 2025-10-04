@@ -1,11 +1,8 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { Campaign, SavedScript, Contact, CallHistoryRecord, Qualification, User, ContactNote, UserGroup, QualificationGroup } from '../types.ts';
-import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon, ChevronDownIcon, XMarkIcon, ArrowDownTrayIcon } from './Icons';
+import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon, ChevronDownIcon, XMarkIcon } from './Icons';
 import ContactHistoryModal from './ContactHistoryModal.tsx';
 import { useI18n } from '../src/i18n/index.tsx';
-import apiClient from '../src/lib/axios.ts';
-import { AlertContext } from '../App.tsx';
-
 
 // Déclaration pour Chart.js via CDN
 declare var Chart: any;
@@ -102,7 +99,6 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts, onRecycleContacts, contactNotes, currentUser } = props;
     const { t } = useI18n();
     const [activeTab, setActiveTab] = useState<DetailTab>('dashboard');
-    const { showAlert } = React.useContext(AlertContext);
     
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -582,16 +578,6 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             onRecycleContacts(campaign.id, qualificationId);
         }
     };
-    
-    const handleExportContacts = async () => {
-        try {
-            await apiClient.post(`/campaigns/${campaign.id}/export-contacts`);
-            showAlert(t('campaignDetail.contacts.exportSuccess'), 'success');
-        } catch (error) {
-            console.error("Failed to export contacts:", error);
-            showAlert(t('campaignDetail.contacts.exportError'), 'error');
-        }
-    };
 
     const TabButton: React.FC<{ tab: DetailTab; label: string; icon: React.FC<any> }> = ({ tab, label, icon: Icon }) => (
         <button onClick={() => setActiveTab(tab)} className={`flex items-center gap-2 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors ${activeTab === tab ? 'border-primary text-link' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'}`}>
@@ -631,10 +617,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                         <div>
                             <div className="flex justify-between items-center mb-4">
                                 <input type="search" placeholder={t('campaignDetail.contacts.searchPlaceholder')} value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full max-w-sm p-2 border border-slate-300 rounded-md dark:bg-slate-900 dark:border-slate-600 dark:text-slate-200"/>
-                                <div className="flex items-center gap-2">
-                                     {canDelete && selectedContactIds.length > 0 && <button onClick={handleDeleteSelected} className="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 font-bold py-2 px-4 rounded-lg inline-flex items-center gap-2"><TrashIcon className="w-5 h-5"/>{t('campaignDetail.contacts.deleteSelection', { count: selectedContactIds.length })}</button>}
-                                     <button onClick={handleExportContacts} className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 font-bold py-2 px-4 rounded-lg inline-flex items-center gap-2"><ArrowDownTrayIcon className="w-5 h-5"/>{t('common.export')}</button>
-                                </div>
+                                {canDelete && selectedContactIds.length > 0 && <button onClick={handleDeleteSelected} className="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300 font-bold py-2 px-4 rounded-lg inline-flex items-center gap-2"><TrashIcon className="w-5 h-5"/>{t('campaignDetail.contacts.deleteSelection', { count: selectedContactIds.length })}</button>}
                             </div>
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700"><thead className="bg-slate-50 dark:bg-slate-700"><tr>

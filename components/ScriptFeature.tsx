@@ -1,14 +1,10 @@
 
-
 import React, { useState, useMemo } from 'react';
 import type { Feature, SavedScript, Page, ScriptBlock } from '../types.ts';
 import ScriptBuilder from './ScriptBuilder.tsx';
 import AgentPreview from './AgentPreview.tsx';
-import { EditIcon, DuplicateIcon, TrashIcon, PlusIcon, ChevronDownIcon, EyeIcon, ArrowDownTrayIcon } from './Icons.tsx';
+import { EditIcon, DuplicateIcon, TrashIcon, PlusIcon, ChevronDownIcon, EyeIcon } from './Icons.tsx';
 import { useI18n } from '../src/i18n/index.tsx';
-import apiClient from '../src/lib/axios.ts';
-import { AlertContext } from '../App.tsx';
-
 
 interface ScriptFeatureProps {
     feature: Feature;
@@ -30,18 +26,6 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: keyof SavedScript; direction: 'ascending' | 'descending' }>({ key: 'name', direction: 'ascending' });
     const { t } = useI18n();
-    const { showAlert } = React.useContext(AlertContext);
-
-
-    const handleExportScript = async (scriptId: string) => {
-        try {
-            await apiClient.post(`/scripts/${scriptId}/export`);
-            showAlert(t('scriptManager.exportSuccess'), 'success');
-        } catch (error) {
-            console.error("Failed to export script:", error);
-            showAlert(t('scriptManager.exportError'), 'error');
-        }
-    };
 
     const filteredAndSortedScripts = useMemo(() => {
         let sortableScripts = [...savedScripts];
@@ -202,7 +186,6 @@ const ScriptFeature: React.FC<ScriptFeatureProps> = ({
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 font-mono">{script.id}</td>
                                         <td className="px-6 py-4 whitespace-nowrap font-medium text-slate-800 dark:text-slate-200">{script.name}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-4">
-                                            <button onClick={() => handleExportScript(script.id)} className="text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100 inline-flex items-center"><ArrowDownTrayIcon className="w-4 h-4 mr-1"/> {t('common.export')}</button>
                                             <button onClick={() => handleEdit(script)} className="text-link hover:underline inline-flex items-center"><EditIcon className="w-4 h-4 mr-1"/> {t('common.edit')}</button>
                                             <button onClick={() => onDuplicateScript(script.id)} className="text-slate-500 hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100 inline-flex items-center"><DuplicateIcon className="w-4 h-4 mr-1"/> {t('common.duplicate')}</button>
                                             <button onClick={() => onDeleteScript(script.id)} className="text-red-600 hover:text-red-900 dark:hover:text-red-400 inline-flex items-center"><TrashIcon className="w-4 h-4 mr-1"/> {t('common.delete')}</button>
