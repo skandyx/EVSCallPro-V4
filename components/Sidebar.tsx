@@ -3,7 +3,8 @@ import type { Feature, FeatureId, User, FeatureCategory, ModuleVisibility, Agent
 import {
     LogoIcon, UserCircleIcon, ChevronDownIcon,
     UsersIcon, PhoneArrowUpRightIcon, InboxArrowDownIcon, SpeakerWaveIcon, WrenchScrewdriverIcon,
-    ChartBarIcon, ServerStackIcon, SettingsIcon, PowerIcon, ChevronDoubleLeftIcon
+    ChartBarIcon, ServerStackIcon, SettingsIcon, PowerIcon, ChevronDoubleLeftIcon,
+    QuestionMarkCircleIcon
 } from './Icons.tsx';
 import { useI18n } from '../src/i18n/index.tsx';
 
@@ -92,6 +93,10 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                         const isActiveCategory = featuresInCategory.some(f => f.id === activeFeatureId);
                         const translatedCategoryName = t(getCategoryTranslationKey(categoryName as FeatureCategory));
 
+                        // Hide the 'Help' feature from the main category list if it exists there
+                        const visibleFeatures = featuresInCategory.filter(feature => feature.id !== 'help');
+                        if (visibleFeatures.length === 0) return null;
+
                         return (
                             <div key={categoryName}>
                                 <button
@@ -109,7 +114,7 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                                 </button>
                                 {!isSidebarCollapsed && isExpanded && (
                                     <div className="mt-1 space-y-1 pl-4">
-                                        {featuresInCategory
+                                        {visibleFeatures
                                             .filter(feature => {
                                                 // Special rules for SuperAdmin-only features
                                                 if (['module-settings', 'system-connection', 'api-docs', 'database-client', 'billing', 'system-settings'].includes(feature.id)) {
@@ -136,6 +141,24 @@ const Sidebar: React.FC<SidebarProps> = ({ features, activeFeatureId, onSelectFe
                             </div>
                         )
                 })}
+                {/* Add Help button here, outside the main category map */}
+                {currentUser && ['Superviseur', 'Administrateur', 'SuperAdmin'].includes(currentUser.role) && (
+                    <div className="border-t border-slate-200 dark:border-slate-700 my-1"></div>
+                )}
+                {currentUser && ['Superviseur', 'Administrateur', 'SuperAdmin'].includes(currentUser.role) && (
+                    <button
+                        onClick={() => onSelectFeature('help')}
+                        className={`w-full text-left flex items-center p-2 text-sm font-semibold rounded-md transition-colors ${
+                            isSidebarCollapsed ? 'justify-center' : ''
+                        } ${
+                            activeFeatureId === 'help' ? 'bg-slate-100 text-slate-900 dark:bg-slate-700 dark:text-slate-50' : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'
+                        }`}
+                        title={t('features.help.title')}
+                    >
+                        <QuestionMarkCircleIcon className="w-5 h-5 flex-shrink-0" />
+                        {!isSidebarCollapsed && <span className="flex-1 ml-3">{t('features.help.title')}</span>}
+                    </button>
+                )}
             </nav>
 
             <div className="p-2 border-t border-slate-200 dark:border-slate-700 mt-auto flex-shrink-0">

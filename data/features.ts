@@ -635,6 +635,16 @@ export const features: Feature[] = [
         simplificationTip: { titleKey: '', contentKey: '' }
     },
     {
+        id: 'help',
+        titleKey: 'features.help.title',
+        category: 'Système',
+        descriptionKey: 'features.help.description',
+        component: HelpCenter,
+        userJourney: { titleKey: '', stepsKeys: [] },
+        specs: { titleKey: '', pointsKeys: [] },
+        simplificationTip: { titleKey: '', contentKey: '' }
+    },
+    {
         id: 'api-docs',
         titleKey: 'features.api-docs.title',
         category: 'Paramètres',
