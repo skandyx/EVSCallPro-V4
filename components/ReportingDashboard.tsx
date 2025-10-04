@@ -96,6 +96,33 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
     const [treemapFilter, setTreemapFilter] = useState<{ type: Qualification['type'] | null, qualificationId: string | null }>({ type: null, qualificationId: null });
     const { t } = useI18n();
 
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    const chartTextColor = isDarkMode ? '#cbd5e1' : '#475569'; // slate-300 / slate-600
+    const chartGridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
+    const commonChartOptions = useMemo(() => ({
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { labels: { color: chartTextColor } },
+            title: {
+                display: true,
+                color: chartTextColor
+            }
+        },
+        scales: {
+            x: {
+                ticks: { color: chartTextColor },
+                grid: { color: chartGridColor }
+            },
+            y: {
+                beginAtZero: true,
+                ticks: { color: chartTextColor },
+                grid: { color: chartGridColor }
+            }
+        }
+    }), [isDarkMode, chartTextColor, chartGridColor]);
+
     const handleDateRangeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const range = e.target.value;
         setFilters(f => ({
@@ -368,6 +395,7 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
         maintainAspectRatio: false,
         plugins: {
             legend: { display: false },
+            title: { display: false },
             tooltip: {
                 callbacks: {
                     label: (context: any) => {
@@ -584,57 +612,57 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 return (
                     <div className="p-4 space-y-8">
                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <div className="bg-white p-4 rounded-lg shadow-sm border">
+                            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700">
                                 <div className="flex justify-between items-start">
-                                    <h3 className="font-semibold text-slate-800 mb-3">Distribution hiérarchique</h3>
+                                    <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">Distribution hiérarchique</h3>
                                     {(treemapFilter.type || treemapFilter.qualificationId) && (
-                                        <button onClick={() => setTreemapFilter({ type: null, qualificationId: null })} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1">
+                                        <button onClick={() => setTreemapFilter({ type: null, qualificationId: null })} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1 dark:text-indigo-400">
                                             <XMarkIcon className="w-4 h-4" /> Réinitialiser le filtre
                                         </button>
                                     )}
                                 </div>
                                 <div className="h-64"><ChartComponent type="treemap" data={treemapChartData} options={treemapOptions} /></div>
                             </div>
-                            <div className="bg-white p-4 rounded-lg shadow-sm border">
-                                <h3 className="font-semibold text-slate-800 mb-3">Heures de Succès (Conversions)</h3>
-                                <div className="h-64"><ChartComponent type="bar" data={callsByHour} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }} /></div>
+                            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700">
+                                <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">Heures de Succès (Conversions)</h3>
+                                <div className="h-64"><ChartComponent type="bar" data={callsByHour} options={{...commonChartOptions, scales: { ...commonChartOptions.scales, y: { ...commonChartOptions.scales.y, ticks: { ...commonChartOptions.scales.y.ticks, stepSize: 1 } } } }} /></div>
                             </div>
                          </div>
                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <div className="bg-white p-4 rounded-lg shadow-sm border">
-                                <h3 className="font-semibold text-slate-800 mb-3">Taux de succès par agent</h3>
-                                <div className="h-64"><ChartComponent type="bar" data={successRateByAgentData} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } } }} /></div>
+                            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700">
+                                <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">Taux de succès par agent</h3>
+                                <div className="h-64"><ChartComponent type="bar" data={successRateByAgentData} options={{ ...commonChartOptions, scales: { ...commonChartOptions.scales, y: { ...commonChartOptions.scales.y, max: 100 } } }} /></div>
                             </div>
-                            <div className="bg-white p-4 rounded-lg shadow-sm border">
-                                <h3 className="font-semibold text-slate-800 mb-3">Adhérence moyenne au planning</h3>
-                                <div className="h-64"><ChartComponent type="bar" data={adherenceByAgentData} options={{ responsive: true, maintainAspectRatio: false, plugins: { tooltip: { callbacks: { label: (ctx: any) => `${ctx.raw.toFixed(1)} min`}}}}} /></div>
+                            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700">
+                                <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-3">Adhérence moyenne au planning</h3>
+                                <div className="h-64"><ChartComponent type="bar" data={adherenceByAgentData} options={{ ...commonChartOptions, plugins: { ...commonChartOptions.plugins, tooltip: { callbacks: { label: (ctx: any) => `${ctx.raw.toFixed(1)} min`}}}}} /></div>
                             </div>
                          </div>
                     </div>
                 );
              case 'timesheet':
                 return (
-                     <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50"><tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Date</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Agent</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">1er Login</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Dernier Logout</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée Totale Connexion</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Adhérence Planning</th>
+                     <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                        <thead className="bg-slate-50 dark:bg-slate-700"><tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Date</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Agent</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">1er Login</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Dernier Logout</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Durée Totale Connexion</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Adhérence Planning</th>
                         </tr></thead>
-                        <tbody className="bg-white divide-y divide-slate-200 text-sm">
+                        <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700 text-sm">
                             {timesheetReportData.map((row, i) => {
-                                let adherenceColor = 'text-slate-600';
-                                if(row.adherence > 5) adherenceColor = 'text-red-600 font-semibold';
-                                if(row.adherence < 0) adherenceColor = 'text-green-600';
+                                let adherenceColor = 'text-slate-600 dark:text-slate-400';
+                                if(row.adherence > 5) adherenceColor = 'text-red-600 dark:text-red-400 font-semibold';
+                                if(row.adherence < 0) adherenceColor = 'text-green-600 dark:text-green-400';
                                 return (
                                 <tr key={i}>
-                                    <td className="px-4 py-3 text-slate-600">{row.date}</td>
-                                    <td className="px-4 py-3 font-medium text-slate-800">{row.agentName}</td>
-                                    <td className="px-4 py-3 text-slate-600 font-mono">{row.firstLogin}</td>
-                                    <td className="px-4 py-3 text-slate-600 font-mono">{row.lastLogout}</td>
-                                    <td className="px-4 py-3 text-slate-600 font-mono">{formatDuration(row.totalDuration, 'full')}</td>
+                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{row.date}</td>
+                                    <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{row.agentName}</td>
+                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono">{row.firstLogin}</td>
+                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono">{row.lastLogout}</td>
+                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono">{formatDuration(row.totalDuration, 'full')}</td>
                                     <td className={`px-4 py-3 font-mono ${adherenceColor}`}>
                                         {row.adherence > 0 ? '+' : ''}{row.adherence.toFixed(0)} min
                                     </td>
@@ -646,22 +674,22 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 );
             case 'campaign':
                 return (
-                     <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50"><tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Campagne</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Appels</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée Totale</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée Moyenne</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Taux Succès</th>
+                     <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                        <thead className="bg-slate-50 dark:bg-slate-700"><tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Campagne</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Appels</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Durée Totale</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Durée Moyenne</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Taux Succès</th>
                         </tr></thead>
-                        <tbody className="bg-white divide-y divide-slate-200 text-sm">
+                        <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700 text-sm">
                            {campaignReportData.map((row, i) => (
                                <tr key={i}>
-                                   <td className="px-4 py-3 font-medium text-slate-800">{row.name}</td>
-                                   <td className="px-4 py-3 text-slate-600">{row.calls}</td>
-                                   <td className="px-4 py-3 text-slate-600 font-mono">{formatDuration(row.totalDuration, 'full')}</td>
-                                   <td className="px-4 py-3 text-slate-600 font-mono">{formatDuration(row.calls > 0 ? row.totalDuration / row.calls : 0, 'full')}</td>
-                                   <td className="px-4 py-3 text-slate-600">{row.calls > 0 ? (row.success / row.calls * 100).toFixed(1) : '0.0'}%</td>
+                                   <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{row.name}</td>
+                                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{row.calls}</td>
+                                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono">{formatDuration(row.totalDuration, 'full')}</td>
+                                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono">{formatDuration(row.calls > 0 ? row.totalDuration / row.calls : 0, 'full')}</td>
+                                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{row.calls > 0 ? (row.success / row.calls * 100).toFixed(1) : '0.0'}%</td>
                                </tr>
                            ))}
                         </tbody>
@@ -669,22 +697,22 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 );
             case 'agent':
                 return (
-                     <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50"><tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Agent</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Appels</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée Totale</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée Moyenne</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Taux Succès</th>
+                     <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                        <thead className="bg-slate-50 dark:bg-slate-700"><tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Agent</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Appels</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Durée Totale</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Durée Moyenne</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Taux Succès</th>
                         </tr></thead>
-                        <tbody className="bg-white divide-y divide-slate-200 text-sm">
+                        <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700 text-sm">
                            {agentReportData.map((row, i) => (
                                <tr key={i}>
-                                   <td className="px-4 py-3 font-medium text-slate-800">{row.name}</td>
-                                   <td className="px-4 py-3 text-slate-600">{row.calls}</td>
-                                   <td className="px-4 py-3 text-slate-600 font-mono">{formatDuration(row.totalDuration, 'full')}</td>
-                                   <td className="px-4 py-3 text-slate-600 font-mono">{formatDuration(row.calls > 0 ? row.totalDuration / row.calls : 0, 'full')}</td>
-                                   <td className="px-4 py-3 text-slate-600">{row.calls > 0 ? (row.success / row.calls * 100).toFixed(1) : '0.0'}%</td>
+                                   <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{row.name}</td>
+                                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{row.calls}</td>
+                                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono">{formatDuration(row.totalDuration, 'full')}</td>
+                                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono">{formatDuration(row.calls > 0 ? row.totalDuration / row.calls : 0, 'full')}</td>
+                                   <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{row.calls > 0 ? (row.success / row.calls * 100).toFixed(1) : '0.0'}%</td>
                                </tr>
                            ))}
                         </tbody>
@@ -692,24 +720,24 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 );
             case 'history':
                 return (
-                    <table className="min-w-full divide-y divide-slate-200">
-                        <thead className="bg-slate-50"><tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Date & Heure</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Agent</th>
-                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Campagne</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Numéro Appelé</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Qualification</th>
+                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                        <thead className="bg-slate-50 dark:bg-slate-700"><tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Date & Heure</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Agent</th>
+                             <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Campagne</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Numéro Appelé</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Durée</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Qualification</th>
                         </tr></thead>
-                        <tbody className="bg-white divide-y divide-slate-200 text-sm">
+                        <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700 text-sm">
                             {filteredHistory.map(call => (
                                 <tr key={call.id}>
-                                    <td className="px-4 py-3 text-slate-600">{new Date(call.timestamp).toLocaleString('fr-FR')}</td>
-                                    <td className="px-4 py-3 font-medium text-slate-800">{findEntityName(call.agentId, users)}</td>
-                                    <td className="px-4 py-3 text-slate-600">{findEntityName(call.campaignId, campaigns)}</td>
-                                    <td className="px-4 py-3 text-slate-600 font-mono">{call.callerNumber}</td>
-                                    <td className="px-4 py-3 text-slate-600 font-mono">{formatDuration(call.duration)}</td>
-                                    <td className="px-4 py-3 text-slate-600">{findEntityName(call.qualificationId, qualifications)}</td>
+                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{new Date(call.timestamp).toLocaleString('fr-FR')}</td>
+                                    <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{findEntityName(call.agentId, users)}</td>
+                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{findEntityName(call.campaignId, campaigns)}</td>
+                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono">{call.callerNumber}</td>
+                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400 font-mono">{formatDuration(call.duration)}</td>
+                                    <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{findEntityName(call.qualificationId, qualifications)}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -720,13 +748,13 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
     }
 
     return (
-         <div className="max-w-7xl mx-auto space-y-6">
+         <div className="space-y-6">
             <header className="flex justify-between items-start">
                 <div>
                     {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
-                    <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                    <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{t(feature.titleKey)}</h1>
                     {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
-                    <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
+                    <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{t(feature.descriptionKey)}</p>
                 </div>
                  <button onClick={handleExportPDF} className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md inline-flex items-center">
                     <ArrowUpTrayIcon className="w-5 h-5 mr-2"/>
@@ -734,11 +762,11 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 </button>
             </header>
 
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                     <div>
-                        <label className="text-sm font-medium text-slate-600">Période Prédéfinie</label>
-                        <select value={filters.dateRange} onChange={handleDateRangeChange} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white">
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Période Prédéfinie</label>
+                        <select value={filters.dateRange} onChange={handleDateRangeChange} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
                             <option value="last7days">7 derniers jours</option>
                             <option value="last30days">30 derniers jours</option>
                             <option value="thismonth">Ce mois-ci</option>
@@ -746,24 +774,24 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                         <div>
-                             <label className="text-sm font-medium text-slate-600">Du</label>
-                            <input type="date" value={filters.startDate} onChange={e => setFilters(f => ({...f, startDate: e.target.value}))} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white"/>
+                             <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Du</label>
+                            <input type="date" value={filters.startDate} onChange={e => setFilters(f => ({...f, startDate: e.target.value}))} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"/>
                         </div>
                         <div>
-                             <label className="text-sm font-medium text-slate-600">Au</label>
-                            <input type="date" value={filters.endDate} onChange={e => setFilters(f => ({...f, endDate: e.target.value}))} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white"/>
+                             <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Au</label>
+                            <input type="date" value={filters.endDate} onChange={e => setFilters(f => ({...f, endDate: e.target.value}))} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"/>
                         </div>
                     </div>
                      <div>
-                        <label className="text-sm font-medium text-slate-600">Campagne</label>
-                        <select value={filters.campaignId} onChange={(e) => setFilters(f => ({...f, campaignId: e.target.value}))} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white" disabled={activeTab === 'timesheet'}>
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Campagne</label>
+                        <select value={filters.campaignId} onChange={(e) => setFilters(f => ({...f, campaignId: e.target.value}))} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200" disabled={activeTab === 'timesheet'}>
                             <option value="all">Toutes les campagnes</option>
                             {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                     </div>
                      <div>
-                        <label className="text-sm font-medium text-slate-600">Agent</label>
-                        <select value={filters.agentId} onChange={(e) => setFilters(f => ({...f, agentId: e.target.value}))} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white">
+                        <label className="text-sm font-medium text-slate-600 dark:text-slate-300">Agent</label>
+                        <select value={filters.agentId} onChange={(e) => setFilters(f => ({...f, agentId: e.target.value}))} className="w-full mt-1 p-2 border border-slate-300 rounded-md bg-white dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200">
                             <option value="all">Tous les agents</option>
                             {users.filter(u => u.role === 'Agent').map(u => <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>)}
                         </select>
@@ -779,8 +807,8 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 <KpiCard title="Taux d'Occupation (Simulé)" value={`${kpis.occupancy.toFixed(1)}%`} icon={ChartBarIcon} />
             </div>
 
-             <div className="bg-white rounded-lg shadow-sm border border-slate-200">
-                <div className="border-b border-slate-200">
+             <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                <div className="border-b border-slate-200 dark:border-slate-700">
                     <nav className="-mb-px flex space-x-6 px-6" aria-label="Tabs">
                         <TabButton text="Graphiques" isActive={activeTab === 'charts'} onClick={() => setActiveTab('charts')} />
                         <TabButton text="Feuille de Temps" isActive={activeTab === 'timesheet'} onClick={() => setActiveTab('timesheet')} />
@@ -791,8 +819,8 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
                 </div>
                  <div className="overflow-x-auto">
                     {renderContent()}
-                    {activeTab !== 'timesheet' && activeTab !== 'charts' && filteredHistory.length === 0 && <p className="text-center py-8 text-slate-500">Aucune donnée d'appel pour les filtres sélectionnés.</p>}
-                    {activeTab === 'timesheet' && timesheetReportData.length === 0 && <p className="text-center py-8 text-slate-500">Aucune donnée de session pour les filtres sélectionnés.</p>}
+                    {activeTab !== 'timesheet' && activeTab !== 'charts' && filteredHistory.length === 0 && <p className="text-center py-8 text-slate-500 dark:text-slate-400">Aucune donnée d'appel pour les filtres sélectionnés.</p>}
+                    {activeTab === 'timesheet' && timesheetReportData.length === 0 && <p className="text-center py-8 text-slate-500 dark:text-slate-400">Aucune donnée de session pour les filtres sélectionnés.</p>}
                 </div>
             </div>
         </div>
@@ -800,14 +828,14 @@ const ReportingDashboard: React.FC<ReportingDashboardProps> = ({ feature, callHi
 };
 
 const KpiCard: React.FC<{title: string, value: string, icon: React.FC<any>}> = ({title, value, icon: Icon}) => (
-    <div className="bg-white p-4 rounded-lg shadow-sm border border-slate-200">
+    <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
         <div className="flex items-center">
-            <div className="p-2 bg-indigo-100 rounded-md mr-4">
-                <Icon className="h-6 w-6 text-indigo-600" />
+            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-md mr-4">
+                <Icon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
             </div>
             <div>
-                <p className="text-sm text-slate-500">{title}</p>
-                <p className="text-2xl font-bold text-slate-900">{value}</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
             </div>
         </div>
     </div>
@@ -819,7 +847,7 @@ const TabButton: React.FC<{text: string, isActive: boolean, onClick: () => void}
         className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
           isActive
             ? 'border-primary text-link'
-            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+            : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:border-slate-300 dark:hover:border-slate-600'
         }`}
     >
         {text}
