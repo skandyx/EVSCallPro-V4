@@ -40,7 +40,14 @@
     "contactImportError": "Erreur lors de l'importation des contacts.",
     "passwordUpdateSuccess": "Mot de passe mis à jour avec succès.",
     "profilePictureUpdateSuccess": "Photo de profil mise à jour.",
-    "updateError": "Échec de la mise à jour."
+    "updateError": "Échec de la mise à jour.",
+    "agentNeedsHelp": "L'agent {agentName} demande de l'aide !",
+    "agentResponded": "Réponse de {agentName}: \"{message}\"",
+    "messageSentTo": "Message envoyé à {agentName}",
+    "contactsDeletedSuccess": "Contacts supprimés avec succès.",
+    "contactsDeletedError": "Échec de la suppression des contacts.",
+    "contactsRecycledSuccess": "Les contacts ont été réinitialisés et sont de nouveau disponibles.",
+    "contactsRecycledError": "Échec du recyclage des contacts."
   },
   "header": {
     "tabs": {
@@ -104,6 +111,7 @@
     "finalize": "Finaliser",
     "noScript": "Cette campagne n'a pas de script associé.",
     "scriptWillBeHere": "Le script s'affichera ici.",
+    "loading": "Chargement de l'interface agent...",
     "selectQualification": "Sélectionner une qualification...",
     "activeCampaigns": "Campagnes Actives",
     "noCampaigns": "Aucune campagne assignée.",
@@ -133,6 +141,12 @@
       "onHold": "Mise en attente",
       "training": "Formation",
       "available": "Disponible"
+    },
+    "feedback": {
+      "activateCampaign": "Veuillez activer une campagne pour commencer à appeler.",
+      "noContactAvailable": "Aucun contact disponible pour {campaignName}.",
+      "errorFetchingContact": "Erreur lors de la recherche de contact.",
+      "mustEndTask": "Veuillez terminer votre tâche actuelle avant de charger un rappel."
     },
     "callNumber": "Appeler {phoneName}",
     "statusManager": {
@@ -191,8 +205,20 @@
   },
   "groupManager": {
     "modal": {
-      "noAgents": "Aucun agent actif disponible."
-    }
+      "noAgents": "Aucun agent actif disponible.",
+      "titleNew": "Nouveau Groupe",
+      "titleEdit": "Modifier le Groupe",
+      "groupName": "Nom du groupe",
+      "members": "Membres du groupe (Agents)"
+    },
+    "title": "Groupes d'agents",
+    "create": "Créer un groupe",
+    "search": "Rechercher par nom de groupe...",
+    "headers": {
+      "name": "Nom du Groupe",
+      "count": "Nombre de Membres"
+    },
+    "noGroups": "Aucun groupe créé."
   },
   "outboundCampaignsManager": {
     "title": "Campagnes",
@@ -433,7 +459,12 @@
         "actions": "Actions"
       },
       "actions": {
-        "contact": "Message pour {agentName} :"
+        "contact": "Message pour {agentName} :",
+        "listen": "Écouter (Whisper)",
+        "barge": "Intervenir (Barge)",
+        "coach": "Coacher",
+        "forcePause": "Forcer la Pause",
+        "forceLogout": "Forcer la Déconnexion"
       },
       "noAgents": "Aucun agent connecté pour le moment."
     }
@@ -454,6 +485,7 @@
     "tabs": {
       "contacts": "Contacts ({count})",
       "dashboard": "Statistiques",
+      "dashboard2": "Analyse Détaillée",
       "settings": "Paramètres"
     },
     "contacts": {

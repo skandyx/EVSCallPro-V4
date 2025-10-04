@@ -329,11 +329,11 @@ const AppContent: React.FC = () => {
                         timestamp: new Date().toISOString()
                     };
                     setNotifications(prev => [newNotification, ...prev]);
-                    showAlert(`L'agent ${event.payload.agentName} demande de l'aide !`, 'info');
+                    showAlert(t('alerts.agentNeedsHelp', { agentName: event.payload.agentName }), 'info');
                 }
                 
                 if (event.type === 'agentResponseMessage') {
-                    showAlert(`Réponse de ${event.payload.agentName}: "${event.payload.message}"`, 'info');
+                    showAlert(t('alerts.agentResponded', { agentName: event.payload.agentName, message: event.payload.message }), 'info');
                 }
             };
 
@@ -346,7 +346,7 @@ const AppContent: React.FC = () => {
                 wsClient.disconnect();
             };
         }
-    }, [currentUser, showAlert]);
+    }, [currentUser, showAlert, t]);
 
 
     const handleLoginSuccess = async ({ user, token }: { user: User, token: string }) => {
@@ -434,9 +434,9 @@ const AppContent: React.FC = () => {
         try {
             await apiClient.post('/contacts/bulk-delete', { contactIds });
             await fetchApplicationData(); 
-            showAlert('Contacts supprimés avec succès.', 'success');
+            showAlert(t('alerts.contactsDeletedSuccess'), 'success');
         } catch (error: any) {
-            const errorMessage = error.response?.data?.error || 'Échec de la suppression des contacts.';
+            const errorMessage = error.response?.data?.error || t('alerts.contactsDeletedError');
             console.error(`Failed to delete contacts:`, error);
             showAlert(errorMessage, 'error');
             throw error;
@@ -447,9 +447,9 @@ const AppContent: React.FC = () => {
         try {
             await apiClient.post(`/campaigns/${campaignId}/recycle`, { qualificationId });
             // The WebSocket event will trigger the data refresh automatically.
-            showAlert('Les contacts ont été réinitialisés et sont de nouveau disponibles.', 'success');
+            showAlert(t('alerts.contactsRecycledSuccess'), 'success');
         } catch (error: any) {
-            const errorMessage = error.response?.data?.error || 'Échec du recyclage des contacts.';
+            const errorMessage = error.response?.data?.error || t('alerts.contactsRecycledError');
             console.error(`Failed to recycle contacts:`, error);
             showAlert(errorMessage, 'error');
             throw error;
@@ -601,9 +601,9 @@ const AppContent: React.FC = () => {
                     from: `${currentUser.firstName} ${currentUser.lastName}`
                 }
             });
-            showAlert(`Message envoyé à ${agentName}`, 'info');
+            showAlert(t('alerts.messageSentTo', { agentName }), 'info');
         }
-    }, [currentUser, showAlert]);
+    }, [currentUser, showAlert, t]);
 
     const currentUserAgentState: AgentState | undefined = useMemo(() => {
         if (!currentUser) return undefined;
@@ -621,7 +621,7 @@ const AppContent: React.FC = () => {
 
 
     if (isLoading) {
-        return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">{t('common.loading')}...</div>;
+        return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200">{t('common.loading')}...</div>;
     }
 
     if (!currentUser) {
@@ -634,7 +634,7 @@ const AppContent: React.FC = () => {
 
     if (currentUser.role === 'Agent') {
         if (!allData.campaigns) {
-             return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">Chargement de l'interface agent...</div>;
+             return <div className="h-screen w-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200">{t('agentView.loading')}</div>;
         }
         return <AgentView 
             currentUser={currentUser} 

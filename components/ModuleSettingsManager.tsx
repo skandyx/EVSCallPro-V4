@@ -9,14 +9,14 @@ interface ModuleSettingsManagerProps {
     onSaveVisibilitySettings: (visibility: ModuleVisibility) => void;
 }
 
-const TOGGLEABLE_CATEGORIES: { name: FeatureCategory; description: string }[] = [
-    { name: 'Agent', description: "Gestion des utilisateurs, groupes et plannings." },
-    { name: 'Outbound', description: "Campagnes d'appels sortants et scripts d'agents." },
-    { name: 'Inbound', description: "Flux d'appels entrants (SVI)." },
-    { name: 'Sound', description: "Bibliothèque de fichiers audio et enregistrements." },
-    { name: 'Configuration', description: "Qualifications d'appel et paramètres avancés." },
-    { name: 'Supervision & Reporting', description: "Dashboards temps réel et rapports analytiques." },
-    { name: 'Système', description: "Monitoring du système et aide." },
+const TOGGLEABLE_CATEGORIES: { name: FeatureCategory; descriptionKey: string }[] = [
+    { name: 'Agent', descriptionKey: 'moduleSettings.descriptions.agent' },
+    { name: 'Outbound', descriptionKey: 'moduleSettings.descriptions.outbound' },
+    { name: 'Inbound', descriptionKey: 'moduleSettings.descriptions.inbound' },
+    { name: 'Sound', descriptionKey: 'moduleSettings.descriptions.sound' },
+    { name: 'Configuration', descriptionKey: 'moduleSettings.descriptions.configuration' },
+    { name: 'Supervision & Reporting', descriptionKey: 'moduleSettings.descriptions.supervision' },
+    { name: 'Système', descriptionKey: 'moduleSettings.descriptions.system' },
 ];
 
 const ToggleSwitch: React.FC<{
@@ -29,7 +29,7 @@ const ToggleSwitch: React.FC<{
         <button
             type="button"
             onClick={() => !disabled && onChange(!enabled)}
-            className={`${enabled ? 'bg-primary' : 'bg-slate-200'} ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`}
+            className={`${enabled ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-600'} ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`}
             role="switch"
             aria-checked={enabled}
             aria-label={label}
@@ -93,41 +93,42 @@ const ModuleSettingsManager: React.FC<ModuleSettingsManagerProps> = ({ feature, 
         <div className="max-w-7xl mx-auto space-y-8">
             <header>
                 {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight">{t(feature.titleKey)}</h1>
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{t(feature.titleKey)}</h1>
                 {/* FIX: Replaced direct property access with translation function 't' and corrected property name. */}
-                <p className="mt-2 text-lg text-slate-600">{t(feature.descriptionKey)}</p>
+                <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">{t(feature.descriptionKey)}</p>
             </header>
 
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-                <h2 className="text-2xl font-semibold text-slate-800 mb-4">Activation des menus et sous-menus</h2>
-                <p className="text-sm text-slate-600 mb-6">
-                    Utilisez les interrupteurs ci-dessous pour afficher ou masquer les catégories principales et leurs sous-menus respectifs dans la barre latérale.
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                <h2 className="text-2xl font-semibold text-slate-800 dark:text-slate-200 mb-4">{t('moduleSettings.title')}</h2>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                    {t('moduleSettings.description')}
                 </p>
 
-                <div className="divide-y divide-slate-200">
-                    {TOGGLEABLE_CATEGORIES.map(({ name, description }) => {
+                <div className="divide-y divide-slate-200 dark:divide-slate-700">
+                    {TOGGLEABLE_CATEGORIES.map(({ name, descriptionKey }) => {
                         const isCategoryEnabled = localVisibility.categories[name] ?? true;
+                        const categoryName = t(`sidebar.categories.${name.replace(/ & /g, '_')}`);
                         return (
                             <div key={name} className="py-4">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="font-semibold text-lg text-slate-900">{name}</p>
-                                        <p className="text-sm text-slate-500">{description}</p>
+                                        <p className="font-semibold text-lg text-slate-900 dark:text-slate-200">{categoryName}</p>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">{t(descriptionKey)}</p>
                                     </div>
                                     <ToggleSwitch
-                                        label={`Activer/Désactiver le module ${name}`}
+                                        label={t('moduleSettings.toggleLabel', { name: categoryName })}
                                         enabled={isCategoryEnabled}
                                         onChange={(isEnabled) => handleLocalChange('category', name, isEnabled)}
                                     />
                                 </div>
-                                <div className="pl-8 pt-4 mt-2 border-t border-slate-200/60 space-y-3">
+                                <div className="pl-8 pt-4 mt-2 border-t border-slate-200/60 dark:border-slate-700/60 space-y-3">
                                     {featuresByCategory[name]?.map(subFeature => (
                                         <div key={subFeature.id} className="flex items-center justify-between">
                                             {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
-                                            <p className={`font-medium text-sm ${isCategoryEnabled ? 'text-slate-700' : 'text-slate-400'}`}>{t(subFeature.titleKey)}</p>
+                                            <p className={`font-medium text-sm ${isCategoryEnabled ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500'}`}>{t(subFeature.titleKey)}</p>
                                             <ToggleSwitch
                                                 // FIX: Replaced direct property access with translation function 't' to use i18n keys.
-                                                label={`Activer/Désactiver le sous-menu ${t(subFeature.titleKey)}`}
+                                                label={t('moduleSettings.toggleLabel', { name: t(subFeature.titleKey) })}
                                                 enabled={localVisibility.features[subFeature.id] ?? true}
                                                 onChange={(isEnabled) => handleLocalChange('feature', subFeature.id, isEnabled)}
                                                 disabled={!isCategoryEnabled}
@@ -141,27 +142,27 @@ const ModuleSettingsManager: React.FC<ModuleSettingsManagerProps> = ({ feature, 
                      <div className="py-4">
                         <div className="flex items-center justify-between">
                              <div>
-                                <p className="font-semibold text-lg text-slate-900">Paramètres</p>
-                                <p className="text-sm text-slate-500">Configuration technique et gestion des modules.</p>
+                                <p className="font-semibold text-lg text-slate-900 dark:text-slate-200">{t('sidebar.categories.Paramètres')}</p>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">{t('moduleSettings.descriptions.settings')}</p>
                             </div>
                             <ToggleSwitch
-                                label="Module Paramètres"
+                                label={t('sidebar.categories.Paramètres')}
                                 enabled={true}
                                 onChange={() => {}}
                                 disabled={true}
                             />
                         </div>
-                         <div className="pl-8 pt-4 mt-2 border-t border-slate-200/60 space-y-3">
+                         <div className="pl-8 pt-4 mt-2 border-t border-slate-200/60 dark:border-slate-700/60 space-y-3">
                             {featuresByCategory['Paramètres']?.map(subFeature => {
                                 const isParametresEnabled = localVisibility.categories['Paramètres'] ?? true;
                                 const isSubFeatureDisabled = !isParametresEnabled || subFeature.id === 'module-settings';
                                 return (
                                  <div key={subFeature.id} className="flex items-center justify-between">
                                     {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
-                                    <p className={`font-medium text-sm ${!isSubFeatureDisabled ? 'text-slate-700' : 'text-slate-400'}`}>{t(subFeature.titleKey)}</p>
+                                    <p className={`font-medium text-sm ${!isSubFeatureDisabled ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500'}`}>{t(subFeature.titleKey)}</p>
                                     <ToggleSwitch
                                         // FIX: Replaced direct property access with translation function 't' to use i18n keys.
-                                        label={`Activer/Désactiver le sous-menu ${t(subFeature.titleKey)}`}
+                                        label={t('moduleSettings.toggleLabel', { name: t(subFeature.titleKey) })}
                                         enabled={localVisibility.features[subFeature.id] ?? true}
                                         onChange={(isEnabled) => handleLocalChange('feature', subFeature.id, isEnabled)}
                                         disabled={isSubFeatureDisabled}
@@ -173,14 +174,14 @@ const ModuleSettingsManager: React.FC<ModuleSettingsManagerProps> = ({ feature, 
                      </div>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-slate-200 flex justify-end items-center">
-                    {showSuccess && <span className="text-green-600 font-semibold mr-4 transition-opacity duration-300">Enregistré avec succès !</span>}
+                <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700 flex justify-end items-center">
+                    {showSuccess && <span className="text-green-600 dark:text-green-400 font-semibold mr-4 transition-opacity duration-300">{t('moduleSettings.saveSuccess')}</span>}
                     <button
                         onClick={handleSave}
                         disabled={!isDirty}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors"
+                        className="bg-primary hover:bg-primary-hover text-primary-text font-bold py-2 px-4 rounded-lg shadow-md disabled:bg-indigo-400 disabled:cursor-not-allowed transition-colors"
                     >
-                        Enregistrer les modifications
+                        {t('moduleSettings.saveButton')}
                     </button>
                 </div>
             </div>

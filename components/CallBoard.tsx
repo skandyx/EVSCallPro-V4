@@ -27,33 +27,33 @@ const CallBoard: React.FC<CallBoardProps> = ({ calls, agents, campaigns }) => {
 
     return (
         <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
+            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
+                <thead className="bg-slate-50 dark:bg-slate-700">
                     <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Appelant</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Agent</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Campagne</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase">Durée</th>
-                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-500 uppercase">Actions</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Appelant</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Agent</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Campagne</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Durée</th>
+                        <th className="px-4 py-2 text-center text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Actions</th>
                     </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-slate-200 text-sm">
+                <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700 text-sm">
                     {calls.map(call => (
                         <tr key={call.id}>
-                            <td className="px-4 py-3 font-mono text-slate-600">{call.from}</td>
-                            <td className="px-4 py-3 font-medium text-slate-800">{findEntityName(call.agentId, agents)}</td>
-                            <td className="px-4 py-3 text-slate-600">{findEntityName(call.campaignId, campaigns)}</td>
-                            <td className="px-4 py-3 font-mono text-slate-600">{formatDuration(call.duration)}</td>
+                            <td className="px-4 py-3 font-mono text-slate-600 dark:text-slate-400">{call.from}</td>
+                            <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{findEntityName(call.agentId, agents)}</td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{findEntityName(call.campaignId, campaigns)}</td>
+                            <td className="px-4 py-3 font-mono text-slate-600 dark:text-slate-400">{formatDuration(call.duration)}</td>
                             <td className="px-4 py-3 text-center space-x-1">
-                                <button onClick={() => handleAction('Monitorer', call.id)} title="Monitorer l'appel" className="p-1 rounded-md text-slate-500 hover:bg-slate-100"><EyeIcon className="w-4 h-4"/></button>
-                                <button onClick={() => handleAction('Transférer', call.id)} title="Transférer l'appel" className="p-1 rounded-md text-slate-500 hover:bg-slate-100"><ArrowRightIcon className="w-4 h-4"/></button>
-                                <button onClick={() => handleAction('Raccrocher', call.id)} title="Raccrocher l'appel" className="p-1 rounded-md text-red-500 hover:bg-red-100"><PhoneXMarkIcon className="w-4 h-4"/></button>
+                                <button onClick={() => handleAction('Monitorer', call.id)} title="Monitorer l'appel" className="p-1 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><EyeIcon className="w-4 h-4"/></button>
+                                <button onClick={() => handleAction('Transférer', call.id)} title="Transférer l'appel" className="p-1 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowRightIcon className="w-4 h-4"/></button>
+                                <button onClick={() => handleAction('Raccrocher', call.id)} title="Raccrocher l'appel" className="p-1 rounded-md text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50"><PhoneXMarkIcon className="w-4 h-4"/></button>
                             </td>
                         </tr>
                     ))}
                 </tbody>
             </table>
-            {calls.length === 0 && <p className="text-center py-8 text-slate-500">Aucun appel actif pour le moment.</p>}
+            {calls.length === 0 && <p className="text-center py-8 text-slate-500 dark:text-slate-400">Aucun appel actif pour le moment.</p>}
         </div>
     );
 };

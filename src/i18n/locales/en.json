@@ -40,7 +40,14 @@
     "contactImportError": "Error while importing contacts.",
     "passwordUpdateSuccess": "Password updated successfully.",
     "profilePictureUpdateSuccess": "Profile picture updated.",
-    "updateError": "Update failed."
+    "updateError": "Update failed.",
+    "agentNeedsHelp": "Agent {agentName} needs help!",
+    "agentResponded": "Response from {agentName}: \"{message}\"",
+    "messageSentTo": "Message sent to {agentName}",
+    "contactsDeletedSuccess": "Contacts deleted successfully.",
+    "contactsDeletedError": "Failed to delete contacts.",
+    "contactsRecycledSuccess": "Contacts have been reset and are available again.",
+    "contactsRecycledError": "Failed to recycle contacts."
   },
   "header": {
     "tabs": {
@@ -95,6 +102,7 @@
     "nextCall": "Next Call",
     "searching": "Searching...",
     "callControls": "Call Controls",
+    "call": "Call",
     "endCall": "End Call",
     "qualifyContact": "Qualify Contact",
     "hold": "Hold",
@@ -103,6 +111,7 @@
     "finalize": "Finalize",
     "noScript": "This campaign has no associated script.",
     "scriptWillBeHere": "The script will be displayed here.",
+    "loading": "Loading agent interface...",
     "selectQualification": "Select a qualification...",
     "activeCampaigns": "Active Campaigns",
     "noCampaigns": "No assigned campaigns.",
@@ -132,6 +141,12 @@
       "onHold": "On Hold",
       "training": "Training",
       "available": "Available"
+    },
+    "feedback": {
+      "activateCampaign": "Please activate a campaign to start calling.",
+      "noContactAvailable": "No contact available for {campaignName}.",
+      "errorFetchingContact": "Error while fetching contact.",
+      "mustEndTask": "Please finish your current task before loading a callback."
     },
     "callNumber": "Call {phoneName}",
     "statusManager": {
@@ -190,8 +205,20 @@
   },
   "groupManager": {
     "modal": {
-      "noAgents": "No active agents available."
-    }
+      "noAgents": "No active agents available.",
+      "titleNew": "New Group",
+      "titleEdit": "Edit Group",
+      "groupName": "Group name",
+      "members": "Group Members (Agents)"
+    },
+    "title": "Agent Groups",
+    "create": "Create Group",
+    "search": "Search by group name...",
+    "headers": {
+      "name": "Group Name",
+      "count": "Member Count"
+    },
+    "noGroups": "No groups created."
   },
   "outboundCampaignsManager": {
     "title": "Campaigns",
@@ -453,6 +480,7 @@
     "tabs": {
       "contacts": "Contacts ({count})",
       "dashboard": "Dashboard",
+      "dashboard2": "Detailed Analysis",
       "settings": "Settings"
     },
     "contacts": {
@@ -735,14 +763,14 @@
       "validationErrorActivity": "Please select a new activity."
     },
     "legend": {
-        "title": "Legend & Actions",
-        "selectAll": "Select All"
+      "title": "Legend & Actions",
+      "selectAll": "Select All"
     },
     "actions": {
-        "selection": "Selection: {count} agent(s)",
-        "massEdit": "Mass Edit",
-        "massDelete": "Mass Delete",
-        "confirmDelete": "Are you sure you want to delete {eventCount} event(s) for the {userCount} selected user(s) this week?"
+      "selection": "Selection: {count} agent(s)",
+      "massEdit": "Mass Edit",
+      "massDelete": "Mass Delete",
+      "confirmDelete": "Are you sure you want to delete {eventCount} event(s) for the {userCount} selected user(s) this week?"
     },
     "clearAllButton": "Clear Schedule",
     "clearAllConfirm": "Are you sure you want to PERMANENTLY delete all schedule events for ALL users? This action is irreversible.",
@@ -758,13 +786,13 @@
     "saturday": "Saturday",
     "sunday": "Sunday",
     "short": {
-        "monday": "M",
-        "tuesday": "T",
-        "wednesday": "W",
-        "thursday": "T",
-        "friday": "F",
-        "saturday": "S",
-        "sunday": "S"
+      "monday": "M",
+      "tuesday": "T",
+      "wednesday": "W",
+      "thursday": "T",
+      "friday": "F",
+      "saturday": "S",
+      "sunday": "S"
     }
   },
   "features": {

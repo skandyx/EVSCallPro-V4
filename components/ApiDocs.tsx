@@ -12,20 +12,20 @@ const ApiDocs: React.FC<ApiDocsProps> = ({ feature }) => {
     return (
         <div className="h-full w-full flex flex-col">
             <header className="flex-shrink-0 mb-8">
-                <h1 className="text-4xl font-bold text-slate-900 tracking-tight flex items-center">
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center">
                     <ServerStackIcon className="w-9 h-9 mr-3 text-indigo-600"/>
                     {/* FIX: Replaced direct property access with translation function 't' to use i18n keys. */}
                     {t(feature.titleKey)}
                 </h1>
-                <p className="mt-2 text-lg text-slate-600">
-                    Cette page fournit une documentation interactive générée automatiquement pour l'API backend. Vous pouvez explorer, tester et comprendre chaque endpoint directement depuis cette interface.
+                <p className="mt-2 text-lg text-slate-600 dark:text-slate-400">
+                    {t('apiDocs.description')}
                 </p>
             </header>
             
-            <div className="flex-1 w-full border border-slate-300 rounded-lg shadow-inner">
+            <div className="flex-1 w-full border border-slate-300 dark:border-slate-700 rounded-lg shadow-inner">
                 <iframe
                     src="/api/docs"
-                    title="Documentation API Interactive (Swagger UI)"
+                    title={t('apiDocs.iframeTitle')}
                     className="w-full h-full border-0 rounded-lg"
                 />
             </div>
