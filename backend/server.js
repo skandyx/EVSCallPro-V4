@@ -242,11 +242,11 @@ app.get('/api/application-data', async (req, res) => {
         };
         
         const appSettings = {
-            companyAddress: envConfig.COMPANY_ADDRESS || 'Your Company\n123 Main Street\n12345 City, Country',
+            companyAddress: (envConfig.COMPANY_ADDRESS || 'Your Company\\n123 Main Street\\n75001 Paris, France').replace(/"/g, '').replace(/\\n/g, '\n'),
             appLogoDataUrl: envConfig.APP_LOGO_DATA_URL || '',
             appFaviconDataUrl: envConfig.APP_FAVICON_DATA_URL || '',
             colorPalette: envConfig.COLOR_PALETTE || 'default',
-            appName: envConfig.APP_NAME || 'Architecte de Solutions',
+            appName: (envConfig.APP_NAME || 'Architecte de Solutions').replace(/"/g, ''),
             defaultLanguage: envConfig.DEFAULT_LANGUAGE || 'fr',
         };
 

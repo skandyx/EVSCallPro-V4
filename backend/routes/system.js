@@ -403,11 +403,11 @@ router.put('/app-settings', isSuperAdmin, async (req, res) => {
         const envPath = path.join(__dirname, '..', '.env');
         let envContent = await fs.readFile(envPath, 'utf-8');
         const updates = {
-            COMPANY_ADDRESS: settings.companyAddress,
+            COMPANY_ADDRESS: `"${settings.companyAddress.replace(/\n/g, '\\n')}"`, // Handle newlines
             APP_LOGO_DATA_URL: settings.appLogoDataUrl,
             APP_FAVICON_DATA_URL: settings.appFaviconDataUrl,
             COLOR_PALETTE: settings.colorPalette,
-            APP_NAME: settings.appName,
+            APP_NAME: `"${settings.appName}"`, // Wrap in quotes to handle spaces
             DEFAULT_LANGUAGE: settings.defaultLanguage,
         };
 
