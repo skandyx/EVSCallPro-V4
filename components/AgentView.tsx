@@ -266,14 +266,11 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     
     const handleWrapUp = useCallback(async () => {
         await refreshData();
-        
-        setCurrentContact(null);
         setCurrentCampaign(null);
         setActiveScript(null);
         setSelectedQual(null);
         setNewNote('');
         setActiveCallbackId(null);
-        
         onStatusChange('En Attente');
     }, [onStatusChange, refreshData]);
 
@@ -356,7 +353,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             alert("Veuillez sélectionner une qualification avant de finaliser.");
             return;
         }
-        if (selectedQual === 'std-94') {
+        if (selectedQual === 'std-94') { // Rappel Personnel
             setIsCallbackModalOpen(true);
             return;
         }
@@ -372,6 +369,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
             }
             
+            setCurrentContact(null);
             onStatusChange('En Post-Appel');
 
         } catch (error) {
@@ -390,6 +388,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             }
             setIsCallbackModalOpen(false); 
             
+            setCurrentContact(null);
             onStatusChange('En Post-Appel');
 
         } catch (error) { console.error("Failed to schedule callback:", error); alert("Une erreur est survenue."); }
