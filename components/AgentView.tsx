@@ -344,7 +344,8 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             if (activeCallbackId) {
                  await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
             }
-            setIsCallbackModalOpen(false); refreshData();
+            setIsCallbackModalOpen(false); 
+            await refreshData();
             if (currentCampaign.wrapUpTime === 0) handleWrapUp();
             else onStatusChange('En Post-Appel');
         } catch (error) { console.error("Failed to schedule callback:", error); alert("Une erreur est survenue."); }
