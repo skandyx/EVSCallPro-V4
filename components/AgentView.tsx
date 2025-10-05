@@ -168,6 +168,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const [activeCallbackId, setActiveCallbackId] = useState<string | null>(null);
 
     const status = agentState?.status || 'Déconnecté';
+    const wrapUpTimerRef = useRef<number | null>(null);
     
     const assignedCampaigns = useMemo(() => currentUser.campaignIds.map(id => data.campaigns.find(c => c.id === id && c.isActive)).filter((c): c is Campaign => !!c), [currentUser.campaignIds, data.campaigns]);
     
@@ -198,21 +199,27 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const qualificationsForCampaign = useMemo(() => {
         if (!currentCampaign || !data.qualifications) return [];
         const groupId = currentCampaign.qualificationGroupId;
+        const qualMap = new Map<string, Qualification>();
+
+        // Always add standard system qualifications
+        data.qualifications.forEach(q => {
+            if (q.id.startsWith('std-')) {
+                qualMap.set(q.id, q);
+            }
+        });
+
+        // Add qualifications from the campaign's specific group
+        if (groupId) {
+            data.qualifications.forEach(q => {
+                if (q.groupId === groupId) {
+                    qualMap.set(q.id, q);
+                }
+            });
+        }
         
-        // Qualifications from the campaign's assigned group
-        const groupQuals = groupId 
-            ? data.qualifications.filter(q => q.groupId === groupId)
-            : [];
-            
-        // Standard qualifications. Treat any qual with ID "std-*" as standard to overcome seed data issue.
-        const standardQuals = data.qualifications.filter(q => q.id.startsWith('std-'));
-    
-        // Combine, ensuring no duplicates
-        const combined = [...standardQuals, ...groupQuals];
-        const uniqueQuals = Array.from(new Map(combined.map(item => [item.id, item])).values());
-        
-        return uniqueQuals.sort((a,b) => parseInt(a.code) - parseInt(b.code));
+        return Array.from(qualMap.values()).sort((a,b) => parseInt(a.code) - parseInt(b.code));
     }, [currentCampaign, data.qualifications]);
+
 
     useEffect(() => {
         if (assignedCampaigns.length > 0 && !activeDialingCampaignId) {
@@ -258,16 +265,16 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     }, [data.campaigns, currentContact, currentCampaign]);
     
     const handleWrapUp = useCallback(async () => {
-        // Clear local state related to the contact
+        // Refresh all application data FIRST to ensure the next state is based on fresh data.
+        await refreshData();
+        
+        // NOW clear local state related to the finished contact.
         setCurrentContact(null);
         setCurrentCampaign(null);
         setActiveScript(null);
         setSelectedQual(null);
         setNewNote('');
         setActiveCallbackId(null);
-        
-        // Refresh all application data to ensure we have the latest state for contacts, campaigns, etc.
-        await refreshData();
         
         // After data is fresh, change status to 'En Attente', which will trigger the request for the next contact.
         onStatusChange('En Attente');
@@ -314,13 +321,25 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     }, [status, currentContact, isLoadingNextContact, activeDialingCampaignId, requestNextContact]);
 
     useEffect(() => {
-        let wrapUpTimerId: ReturnType<typeof setTimeout>;
-        if (status === 'En Post-Appel' && currentCampaign) {
-            const wrapUpTime = currentCampaign.wrapUpTime || 0;
-            // Use the async version of handleWrapUp
-            wrapUpTimerId = setTimeout(() => handleWrapUp(), wrapUpTime * 1000);
+        if (wrapUpTimerRef.current) {
+            clearTimeout(wrapUpTimerRef.current);
+            wrapUpTimerRef.current = null;
         }
-        return () => clearTimeout(wrapUpTimerId);
+
+        if (status === 'En Post-Appel' && currentCampaign) {
+            const wrapUpTime = currentCampaign.wrapUpTime ?? 0;
+            if (wrapUpTime > 0) {
+                wrapUpTimerRef.current = window.setTimeout(handleWrapUp, wrapUpTime * 1000);
+            } else {
+                handleWrapUp();
+            }
+        }
+        
+        return () => {
+            if (wrapUpTimerRef.current) {
+                clearTimeout(wrapUpTimerRef.current);
+            }
+        };
     }, [status, currentCampaign, handleWrapUp]);
 
     const handleDial = async (destination: string) => {
@@ -356,7 +375,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
             }
             
-            // Just change status. The useEffect hooks will handle the rest.
             onStatusChange('En Post-Appel');
 
         } catch (error) {
@@ -375,7 +393,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             }
             setIsCallbackModalOpen(false); 
             
-            // Change status to trigger the wrap-up flow
             onStatusChange('En Post-Appel');
 
         } catch (error) { console.error("Failed to schedule callback:", error); alert("Une erreur est survenue."); }
