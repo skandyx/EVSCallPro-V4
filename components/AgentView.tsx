@@ -198,8 +198,20 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const qualificationsForCampaign = useMemo(() => {
         if (!currentCampaign || !data.qualifications) return [];
         const groupId = currentCampaign.qualificationGroupId;
-        if (!groupId) return data.qualifications.filter(q => q.isStandard);
-        return data.qualifications.filter(q => q.isStandard || q.groupId === groupId);
+        
+        // Qualifications from the campaign's assigned group
+        const groupQuals = groupId 
+            ? data.qualifications.filter(q => q.groupId === groupId)
+            : [];
+            
+        // Standard qualifications. Treat any qual with ID "std-*" as standard to overcome seed data issue.
+        const standardQuals = data.qualifications.filter(q => q.id.startsWith('std-'));
+    
+        // Combine, ensuring no duplicates
+        const combined = [...standardQuals, ...groupQuals];
+        const uniqueQuals = Array.from(new Map(combined.map(item => [item.id, item])).values());
+        
+        return uniqueQuals.sort((a,b) => parseInt(a.code) - parseInt(b.code));
     }, [currentCampaign, data.qualifications]);
 
     useEffect(() => {
@@ -244,6 +256,22 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             }
         }
     }, [data.campaigns, currentContact, currentCampaign]);
+    
+    const handleWrapUp = useCallback(async () => {
+        // Clear local state related to the contact
+        setCurrentContact(null);
+        setCurrentCampaign(null);
+        setActiveScript(null);
+        setSelectedQual(null);
+        setNewNote('');
+        setActiveCallbackId(null);
+        
+        // Refresh all application data to ensure we have the latest state for contacts, campaigns, etc.
+        await refreshData();
+        
+        // After data is fresh, change status to 'En Attente', which will trigger the request for the next contact.
+        onStatusChange('En Attente');
+    }, [onStatusChange, refreshData]);
 
     const requestNextContact = useCallback(async () => {
         if (isLoadingNextContact || status !== 'En Attente') return;
@@ -274,21 +302,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             setIsLoadingNextContact(false);
         }
     }, [currentUser.id, data.savedScripts, data.campaigns, isLoadingNextContact, status, activeDialingCampaignId, onStatusChange]);
-
-    const handleWrapUp = useCallback(() => {
-        // Clear current contact info and set status to 'En Attente'.
-        // The new useEffect hook will handle fetching the next contact automatically.
-        setCurrentContact(null);
-        setCurrentCampaign(null);
-        setActiveScript(null);
-        setSelectedQual(null);
-        setNewNote('');
-        setActiveCallbackId(null);
-        onStatusChange('En Attente');
-    }, [onStatusChange]);
     
-    // FIX: New effect to automate the "next call" process. When the agent is available,
-    // the system automatically searches for the next contact without requiring a button click.
     useEffect(() => {
         // Automatically fetch next contact when agent is waiting and has an active dialing campaign.
         if (status === 'En Attente' && !currentContact && !isLoadingNextContact && activeDialingCampaignId) {
@@ -302,10 +316,9 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     useEffect(() => {
         let wrapUpTimerId: ReturnType<typeof setTimeout>;
         if (status === 'En Post-Appel' && currentCampaign) {
-            const wrapUpTime = currentCampaign.wrapUpTime;
-            if(wrapUpTime > 0) {
-                 wrapUpTimerId = setTimeout(() => handleWrapUp(), wrapUpTime * 1000);
-            }
+            const wrapUpTime = currentCampaign.wrapUpTime || 0;
+            // Use the async version of handleWrapUp
+            wrapUpTimerId = setTimeout(() => handleWrapUp(), wrapUpTime * 1000);
         }
         return () => clearTimeout(wrapUpTimerId);
     }, [status, currentCampaign, handleWrapUp]);
@@ -323,17 +336,33 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     };
 
     const handleEndCall = async () => {
-        if (!selectedQual || !currentContact || !currentCampaign) { alert("Veuillez sélectionner une qualification avant de finaliser."); return; }
-        if (selectedQual === 'std-94') { setIsCallbackModalOpen(true); return; }
+        if (!selectedQual || !currentContact || !currentCampaign) {
+            alert("Veuillez sélectionner une qualification avant de finaliser.");
+            return;
+        }
+        if (selectedQual === 'std-94') {
+            setIsCallbackModalOpen(true);
+            return;
+        }
+
         try {
-            await apiClient.post(`/contacts/${currentContact.id}/qualify`, { qualificationId: selectedQual, campaignId: currentCampaign.id, agentId: currentUser.id });
+            await apiClient.post(`/contacts/${currentContact.id}/qualify`, {
+                qualificationId: selectedQual,
+                campaignId: currentCampaign.id,
+                agentId: currentUser.id
+            });
+
             if (activeCallbackId) {
                 await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
             }
-            await refreshData();
-            if (currentCampaign.wrapUpTime === 0) handleWrapUp();
-            else onStatusChange('En Post-Appel');
-        } catch (error) { console.error("Failed to qualify contact:", error); alert("Erreur lors de la qualification."); }
+            
+            // Just change status. The useEffect hooks will handle the rest.
+            onStatusChange('En Post-Appel');
+
+        } catch (error) {
+            console.error("Failed to qualify contact:", error);
+            alert("Erreur lors de la qualification.");
+        }
     };
 
     const handleScheduleAndEndCall = async (scheduledTime: string, notes: string) => {
@@ -345,9 +374,10 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                  await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
             }
             setIsCallbackModalOpen(false); 
-            await refreshData();
-            if (currentCampaign.wrapUpTime === 0) handleWrapUp();
-            else onStatusChange('En Post-Appel');
+            
+            // Change status to trigger the wrap-up flow
+            onStatusChange('En Post-Appel');
+
         } catch (error) { console.error("Failed to schedule callback:", error); alert("Une erreur est survenue."); }
     };
     
