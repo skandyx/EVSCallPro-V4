@@ -20,7 +20,7 @@ const I18nContext = createContext<I18nContextType>({
 export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [language, setLanguageState] = useState(() => {
         const savedLang = localStorage.getItem('language');
-        return savedLang && ['fr', 'en'].includes(savedLang) ? savedLang : 'en';
+        return savedLang && ['fr', 'en', 'ar'].includes(savedLang) ? savedLang : 'en';
     });
 
     useEffect(() => {
@@ -29,7 +29,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [language]);
 
     const setLanguage = useCallback((lang: string) => {
-        if (['fr', 'en'].includes(lang)) {
+        if (['fr', 'en', 'ar'].includes(lang)) {
             setLanguageState(lang);
         }
     }, []);

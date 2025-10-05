@@ -543,9 +543,7 @@
         },
         "recycleButton": "Recycle"
       }
-    },
-    "export": "Export",
-    "noDataToExport": "No processed data to export."
+    }
   },
   "qualifications": {
     "types": {
@@ -835,108 +833,110 @@
   },
   "features": {
     "users": {
-      "title": "المستخدمون",
-      "description": "إدارة حسابات المستخدمين وأدوارهم وأذوناتهم."
+      "title": "Users",
+      "description": "Manage employee accounts, their roles, and permissions."
     },
     "groups": {
-      "title": "المجموعات",
-      "description": "إنشاء مجموعات وكلاء لإدارة وتوجيه مبسط."
+      "title": "Groups",
+      "description": "Create agent groups for simplified management and call routing."
     },
     "planning": {
-      "title": "الجداول",
-      "description": "إنشاء وإدارة جداول الوكلاء الأسبوعية وأنشطتهم."
+      "title": "Planning",
+      "description": "Manage weekly agent schedules and their different activities."
     },
     "outbound": {
-      "title": "الحملات الصادرة",
-      "description": "إنشاء وإدارة حملات المكالمات الصادرة باستراتيجيات اتصال متقدمة."
+      "title": "Outbound Campaigns",
+      "description": "Create and manage outbound call campaigns with advanced calling strategies."
     },
     "scripts": {
-      "title": "نصوص الوكيل",
-      "description": "بناء أدلة مكالمات تفاعلية لوكلائك باستخدام محرر مرئي."
+      "title": "Agent Scripts",
+      "description": "Build interactive call guides for your agents with a visual editor."
     },
     "ivr": {
-      "title": "تدفقات IVR",
-      "description": "تصميم تدفقات المكالمات الواردة المعقدة باستخدام مصمم رسومي."
+      "title": "IVR Flows",
+      "description": "Design complex inbound call journeys with a graphical designer."
     },
     "audio": {
-      "title": "مكتبة الوسائط",
-      "description": "استيراد وإدارة الرسائل الصوتية لـ IVRs وموسيقى الانتظار."
+      "title": "Media Library",
+      "description": "Import and manage audio files for IVRs and hold music."
     },
     "records": {
-      "title": "التسجيلات",
-      "description": "الاستماع وتنزيل وأرشفة تسجيلات المكالمات للجودة والامتثال."
+      "title": "Recordings",
+      "description": "Listen to, download, and archive call recordings for quality and compliance."
     },
     "qualifications": {
-      "title": "مؤهلات المكالمات",
-      "description": "تحديد حالات نهاية المكالمة للتقارير واستراتيجيات إعادة المحاولة."
+      "title": "Call Qualifications",
+      "description": "Define call ending statuses for reporting and callback strategies."
     },
     "supervision": {
-      "title": "الإشراف في الوقت الحقيقي",
-      "description": "عرض نشاط مركز الاتصال الخاص بك مباشرة والتفاعل مع الوكلاء."
+      "title": "Real-Time Supervision",
+      "description": "View your contact center activity live and interact with agents."
     },
     "reporting": {
-      "title": "التقارير والتحليلات",
-      "description": "استكشاف البيانات التاريخية وإنشاء تقارير مخصصة وتصدير النتائج."
+      "title": "Reports & Analytics",
+      "description": "Explore historical data, create custom reports, and export results."
     },
     "history": {
-      "title": "سجل المكالمات",
-      "description": "استشارة وتصفية وبحث في السجل المفصل لجميع المكالمات الواردة والصادرة."
+      "title": "Call History",
+      "description": "View, filter, and search the detailed log of all inbound and outbound calls."
     },
     "sessions": {
-      "title": "تسجيل دخول/خروج الوكيل",
-      "description": "استشارة السجل المفصل لاتصالات الوكلاء وانقطاعاتهم وأوقات عملهم."
+      "title": "Agent Login/Logout",
+      "description": "View the detailed log of agent connections, disconnections, and work times."
     },
     "trunks": {
-      "title": "خطوط SIP",
-      "description": "ربط مشغلي الهاتف للمكالمات الواردة والصادرة."
+      "title": "SIP Trunks",
+      "description": "Connect your telephone carriers for inbound and outbound calls."
     },
     "dids": {
-      "title": "الأرقام (DIDs)",
-      "description": "إدارة أرقام الهواتف الواردة وتوجيهها الأولي."
+      "title": "Numbers (DIDs)",
+      "description": "Manage your inbound phone numbers and their initial routing."
     },
     "sites-config": {
-      "title": "تكوين الموقع",
-      "description": "إدارة المواقع المادية المختلفة لتوجيه المكالمات الصادرة."
+      "title": "Site Configuration",
+      "description": "Manage different physical sites for outbound call routing."
     },
     "module-settings": {
-      "title": "إدارة الوحدات",
-      "description": "تمكين أو تعطيل القوائم لأدوار المسؤول والمشرف."
+      "title": "Module Management",
+      "description": "Enable or disable menus for administrator and supervisor roles."
     },
     "languages": {
-      "title": "اللغات",
-      "description": "إدارة اللغات المتاحة في التطبيق.",
+      "title": "Languages",
+      "description": "Manage the available languages in the application.",
       "userJourney": {
-        "title": "رحلة المستخدم: تغيير لغة الواجهة",
+        "title": "User Journey: Changing Interface Language",
         "steps": [
-          "ينقر المستخدم على محدد اللغة في الرأس.",
-          "يختار 'العربية' من القائمة المنسدلة.",
-          "تتم ترجمة الواجهة بأكملها على الفور إلى اللغة العربية."
+          "The user changes the language via the selector in the header for an instantly translated experience."
         ]
       },
       "simplificationTip": {
-        "title": "نصيحة",
-        "content": "هذه الوحدة هي عنصر نائب. تتم إدارة اللغة النشطة عبر المحدد في الرأس للوصول السريع."
+        "title": "Tip",
+        "content": "This module is a placeholder. The active language is managed via the selector in the header for quick access."
       }
     },
     "database-client": {
-      "title": "قاعدة البيانات",
-      "description": "تنفيذ استعلامات SQL مباشرة على قاعدة البيانات لتصحيح الأخطاء والتقارير المتقدمة."
+      "title": "Database",
+      "description": "Execute SQL queries directly on the database for debugging and advanced reporting."
     },
     "system-connection": {
-      "title": "اتصال النظام",
-      "description": "تكوين الاتصالات بقاعدة البيانات وخادم телефония Asterisk."
+      "title": "System Connection",
+      "description": "Configure connections to the database and the Asterisk telephony server."
+    },
+    "maintenance": {
+        "title": "Maintenance",
+        "description": "Manage backups, restores, and overall system health."
     },
     "api-docs": {
-      "title": "وثائق API",
-      "description": "استشارة وثائق API الكاملة للتكامل والتطوير."
+      "title": "API Documentation",
+      "description": "View the complete API documentation for integration and development."
     },
     "billing": {
-      "title": "الفواتير",
-      "description": "إدارة الاشتراكات وعرض سجل الفواتير."
+      "title": "Billing",
+      "description": "Manage subscriptions and view billing history."
     },
     "system-settings": {
-      "title": "النظام",
-      "description": "تكوين إعدادات النظام منخفضة المستوى ، مثل إرسال البريد الإلكتروني."
+      "title": "System",
+      "description": "Configure low-level system settings, such as email sending."
     }
   }
 }

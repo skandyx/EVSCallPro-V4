@@ -68,14 +68,23 @@ const ThemeSwitcher: React.FC<{ theme: Theme; setTheme: (theme: Theme) => void; 
 const LanguageSwitcher: React.FC = () => {
     const { language, setLanguage } = useI18n();
     const [isOpen, setIsOpen] = useState(false);
-    const languages = [{ code: 'fr', name: 'Français' }, { code: 'en', name: 'English' }];
+    const languages = [
+        { code: 'fr', name: 'Français' },
+        { code: 'en', name: 'English' },
+        { code: 'ar', name: 'العربية' },
+    ];
     const toggleDropdown = () => setIsOpen(!isOpen);
     useEffect(() => {
         const close = () => setIsOpen(false);
         if (isOpen) window.addEventListener('click', close);
         return () => window.removeEventListener('click', close);
     }, [isOpen]);
-    const getFlagSrc = (code: string) => code === 'fr' ? '/fr-flag.svg' : '/en-flag.svg';
+    const getFlagSrc = (code: string) => {
+        if (code === 'fr') return '/fr-flag.svg';
+        if (code === 'en') return '/en-flag.svg';
+        if (code === 'ar') return '/sa-flag.svg';
+        return '';
+    };
 
     return <div className="relative"><button onClick={(e) => { e.stopPropagation(); toggleDropdown(); }} className="flex items-center p-1 space-x-2 bg-slate-100 dark:bg-slate-700 rounded-full text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600"><span className="w-6 h-6 rounded-full overflow-hidden"><img src={getFlagSrc(language)} alt={language} className="w-full h-full object-cover" /></span><span className="hidden sm:inline">{language.toUpperCase()}</span><ChevronDownIcon className="w-4 h-4 text-slate-500 dark:text-slate-400 mr-1" /></button>{isOpen && <div className="absolute right-0 mt-2 w-36 origin-top-right bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-20"><div className="py-1">{languages.map(lang => <button key={lang.code} onClick={() => { setLanguage(lang.code); setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"><img src={getFlagSrc(lang.code)} alt={lang.name} className="w-5 h-auto rounded-sm" />{lang.name}</button>)}</div></div>}</div>;
 }

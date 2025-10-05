@@ -170,11 +170,6 @@ const AppContent: React.FC = () => {
         root.classList.toggle('dark', isDark);
         localStorage.setItem('theme', theme);
     }, [theme]);
-
-    useEffect(() => {
-        const root = window.document.documentElement;
-        root.dir = language === 'ar' ? 'rtl' : 'ltr';
-    }, [language]);
     
     // Effect to listen to system theme changes when in 'system' mode
     useEffect(() => {
