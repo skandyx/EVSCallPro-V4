@@ -68,23 +68,14 @@ const ThemeSwitcher: React.FC<{ theme: Theme; setTheme: (theme: Theme) => void; 
 const LanguageSwitcher: React.FC = () => {
     const { language, setLanguage } = useI18n();
     const [isOpen, setIsOpen] = useState(false);
-    const languages = [
-        { code: 'fr', name: 'Français' },
-        { code: 'en', name: 'English' },
-        { code: 'ar', name: 'العربية' },
-    ];
+    const languages = [{ code: 'fr', name: 'Français' }, { code: 'en', name: 'English' }];
     const toggleDropdown = () => setIsOpen(!isOpen);
     useEffect(() => {
         const close = () => setIsOpen(false);
         if (isOpen) window.addEventListener('click', close);
         return () => window.removeEventListener('click', close);
     }, [isOpen]);
-    const getFlagSrc = (code: string) => {
-        if (code === 'fr') return '/fr-flag.svg';
-        if (code === 'en') return '/en-flag.svg';
-        if (code === 'ar') return '/sa-flag.svg';
-        return '';
-    };
+    const getFlagSrc = (code: string) => code === 'fr' ? '/fr-flag.svg' : '/en-flag.svg';
 
     return <div className="relative"><button onClick={(e) => { e.stopPropagation(); toggleDropdown(); }} className="flex items-center p-1 space-x-2 bg-slate-100 dark:bg-slate-700 rounded-full text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600"><span className="w-6 h-6 rounded-full overflow-hidden"><img src={getFlagSrc(language)} alt={language} className="w-full h-full object-cover" /></span><span className="hidden sm:inline">{language.toUpperCase()}</span><ChevronDownIcon className="w-4 h-4 text-slate-500 dark:text-slate-400 mr-1" /></button>{isOpen && <div className="absolute right-0 mt-2 w-36 origin-top-right bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-20"><div className="py-1">{languages.map(lang => <button key={lang.code} onClick={() => { setLanguage(lang.code); setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"><img src={getFlagSrc(lang.code)} alt={lang.name} className="w-5 h-auto rounded-sm" />{lang.name}</button>)}</div></div>}</div>;
 }
@@ -177,6 +168,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const [activeCallbackId, setActiveCallbackId] = useState<string | null>(null);
 
     const status = agentState?.status || 'Déconnecté';
+    const wrapUpTimerRef = useRef<number | null>(null);
     
     const assignedCampaigns = useMemo(() => currentUser.campaignIds.map(id => data.campaigns.find(c => c.id === id && c.isActive)).filter((c): c is Campaign => !!c), [currentUser.campaignIds, data.campaigns]);
     
@@ -207,9 +199,27 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const qualificationsForCampaign = useMemo(() => {
         if (!currentCampaign || !data.qualifications) return [];
         const groupId = currentCampaign.qualificationGroupId;
-        if (!groupId) return data.qualifications.filter(q => q.isStandard);
-        return data.qualifications.filter(q => q.isStandard || q.groupId === groupId);
+        const qualMap = new Map<string, Qualification>();
+
+        // Always add standard system qualifications
+        data.qualifications.forEach(q => {
+            if (q.id.startsWith('std-')) {
+                qualMap.set(q.id, q);
+            }
+        });
+
+        // Add qualifications from the campaign's specific group
+        if (groupId) {
+            data.qualifications.forEach(q => {
+                if (q.groupId === groupId) {
+                    qualMap.set(q.id, q);
+                }
+            });
+        }
+        
+        return Array.from(qualMap.values()).sort((a,b) => parseInt(a.code) - parseInt(b.code));
     }, [currentCampaign, data.qualifications]);
+
 
     useEffect(() => {
         if (assignedCampaigns.length > 0 && !activeDialingCampaignId) {
@@ -253,6 +263,22 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             }
         }
     }, [data.campaigns, currentContact, currentCampaign]);
+    
+    const handleWrapUp = useCallback(async () => {
+        // Refresh all application data FIRST to ensure the next state is based on fresh data.
+        await refreshData();
+        
+        // NOW clear local state related to the finished contact.
+        setCurrentContact(null);
+        setCurrentCampaign(null);
+        setActiveScript(null);
+        setSelectedQual(null);
+        setNewNote('');
+        setActiveCallbackId(null);
+        
+        // After data is fresh, change status to 'En Attente', which will trigger the request for the next contact.
+        onStatusChange('En Attente');
+    }, [onStatusChange, refreshData]);
 
     const requestNextContact = useCallback(async () => {
         if (isLoadingNextContact || status !== 'En Attente') return;
@@ -283,21 +309,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             setIsLoadingNextContact(false);
         }
     }, [currentUser.id, data.savedScripts, data.campaigns, isLoadingNextContact, status, activeDialingCampaignId, onStatusChange]);
-
-    const handleWrapUp = useCallback(() => {
-        // Clear current contact info and set status to 'En Attente'.
-        // The new useEffect hook will handle fetching the next contact automatically.
-        setCurrentContact(null);
-        setCurrentCampaign(null);
-        setActiveScript(null);
-        setSelectedQual(null);
-        setNewNote('');
-        setActiveCallbackId(null);
-        onStatusChange('En Attente');
-    }, [onStatusChange]);
     
-    // FIX: New effect to automate the "next call" process. When the agent is available,
-    // the system automatically searches for the next contact without requiring a button click.
     useEffect(() => {
         // Automatically fetch next contact when agent is waiting and has an active dialing campaign.
         if (status === 'En Attente' && !currentContact && !isLoadingNextContact && activeDialingCampaignId) {
@@ -309,14 +321,25 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     }, [status, currentContact, isLoadingNextContact, activeDialingCampaignId, requestNextContact]);
 
     useEffect(() => {
-        let wrapUpTimerId: ReturnType<typeof setTimeout>;
+        if (wrapUpTimerRef.current) {
+            clearTimeout(wrapUpTimerRef.current);
+            wrapUpTimerRef.current = null;
+        }
+
         if (status === 'En Post-Appel' && currentCampaign) {
-            const wrapUpTime = currentCampaign.wrapUpTime;
-            if(wrapUpTime > 0) {
-                 wrapUpTimerId = setTimeout(() => handleWrapUp(), wrapUpTime * 1000);
+            const wrapUpTime = currentCampaign.wrapUpTime ?? 0;
+            if (wrapUpTime > 0) {
+                wrapUpTimerRef.current = window.setTimeout(handleWrapUp, wrapUpTime * 1000);
+            } else {
+                handleWrapUp();
             }
         }
-        return () => clearTimeout(wrapUpTimerId);
+        
+        return () => {
+            if (wrapUpTimerRef.current) {
+                clearTimeout(wrapUpTimerRef.current);
+            }
+        };
     }, [status, currentCampaign, handleWrapUp]);
 
     const handleDial = async (destination: string) => {
@@ -332,17 +355,32 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     };
 
     const handleEndCall = async () => {
-        if (!selectedQual || !currentContact || !currentCampaign) { alert("Veuillez sélectionner une qualification avant de finaliser."); return; }
-        if (selectedQual === 'std-94') { setIsCallbackModalOpen(true); return; }
+        if (!selectedQual || !currentContact || !currentCampaign) {
+            alert("Veuillez sélectionner une qualification avant de finaliser.");
+            return;
+        }
+        if (selectedQual === 'std-94') {
+            setIsCallbackModalOpen(true);
+            return;
+        }
+
         try {
-            await apiClient.post(`/contacts/${currentContact.id}/qualify`, { qualificationId: selectedQual, campaignId: currentCampaign.id, agentId: currentUser.id });
+            await apiClient.post(`/contacts/${currentContact.id}/qualify`, {
+                qualificationId: selectedQual,
+                campaignId: currentCampaign.id,
+                agentId: currentUser.id
+            });
+
             if (activeCallbackId) {
                 await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
-                await refreshData();
             }
-            if (currentCampaign.wrapUpTime === 0) handleWrapUp();
-            else onStatusChange('En Post-Appel');
-        } catch (error) { console.error("Failed to qualify contact:", error); alert("Erreur lors de la qualification."); }
+            
+            onStatusChange('En Post-Appel');
+
+        } catch (error) {
+            console.error("Failed to qualify contact:", error);
+            alert("Erreur lors de la qualification.");
+        }
     };
 
     const handleScheduleAndEndCall = async (scheduledTime: string, notes: string) => {
@@ -353,9 +391,10 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             if (activeCallbackId) {
                  await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
             }
-            setIsCallbackModalOpen(false); refreshData();
-            if (currentCampaign.wrapUpTime === 0) handleWrapUp();
-            else onStatusChange('En Post-Appel');
+            setIsCallbackModalOpen(false); 
+            
+            onStatusChange('En Post-Appel');
+
         } catch (error) { console.error("Failed to schedule callback:", error); alert("Une erreur est survenue."); }
     };
     

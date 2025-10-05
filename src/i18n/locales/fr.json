@@ -22,8 +22,7 @@
     "all": "Tous",
     "none": "Aucun",
     "previous": "Précédent",
-    "next": "Suivant",
-    "unknown": "Inconnu"
+    "next": "Suivant"
   },
   "alerts": {
     "appDataLoadError": "Impossible de charger les données de l'application.",
@@ -496,6 +495,83 @@
     "Déconnecté": "Déconnecté",
     "Miseenattente": "Mise en attente",
     "Formation": "Formation"
+  },
+  "campaignDetail": {
+    "backToCampaigns": "Retour aux campagnes",
+    "associatedScript": "Script associé: {scriptName}",
+    "tabs": {
+      "contacts": "Contacts ({count})",
+      "dashboard": "Statistiques",
+      "dashboard2": "Analyse Détaillée",
+      "settings": "Paramètres"
+    },
+    "contacts": {
+      "searchPlaceholder": "Rechercher un contact...",
+      "deleteSelection": "Supprimer la sélection ({count})",
+      "headers": {
+        "lastName": "NOM",
+        "firstName": "PRÉNOM",
+        "phone": "TÉLÉPHONE",
+        "postalCode": "CODE POSTAL",
+        "status": "STATUT",
+        "lastQualif": "Dernière Qualification",
+        "lastNote": "Dernière Remarque"
+      },
+      "noContacts": "Aucun contact trouvé.",
+      "pagination": "Page {currentPage} sur {totalPages}"
+    },
+    "dashboard": {
+      "kpis": {
+        "completionRate": "Taux d'achèvement",
+        "contactRate": "Taux de contact",
+        "conversionRate": "Taux de conversion",
+        "aht": "DMC"
+      },
+      "fileProgress": {
+        "title": "Progression du Fichier",
+        "processed": "Traitées:",
+        "remaining": "Restantes:"
+      },
+      "quota": {
+        "title": "Suivi des Quotas",
+        "ruleStartsWith": "Quota: {field} commence par \"{value}\"",
+        "ruleEquals": "Quota: {field} est égal à \"{value}\"",
+        "achieved": "Réalisé:"
+      },
+      "charts": {
+        "qualifDistributionTitle": "Répartition des Qualifications",
+        "successByHourTitle": "Heures de Succès (Conversions)",
+        "conversionsLabel": "Conversions"
+      },
+      "tables": {
+        "qualifPerfTitle": "Performance par Qualification",
+        "agentPerfTitle": "Performance par Agent",
+        "headers": {
+          "qualification": "QUALIFICATION",
+          "processedRecords": "FICHES TRAITÉES",
+          "rate": "TAUX",
+          "agent": "Agent",
+          "processedCalls": "Appels Traités",
+          "conversions": "Conversions"
+        }
+      }
+    },
+    "settings": {
+      "recycling": {
+        "title": "Recyclage des Fiches",
+        "description": "Réinitialisez le statut des contacts qualifiés pour les rendre de nouveau disponibles pour les agents.",
+        "headers": {
+          "qualification": "Qualification",
+          "processedRecords": "Fiches Traitées",
+          "action": "Action"
+        },
+        "recycleButton": "Recycler",
+        "recycleButtonTooltip": "Réinitialiser le statut de toutes les fiches avec cette qualification.",
+        "notRecyclableTooltip": "Cette qualification n'est pas marquée comme recyclable."
+      }
+    },
+    "export": "Exporter",
+    "noDataToExport": "Aucune donnée traitée à exporter."
   },
   "qualifications": {
     "types": {

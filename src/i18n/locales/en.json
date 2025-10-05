@@ -22,8 +22,7 @@
     "all": "All",
     "none": "None",
     "previous": "Previous",
-    "next": "Next",
-    "unknown": "Unknown"
+    "next": "Next"
   },
   "alerts": {
     "appDataLoadError": "Could not load application data.",
@@ -473,6 +472,80 @@
     "Déconnecté": "Disconnected",
     "Miseenattente": "On Hold",
     "Formation": "Training"
+  },
+  "campaignDetail": {
+    "backToCampaigns": "Back to campaigns",
+    "associatedScript": "Associated script: {scriptName}",
+    "tabs": {
+      "contacts": "Contacts ({count})",
+      "dashboard": "Dashboard",
+      "settings": "Settings"
+    },
+    "contacts": {
+      "searchPlaceholder": "Search for a contact...",
+      "deleteSelection": "Delete selection ({count})",
+      "headers": {
+        "lastName": "LAST NAME",
+        "firstName": "FIRST NAME",
+        "phone": "PHONE",
+        "postalCode": "POSTAL CODE",
+        "status": "STATUS",
+        "lastQualif": "Last Qualification",
+        "lastNote": "Last Note"
+      },
+      "noContacts": "No contacts found.",
+      "pagination": "Page {currentPage} of {totalPages}"
+    },
+    "dashboard": {
+      "kpis": {
+        "completionRate": "Completion Rate",
+        "contactRate": "Contact Rate",
+        "conversionRate": "Conversion Rate",
+        "aht": "AHT"
+      },
+      "fileProgress": {
+        "title": "File Progression",
+        "processed": "Processed:",
+        "remaining": "Remaining:"
+      },
+      "quota": {
+        "title": "Quotas Tracking",
+        "ruleStartsWith": "Quota: {field} starts with \"{value}\"",
+        "ruleEquals": "Quota: {field} equals \"{value}\"",
+        "achieved": "Achieved:"
+      },
+      "charts": {
+        "qualifDistributionTitle": "Qualifications Distribution",
+        "successByHourTitle": "Success Hours (Conversions)",
+        "conversionsLabel": "Conversions"
+      },
+      "tables": {
+        "qualifPerfTitle": "Performance by Qualification",
+        "agentPerfTitle": "Performance by Agent",
+        "headers": {
+          "qualification": "QUALIFICATION",
+          "processedRecords": "PROCESSED RECORDS",
+          "rate": "RATE",
+          "agent": "Agent",
+          "processedCalls": "Handled Calls",
+          "conversions": "Conversions"
+        }
+      }
+    },
+    "settings": {
+      "recycling": {
+        "title": "Contact Recycling",
+        "description": "Reset the status of qualified contacts to make them available again for agents.",
+        "headers": {
+          "qualification": "Qualification",
+          "processedRecords": "Processed Records",
+          "action": "Action"
+        },
+        "recycleButton": "Recycle"
+      }
+    },
+    "export": "Export",
+    "noDataToExport": "No processed data to export."
   },
   "qualifications": {
     "types": {
