@@ -329,8 +329,8 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             await apiClient.post(`/contacts/${currentContact.id}/qualify`, { qualificationId: selectedQual, campaignId: currentCampaign.id, agentId: currentUser.id });
             if (activeCallbackId) {
                 await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
-                await refreshData();
             }
+            await refreshData();
             if (currentCampaign.wrapUpTime === 0) handleWrapUp();
             else onStatusChange('En Post-Appel');
         } catch (error) { console.error("Failed to qualify contact:", error); alert("Erreur lors de la qualification."); }
