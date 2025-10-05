@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { Campaign, SavedScript, Contact, CallHistoryRecord, Qualification, User, ContactNote, UserGroup, QualificationGroup } from '../types.ts';
-import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon, ChevronDownIcon, XMarkIcon, ArrowDownTrayIcon } from './Icons';
+import { ArrowLeftIcon, UsersIcon, ChartBarIcon, Cog6ToothIcon, EditIcon, TrashIcon, InformationCircleIcon, ChevronDownIcon, XMarkIcon, ArrowDownTrayIcon, PhoneIcon, TimeIcon } from './Icons.tsx';
 import ContactHistoryModal from './ContactHistoryModal.tsx';
 import { useI18n } from '../src/i18n/index.tsx';
 
 // Déclaration pour Chart.js via CDN
 declare var Chart: any;
+declare var Papa: any;
 
 interface CampaignDetailViewProps {
     campaign: Campaign;
@@ -27,484 +28,104 @@ interface CampaignDetailViewProps {
 
 type DetailTab = 'contacts' | 'dashboard' | 'dashboard2' | 'settings';
 type ContactSortKeys = 'firstName' | 'lastName' | 'phoneNumber' | 'postalCode' | 'status';
-type DrilldownLevel = { type: 'qualType' | 'agent' | 'qual', value: string, label: string };
 
+const formatDuration = (seconds: number) => {
+    if(isNaN(seconds) || seconds < 0) return '0m 0s';
+    const m = Math.floor(seconds / 60);
+    const s = Math.round(seconds % 60);
+    return `${m}m ${s}s`;
+};
 
-const KpiCard: React.FC<{ title: string; value: string | number; }> = ({ title, value }) => (
-    <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
-        <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
-        <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
+// --- Child Components ---
+
+const KpiCard: React.FC<{ title: string, value: string, icon: React.FC<any> }> = ({ title, value, icon: Icon }) => (
+    <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border dark:border-slate-700">
+        <div className="flex items-center">
+            <div className="p-2 bg-slate-200 dark:bg-slate-700 rounded-md mr-3">
+                <Icon className="w-6 h-6 text-slate-600 dark:text-slate-300" />
+            </div>
+            <div>
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
+                <p className="text-2xl font-bold text-slate-800 dark:text-slate-200">{value}</p>
+            </div>
+        </div>
     </div>
 );
 
-const ChartComponent: React.FC<{ type: string; data: any; options: any; }> = ({ type, data, options }) => {
+const ChartComponent: React.FC<{ chartId: string; type: any; data: any; options: any }> = ({ chartId, type, data, options }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const chartRef = useRef<any>(null);
 
     useEffect(() => {
         if (canvasRef.current) {
-            if (chartRef.current) {
-                chartRef.current.destroy();
-            }
+            if (chartRef.current) chartRef.current.destroy();
             const ctx = canvasRef.current.getContext('2d');
             if (ctx) {
-                chartRef.current = new Chart(ctx, {
-                    type,
-                    data,
-                    options,
-                });
+                chartRef.current = new Chart(ctx, { type, data, options });
             }
         }
-        return () => {
-            if (chartRef.current) {
-                chartRef.current.destroy();
-            }
-        };
+        return () => chartRef.current?.destroy();
     }, [type, data, options]);
 
-    return <canvas ref={canvasRef}></canvas>;
+    return <canvas ref={canvasRef} id={chartId}></canvas>;
 };
 
-const formatDuration = (seconds: number) => {
-    if (isNaN(seconds) || seconds < 0) return '00:00';
-    const m = Math.floor(seconds / 60);
-    const s = Math.round(seconds % 60);
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-};
 
-const TREEMAP_COLORS = [
-  '#2563eb', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#3b82f6', '#fbbf24', '#34d399', '#f87171', '#a78bfa',
-  '#60a5fa', '#fcd34d', '#6ee7b7', '#fca5a5', '#c4b5fd', '#1d4ed8', '#d97706', '#059669', '#dc2626', '#7c3aed'
-];
-
-// Helper function to find entity name
-const findEntityName = (id: string | null, collection: Array<{id: string, name?: string, firstName?: string, lastName?: string, description?: string}>): string => {
-    if (!id) return 'N/A';
-    const item = collection.find(i => i.id === id);
-    if (!item) return 'Inconnu';
-    
-    // Check for properties in order of preference
-    if (item.name) return item.name;
-    if (item.firstName && item.lastName) return `${item.firstName} ${item.lastName}`;
-    if (item.description) return item.description;
-    
-    // Fallbacks for users with only one name part
-    if (item.firstName) return item.firstName;
-    if (item.lastName) return item.lastName;
-
-    return 'Inconnu';
-};
-
-const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
-    const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts, onRecycleContacts, contactNotes, currentUser } = props;
+const CampaignDashboard: React.FC<Omit<CampaignDetailViewProps, 'onBack' | 'script' | 'onSaveCampaign' | 'onUpdateContact' | 'onDeleteContacts' | 'onRecycleContacts'>> = (props) => {
+    // FIX: Get `t` from useI18n hook instead of props. This resolves the TypeScript error.
     const { t } = useI18n();
-    const [activeTab, setActiveTab] = useState<DetailTab>('contacts');
-    
-    const [searchTerm, setSearchTerm] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
-    const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
-    const [contactSortConfig, setContactSortConfig] = useState<{ key: ContactSortKeys; direction: 'ascending' | 'descending' }>({ key: 'lastName', direction: 'ascending' });
-    
-    const [historyModal, setHistoryModal] = useState<{ isOpen: boolean, contact: Contact | null }>({ isOpen: false, contact: null });
-    const [treemapFilter, setTreemapFilter] = useState<{ type: Qualification['type'] | null, qualificationId: string | null }>({ type: null, qualificationId: null });
-    const [drilldownPath, setDrilldownPath] = useState<DrilldownLevel[]>([]);
-
-    const canDelete = currentUser.role === 'Administrateur' || currentUser.role === 'SuperAdmin';
+    const { campaign, callHistory, qualifications, users } = props;
+    const isDarkMode = document.documentElement.classList.contains('dark');
+    const chartTextColor = isDarkMode ? '#cbd5e1' : '#475569';
+    const chartGridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
 
     const campaignCallHistory = useMemo(() => callHistory.filter(c => c.campaignId === campaign.id), [callHistory, campaign.id]);
 
-    const handleExport = () => {
-        // Group calls by contactId to find the last one for each contact
-        const callsByContact = campaignCallHistory.reduce((acc, call) => {
-            if (!acc[call.contactId] || new Date(call.timestamp) > new Date(acc[call.contactId].timestamp)) {
-                acc[call.contactId] = call;
-            }
-            return acc;
-        }, {} as Record<string, CallHistoryRecord>);
-
-        const processedContactsData = Object.values(callsByContact).map(lastCall => {
-            const agent = users.find(u => u.id === lastCall.agentId);
-            const qual = qualifications.find(q => q.id === lastCall.qualificationId);
-            const contact = campaign.contacts.find(c => c.id === lastCall.contactId);
-
-            return {
-                date: new Date(lastCall.timestamp).toLocaleString('fr-FR'),
-                agent: agent ? `${agent.firstName} ${agent.lastName} (${agent.loginId})` : 'N/A',
-                phone: contact ? contact.phoneNumber : 'N/A',
-                duration: formatDuration(lastCall.duration),
-                qualCode: qual ? qual.code : 'N/A',
-                qualDescription: qual ? qual.description : 'N/A'
-            };
-        });
-
-        if (processedContactsData.length === 0) {
-            alert(t('campaignDetail.noDataToExport'));
-            return;
-        }
-
-        // Sort data by date descending
-        processedContactsData.sort((a, b) => {
-            const dateA = new Date(a.date.split(' ')[0].split('/').reverse().join('-') + 'T' + a.date.split(' ')[1]).getTime();
-            const dateB = new Date(b.date.split(' ')[0].split('/').reverse().join('-') + 'T' + b.date.split(' ')[1]).getTime();
-            return dateB - dateA;
-        });
-
-        const headers = ['Date de traitement', 'Agent', 'Numéro de téléphone', 'Durée', 'Code Qualif', 'Description Qualif'];
-        const csvRows = [
-            headers.join(','),
-            ...processedContactsData.map(row => [
-                `"${row.date}"`,
-                `"${row.agent}"`,
-                `"${row.phone}"`,
-                `"${row.duration}"`,
-                `"${row.qualCode}"`,
-                `"${row.qualDescription.replace(/"/g, '""')}"`
-            ].join(','))
-        ];
-        
-        const csvContent = csvRows.join('\n');
-        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', `export_campagne_${campaign.name.replace(/\s/g, '_')}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
-    const campaignStats = useMemo(() => {
+    const { kpis, processedContacts, remainingContacts } = useMemo(() => {
         const totalContacts = campaign.contacts.length;
-        if (totalContacts === 0) return { total: 0, processed: 0, pending: 0, completionRate: 0, totalCalls: 0, contacted: 0, contactRate: 0, positive: 0, conversionRate: 0, hitRate: 0, avgDuration: 0 };
+        const processedContactsCount = campaign.contacts.filter(c => c.status !== 'pending').length;
+        const completionRate = totalContacts > 0 ? (processedContactsCount / totalContacts) * 100 : 0;
         
-        const processedContacts = campaign.contacts.filter(c => c.status !== 'pending').length;
-        const pendingContacts = totalContacts - processedContacts;
-        const completionRate = (processedContacts / totalContacts) * 100;
-        
-        const totalCalls = campaignCallHistory.length;
-        const contactedCalls = campaignCallHistory.filter(call => {
-             const qual = qualifications.find(q => q.id === call.qualificationId);
-             return qual && qual.id !== 'std-91';
-        }).length;
-        
-        const contactRate = totalCalls > 0 ? (contactedCalls / totalCalls) * 100 : 0;
-        
-        const positiveCalls = campaignCallHistory.filter(call => {
-            const qual = qualifications.find(q => q.id === call.qualificationId);
+        const nonContactQuals = ['std-90', 'std-91', 'std-93']; // Occupé, Faux numéro, Repondeur
+        const contactedCalls = campaignCallHistory.filter(c => !nonContactQuals.includes(c.qualificationId || ''));
+        const contactRate = processedContactsCount > 0 ? (contactedCalls.length / processedContactsCount) * 100 : 0;
+
+        const positiveQualsCount = campaignCallHistory.filter(c => {
+            const qual = qualifications.find(q => q.id === c.qualificationId);
             return qual?.type === 'positive';
         }).length;
+        const conversionRate = contactedCalls.length > 0 ? (positiveQualsCount / contactedCalls.length) * 100 : 0;
         
-        const conversionRate = contactedCalls > 0 ? (positiveCalls / contactedCalls) * 100 : 0;
-        const hitRate = totalContacts > 0 ? (positiveCalls / totalContacts) * 100 : 0;
-        
-        const totalDuration = campaignCallHistory.reduce((acc, call) => acc + call.duration, 0);
-        const avgDuration = totalCalls > 0 ? totalDuration / totalCalls : 0;
+        const totalDuration = campaignCallHistory.reduce((sum, call) => sum + call.duration, 0);
+        const aht = campaignCallHistory.length > 0 ? totalDuration / campaignCallHistory.length : 0;
 
         return {
-            total: totalContacts, processed: processedContacts, pending: pendingContacts,
-            completionRate: completionRate,
-            totalCalls: totalCalls,
-            contacted: contactedCalls,
-            contactRate: contactRate,
-            positive: positiveCalls,
-            conversionRate: conversionRate,
-            hitRate: hitRate,
-            avgDuration: avgDuration
+            kpis: {
+                completionRate: `${completionRate.toFixed(1)}%`,
+                contactRate: `${contactRate.toFixed(1)}%`,
+                conversionRate: `${conversionRate.toFixed(1)}%`,
+                aht: formatDuration(aht),
+            },
+            processedContacts: processedContactsCount,
+            remainingContacts: totalContacts - processedContactsCount,
         };
     }, [campaign.contacts, campaignCallHistory, qualifications]);
-
-    const filteredDataForTables = useMemo(() => {
-        const isFilterActive = treemapFilter.type || treemapFilter.qualificationId;
-        if (!isFilterActive) {
-            return campaignCallHistory;
-        }
-
-        return campaignCallHistory.filter(call => {
-            if (!call.qualificationId) return false;
+    
+     const qualDistribution = useMemo(() => {
+        const counts = { positive: 0, neutral: 0, negative: 0 };
+        campaignCallHistory.forEach(call => {
             const qual = qualifications.find(q => q.id === call.qualificationId);
-            if (!qual) return false;
-
-            if (treemapFilter.qualificationId) {
-                return qual.id === treemapFilter.qualificationId;
-            }
-            if (treemapFilter.type) {
-                return qual.type === treemapFilter.type;
-            }
-            return false;
+            if (qual) counts[qual.type]++;
         });
-    }, [campaignCallHistory, treemapFilter, qualifications]);
-    
-    const qualificationPerformanceForChart = useMemo(() => {
-        const campaignQuals = qualifications.filter(q => q.isStandard || q.groupId === campaign.qualificationGroupId);
-        const qualCounts = campaignCallHistory.reduce((acc, call) => {
-            if (call.qualificationId) {
-                acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
-            }
-            return acc;
-        }, {} as Record<string, number>);
-
-        return campaignQuals.map(qual => ({
-            ...qual,
-            count: qualCounts[qual.id] || 0,
-        }));
-    }, [qualifications, campaignCallHistory, campaign.qualificationGroupId]);
-
-    const qualColorMap = useMemo(() => {
-        const map = new Map();
-        let customIndex = 0;
-        qualifications.forEach((qual) => {
-            if (qual.isStandard) {
-                if (qual.type === 'positive') map.set(qual.id, 'rgba(34, 197, 94, 0.7)');
-                else if (qual.type === 'negative') map.set(qual.id, 'rgba(239, 68, 68, 0.7)');
-                else map.set(qual.id, 'rgba(100, 116, 139, 0.7)');
-            } else {
-                map.set(qual.id, TREEMAP_COLORS[customIndex % TREEMAP_COLORS.length]);
-                customIndex++;
-            }
-        });
-        return map;
-    }, [qualifications]);
-
-
-    const treemapChartData = useMemo(() => ({
-        datasets: [{
-            tree: qualificationPerformanceForChart.filter(q => q.count > 0),
-            key: 'count',
-            groups: ['type', 'description'],
-            spacing: 1,
-            borderWidth: 2,
-            borderColor: 'white',
-            captions: {
-                display: true,
-                color: 'white', 
-                font: { weight: 'bold' }
-            },
-            labels: {
-                display: true,
-                color: 'white',
-                font: { size: 12 },
-                formatter: (ctx: any) => {
-                    if (!ctx.raw) return null;
-                    const node = ctx.raw._data;
-                    return node.s ? node.s.description : null;
-                }
-            },
-            backgroundColor: (ctx: any) => {
-                if (!ctx.raw || !ctx.raw._data) return 'rgba(200, 200, 200, 0.5)';
-                const node = ctx.raw._data;
-                if (node.s && node.s.id && qualColorMap.has(node.s.id)) {
-                    return qualColorMap.get(node.s.id);
-                }
-                if (node.g === 'positive') return 'rgba(34, 197, 94, 0.2)';
-                if (node.g === 'negative') return 'rgba(239, 68, 68, 0.2)';
-                if (node.g === 'neutral') return 'rgba(100, 116, 139, 0.2)';
-                return 'rgba(200, 200, 200, 0.5)';
-            }
-        }]
-    }), [qualificationPerformanceForChart, qualColorMap]);
-    
-    const treemapOptions = useMemo(() => ({
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                callbacks: {
-                    label: (context: any) => {
-                        const node = context.raw?._data;
-                        if (!node) return '';
-                        if (node.g) return `${t(`qualifications.types.${node.g}`)}: ${node.v} appels`;
-                        if (node.s) return `${node.s.description}: ${node.s.count} appels`;
-                        return '';
-                    }
-                }
-            },
-        },
-        onClick: (evt: any, elements: any) => {
-            if (!elements.length) return;
-            const node = elements[0].element.$context.raw._data;
-            if (node.g) {
-                setTreemapFilter({ type: node.g, qualificationId: null });
-            } else if (node.s) {
-                setTreemapFilter({ type: node.s.type, qualificationId: node.s.id });
-            }
-        }
-    }), [t]);
-    
-    //
-    // --- START: DASHBOARD 2 LOGIC ---
-    //
-    const treemapDrilldownData = useMemo(() => {
-        const level = drilldownPath.length;
-        let treeData: any[] = [];
-        let backgroundColorFunc: (ctx: any) => string = () => '#ccc';
-    
-        if (level === 0) {
-            const qualCountsByType = qualificationPerformanceForChart.reduce((acc, qual) => {
-                if (qual.count > 0) acc[qual.type] = (acc[qual.type] || 0) + qual.count;
-                return acc;
-            }, {} as Record<Qualification['type'], number>);
-            treeData = Object.entries(qualCountsByType).filter(([, count]) => count > 0).map(([type, count]) => {
-                const label = t(`qualifications.types.${type}`);
-                return { name: label, value: count, _meta: { type: 'qualType', value: type, label } };
-            });
-            backgroundColorFunc = (ctx: any) => {
-                if (!ctx.raw?._data) return '#ccc';
-                const type = ctx.raw._data._meta.value;
-                if (type === 'positive') return 'rgba(34, 197, 94, 0.8)';
-                if (type === 'negative') return 'rgba(239, 68, 68, 0.8)';
-                return 'rgba(100, 116, 139, 0.8)';
-            };
-        } else if (level === 1) {
-            const selectedType = drilldownPath[0].value;
-            const callsOfType = campaignCallHistory.filter(call => qualifications.find(q => q.id === call.qualificationId)?.type === selectedType);
-            const callsByAgent = callsOfType.reduce((acc, call) => {
-                acc[call.agentId] = (acc[call.agentId] || 0) + 1;
-                return acc;
-            }, {} as Record<string, number>);
-            treeData = Object.entries(callsByAgent).map(([agentId, count]) => {
-                const agent = users.find(u => u.id === agentId);
-                const label = agent ? `${agent.firstName} ${agent.lastName}` : 'Inconnu';
-                return { name: label, value: count, _meta: { type: 'agent', value: agentId, label } };
-            });
-            const agentIds = treeData.map(d => d._meta.value);
-            backgroundColorFunc = (ctx: any) => {
-                if (!ctx.raw?._data) return '#ccc';
-                const agentId = ctx.raw._data._meta.value;
-                const agentIndex = agentIds.indexOf(agentId);
-                return TREEMAP_COLORS[agentIndex % TREEMAP_COLORS.length];
-            };
-        } else { // Level 2 and deeper
-            const selectedType = drilldownPath[0].value;
-            const selectedAgentId = drilldownPath[1].value;
-            const callsOfAgentAndType = campaignCallHistory.filter(call => call.agentId === selectedAgentId && qualifications.find(q => q.id === call.qualificationId)?.type === selectedType);
-            const callsByQual = callsOfAgentAndType.reduce((acc, call) => {
-                if (call.qualificationId) acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
-                return acc;
-            }, {} as Record<string, number>);
-            treeData = Object.entries(callsByQual).map(([qualId, count]) => {
-                const qual = qualifications.find(q => q.id === qualId);
-                const label = qual ? qual.description : 'Inconnu';
-                return { name: label, value: count, _meta: { type: 'qual', value: qualId, label } };
-            });
-            backgroundColorFunc = (ctx: any) => {
-                if (!ctx.raw?._data) return '#ccc';
-                const qualId = ctx.raw._data._meta.value;
-                return qualColorMap.get(qualId) || '#ccc';
-            };
-        }
-    
         return {
-            datasets: [{
-                tree: treeData,
-                key: 'value',
-                spacing: 1,
-                borderWidth: 1,
-                borderColor: 'white',
-                backgroundColor: backgroundColorFunc,
-                labels: {
-                    display: true,
-                    color: 'white',
-                    font: { size: 12, weight: 'bold' },
-                    formatter: (ctx: any) => ctx.raw?._data.name,
-                },
-            }]
+            labels: [t('qualifications.types.positive'), t('qualifications.types.neutral'), t('qualifications.types.negative')],
+            datasets: [{ data: [counts.positive, counts.neutral, counts.negative], backgroundColor: ['#22c55e', '#64748b', '#ef4444'] }]
         };
-    }, [drilldownPath, qualificationPerformanceForChart, campaignCallHistory, qualifications, users, t, qualColorMap]);
-
-
-    const treemapDrilldownOptions = useMemo(() => ({
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                callbacks: {
-                    label: (item: any) => `${item.raw._data.name}: ${item.raw.v} appels`,
-                },
-            },
-        },
-        onClick: (event: any, elems: any) => {
-            if (elems.length && drilldownPath.length < 3) { // Allow drill down to level 3
-                const node = elems[0].element.$context.raw._data;
-                if (node._meta) {
-                    setDrilldownPath(prev => [...prev, node._meta]);
-                }
-            }
-        },
-    }), [drilldownPath.length]);
-    
-    const filteredCallsForDrilldown = useMemo(() => {
-        if (drilldownPath.length === 0) return campaignCallHistory;
-        
-        let calls = campaignCallHistory;
-        
-        drilldownPath.forEach(level => {
-            if (level.type === 'qualType') {
-                calls = calls.filter(call => qualifications.find(q => q.id === call.qualificationId)?.type === level.value);
-            }
-            if (level.type === 'agent') {
-                calls = calls.filter(call => call.agentId === level.value);
-            }
-            if (level.type === 'qual') {
-                calls = calls.filter(call => call.qualificationId === level.value);
-            }
-        });
-        return calls;
-    }, [drilldownPath, campaignCallHistory, qualifications]);
-
-    const contactsForDrilldownTable = useMemo(() => {
-        const callHistoryByContactId = filteredCallsForDrilldown.reduce((acc, call) => {
-            if (!acc[call.contactId]) {
-                acc[call.contactId] = [];
-            }
-            acc[call.contactId].push(call);
-            return acc;
-        }, {} as Record<string, CallHistoryRecord[]>);
-    
-        const contactIdsInHistory = Object.keys(callHistoryByContactId);
-        
-        return campaign.contacts
-            .filter(c => contactIdsInHistory.includes(c.id))
-            .map(contact => {
-                const lastCall = callHistoryByContactId[contact.id].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-                return {
-                    ...contact,
-                    lastCall,
-                };
-            }).sort((a,b) => new Date(b.lastCall.timestamp).getTime() - new Date(a.lastCall.timestamp).getTime());
-    
-    }, [filteredCallsForDrilldown, campaign.contacts]);
-
-    const Breadcrumbs = () => (
-        <div className="flex items-center gap-2 text-sm">
-            {drilldownPath.length === 0 ? (
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Analyse Détaillée</h3>
-            ) : (
-                <button onClick={() => setDrilldownPath([])} className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline">
-                    Analyse Détaillée
-                </button>
-            )}
-            {drilldownPath.map((level, index) => (
-                <React.Fragment key={index}>
-                    <span className="text-slate-400">/</span>
-                    <button 
-                        onClick={() => setDrilldownPath(prev => prev.slice(0, index + 1))}
-                        className="font-semibold text-indigo-600 dark:text-indigo-400 hover:underline"
-                    >
-                        {level.label}
-                    </button>
-                </React.Fragment>
-            ))}
-        </div>
-    );
-    //
-    // --- END: DASHBOARD 2 LOGIC ---
-    //
+    }, [campaignCallHistory, qualifications, t]);
 
     const callsByHour = useMemo(() => {
         const hours = Array(24).fill(0);
-        filteredDataForTables.forEach(call => {
+        campaignCallHistory.forEach(call => {
             const qual = qualifications.find(q => q.id === call.qualificationId);
             if (qual?.type === 'positive') {
                 const hour = new Date(call.timestamp).getHours();
@@ -519,62 +140,217 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 backgroundColor: 'rgba(79, 70, 229, 0.7)',
             }]
         };
-    }, [filteredDataForTables, qualifications, t]);
-
-    const agentPerformance = useMemo(() => {
-        const perf: {[key: string]: { name: string, calls: number, conversions: number }} = {};
-        filteredDataForTables.forEach(call => {
-            if (!perf[call.agentId]) {
-                const user = users.find(u => u.id === call.agentId);
-                perf[call.agentId] = { name: user ? `${user.firstName} ${user.lastName}` : 'Inconnu', calls: 0, conversions: 0 };
-            }
-            perf[call.agentId].calls++;
-            const qual = qualifications.find(q => q.id === call.qualificationId);
-            if(qual?.type === 'positive') perf[call.agentId].conversions++;
-        });
-        return Object.values(perf).sort((a,b) => b.conversions - a.conversions || b.calls - a.calls);
-    }, [filteredDataForTables, users, qualifications]);
-
-    const qualificationPerformance = useMemo(() => {
-        const campaignQuals = qualifications.filter(q => q.isStandard || q.groupId === campaign.qualificationGroupId);
-        const qualCounts = filteredDataForTables.reduce((acc, call) => {
-            if (call.qualificationId) {
-                acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
-            }
+    }, [campaignCallHistory, qualifications, t]);
+      
+    const qualPerformance = useMemo(() => {
+        const qualCounts = campaignCallHistory.reduce((acc, call) => {
+            if (call.qualificationId) acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
+        return qualifications
+            .filter(q => q.groupId === campaign.qualificationGroupId || q.isStandard)
+            .map(qual => ({
+                ...qual,
+                count: qualCounts[qual.id] || 0,
+                rate: campaignCallHistory.length > 0 ? ((qualCounts[qual.id] || 0) / campaignCallHistory.length) * 100 : 0
+            }))
+            .filter(q => q.count > 0)
+            .sort((a,b) => b.count - a.count);
+    }, [campaignCallHistory, qualifications, campaign.qualificationGroupId]);
+      
+    const agentPerformance = useMemo(() => {
+        const agentStats: Record<string, { calls: number, conversions: number }> = {};
+        campaignCallHistory.forEach(call => {
+            if (!agentStats[call.agentId]) agentStats[call.agentId] = { calls: 0, conversions: 0 };
+            agentStats[call.agentId].calls++;
+            const qual = qualifications.find(q => q.id === call.qualificationId);
+            if (qual?.type === 'positive') agentStats[call.agentId].conversions++;
+        });
+        return Object.entries(agentStats).map(([agentId, stats]) => {
+            const agent = users.find(u => u.id === agentId);
+            return {
+                agentId,
+                agentName: agent ? `${agent.firstName} ${agent.lastName}` : t('common.unknown'),
+                ...stats
+            }
+        }).sort((a,b) => b.calls - a.calls);
+    }, [campaignCallHistory, qualifications, users, t]);
 
-        return campaignQuals.map(qual => {
-            const count = qualCounts[qual.id] || 0;
-            const rate = filteredDataForTables.length > 0 ? (count / filteredDataForTables.length) * 100 : 0;
-            return { ...qual, count, rate };
-        }).filter(q => q.count > 0).sort((a,b) => b.count - a.count);
-    }, [campaign.qualificationGroupId, qualifications, filteredDataForTables]);
+    const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: chartTextColor } } } };
+    const barChartOptions = { ...chartOptions, scales: { x: { ticks: { color: chartTextColor }, grid: { color: chartGridColor } }, y: { beginAtZero: true, ticks: { color: chartTextColor, stepSize: 1 }, grid: { color: chartGridColor } } } };
 
-    const columnsToDisplay = useMemo(() => {
-        const standardColumns: { id: ContactSortKeys; name: string }[] = [
-            { id: 'lastName', name: t('campaignDetail.contacts.headers.lastName') },
-            { id: 'firstName', name: t('campaignDetail.contacts.headers.firstName') },
-            { id: 'phoneNumber', name: t('campaignDetail.contacts.headers.phone') },
-            { id: 'postalCode', name: t('campaignDetail.contacts.headers.postalCode') },
-        ];
+    return (
+        <div className="space-y-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <KpiCard title={t('campaignDetail.dashboard.kpis.completionRate')} value={kpis.completionRate} icon={ChartBarIcon} />
+                <KpiCard title={t('campaignDetail.dashboard.kpis.contactRate')} value={kpis.contactRate} icon={PhoneIcon} />
+                <KpiCard title={t('campaignDetail.dashboard.kpis.conversionRate')} value={kpis.conversionRate} icon={ChartBarIcon} />
+                <KpiCard title={t('campaignDetail.dashboard.kpis.aht')} value={kpis.aht} icon={TimeIcon} />
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-1 space-y-4">
+                    <div>
+                        <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.fileProgress.title')}</h3>
+                        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border dark:border-slate-700">
+                             <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4"><div className="bg-indigo-600 h-4 rounded-full" style={{ width: kpis.completionRate }}></div></div>
+                             <div className="flex justify-between text-sm mt-2"><span className="text-slate-600 dark:text-slate-300">{t('campaignDetail.dashboard.fileProgress.processed')} <strong>{processedContacts}</strong></span><span className="text-slate-500 dark:text-slate-400">{t('campaignDetail.dashboard.fileProgress.remaining')} <strong>{remainingContacts}</strong></span></div>
+                        </div>
+                    </div>
+                     <div>
+                        <h3 className="font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.quota.title')}</h3>
+                        <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border dark:border-slate-700 space-y-3">
+                            {campaign.quotaRules.filter(r => r.limit > 0).map(rule => (
+                                <div key={rule.id}>
+                                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{rule.operator === 'starts_with' ? t('campaignDetail.dashboard.quota.ruleStartsWith', {field: 'CP', value: rule.value}) : t('campaignDetail.dashboard.quota.ruleEquals', {field: 'CP', value: rule.value})}</p>
+                                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 mt-1"><div className="bg-amber-500 h-2.5 rounded-full" style={{ width: `${rule.limit > 0 ? (rule.currentCount/rule.limit)*100 : 0}%` }}></div></div>
+                                    <p className="text-xs text-right text-slate-500 dark:text-slate-400 mt-1">{t('campaignDetail.dashboard.quota.achieved')} {rule.currentCount} / {rule.limit}</p>
+                                </div>
+                            ))}
+                             {campaign.quotaRules.filter(r => r.limit > 0).length === 0 && <p className="text-sm text-center italic text-slate-400">{t('common.none')}</p>}
+                        </div>
+                    </div>
+                </div>
+                 <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border dark:border-slate-700"><h3 className="font-semibold text-center mb-2">{t('campaignDetail.dashboard.charts.qualifDistributionTitle')}</h3><div className="h-64"><ChartComponent chartId="qualif-dist-chart" type="doughnut" data={qualDistribution} options={chartOptions} /></div></div>
+                    <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border dark:border-slate-700"><h3 className="font-semibold text-center mb-2">{t('campaignDetail.dashboard.charts.successByHourTitle')}</h3><div className="h-64"><ChartComponent chartId="success-hour-chart" type="bar" data={callsByHour} options={barChartOptions} /></div></div>
+                </div>
+            </div>
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border dark:border-slate-700"><h3 className="font-semibold mb-2">{t('campaignDetail.dashboard.tables.qualifPerfTitle')}</h3><div className="max-h-60 overflow-y-auto"><table className="w-full text-sm"><thead className="sticky top-0 bg-slate-100 dark:bg-slate-700"><tr><th className="p-2 text-left">{t('campaignDetail.dashboard.tables.headers.qualification')}</th><th className="p-2 text-right">{t('campaignDetail.dashboard.tables.headers.processedRecords')}</th><th className="p-2 text-right">{t('campaignDetail.dashboard.tables.headers.rate')}</th></tr></thead><tbody>{qualPerformance.map(q => (<tr key={q.id} className="border-t dark:border-slate-700">
+                    <td className="p-2 flex items-center gap-2"><span className={`w-2.5 h-2.5 rounded-full ${q.type === 'positive' ? 'bg-green-500' : q.type === 'negative' ? 'bg-red-500' : 'bg-slate-400'}`}></span>{q.description}</td>
+                    <td className="p-2 text-right font-mono">{q.count}</td>
+                    <td className="p-2 text-right font-mono">{q.rate.toFixed(1)}%</td>
+                </tr>))}</tbody></table></div></div>
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border dark:border-slate-700"><h3 className="font-semibold mb-2">{t('campaignDetail.dashboard.tables.agentPerfTitle')}</h3><div className="max-h-60 overflow-y-auto"><table className="w-full text-sm"><thead className="sticky top-0 bg-slate-100 dark:bg-slate-700"><tr><th className="p-2 text-left">{t('campaignDetail.dashboard.tables.headers.agent')}</th><th className="p-2 text-right">{t('campaignDetail.dashboard.tables.headers.processedCalls')}</th><th className="p-2 text-right">{t('campaignDetail.dashboard.tables.headers.conversions')}</th></tr></thead><tbody>{agentPerformance.map(a => (<tr key={a.agentId} className="border-t dark:border-slate-700">
+                    <td className="p-2">{a.agentName}</td>
+                    <td className="p-2 text-right font-mono">{a.calls}</td>
+                    <td className="p-2 text-right font-mono">{a.conversions}</td>
+                </tr>))}</tbody></table></div></div>
+            </div>
+        </div>
+    )
+};
+
+
+const CampaignSettings: React.FC<Pick<CampaignDetailViewProps, 'campaign' | 'qualifications' | 'callHistory' | 'onRecycleContacts'>> = ({ campaign, qualifications, callHistory, onRecycleContacts }) => {
+    const { t } = useI18n();
+    const campaignCallHistory = useMemo(() => callHistory.filter(c => c.campaignId === campaign.id), [callHistory, campaign.id]);
+    
+    const recyclableQualifications = useMemo(() => {
+        const qualCounts = campaignCallHistory.reduce((acc, call) => {
+            if (call.qualificationId) acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
         
-        const customColumns = (script?.pages || [])
-            .flatMap(p => p.blocks)
-            .filter(b => !b.isStandard && b.isVisible !== false)
-            .map(b => ({ id: b.fieldName, name: b.name.toUpperCase() }));
+        return qualifications
+            .filter(q => q.groupId === campaign.qualificationGroupId || q.isStandard)
+            .map(qual => ({ ...qual, count: qualCounts[qual.id] || 0 }))
+            .filter(q => q.count > 0 && q.isRecyclable !== false);
+    }, [campaignCallHistory, campaign.qualificationGroupId, qualifications]);
 
-        const allColumns = [...standardColumns, ...customColumns];
-        
-        const finalColumns = allColumns.map(col => ({
-            ...col,
-            sortable: ['lastName', 'firstName', 'phoneNumber', 'postalCode', 'status'].includes(col.id)
-        }));
+    const handleRecycleClick = (qualId: string, qualDesc: string) => {
+        const qualCount = recyclableQualifications.find(q => q.id === qualId)?.count || 0;
+        if (window.confirm(t('campaignDetail.settings.recycling.confirm', {count: qualCount, qualDesc: qualDesc}))) {
+            onRecycleContacts(campaign.id, qualId);
+        }
+    }
 
-        finalColumns.push({ id: 'status', name: t('campaignDetail.contacts.headers.status'), sortable: true });
+    return (
+        <div>
+            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-200">{t('campaignDetail.settings.recycling.title')}</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('campaignDetail.settings.recycling.description')}</p>
+            <div className="mt-4 border rounded-lg overflow-hidden dark:border-slate-700">
+                <table className="w-full text-sm">
+                    <thead className="bg-slate-50 dark:bg-slate-700"><tr>
+                        <th className="p-3 text-left">{t('campaignDetail.settings.recycling.headers.qualification')}</th>
+                        <th className="p-3 text-right">{t('campaignDetail.settings.recycling.headers.processedRecords')}</th>
+                        <th className="p-3 text-right">{t('campaignDetail.settings.recycling.headers.action')}</th>
+                    </tr></thead>
+                    <tbody className="divide-y dark:divide-slate-700">
+                        {recyclableQualifications.map(q => (
+                            <tr key={q.id}>
+                                <td className="p-3 font-medium">{q.description}</td>
+                                <td className="p-3 text-right font-mono">{q.count}</td>
+                                <td className="p-3 text-right">
+                                    <button onClick={() => handleRecycleClick(q.id, q.description)} title={t('campaignDetail.settings.recycling.recycleButtonTooltip')} className="bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300 font-semibold py-1 px-3 rounded-md hover:bg-indigo-200">
+                                        {t('campaignDetail.settings.recycling.recycleButton')}
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                 {recyclableQualifications.length === 0 && <p className="text-center p-8 text-slate-400 italic">{t('campaignDetail.settings.recycling.noRecyclable')}</p>}
+            </div>
+        </div>
+    );
+};
+
+
+// --- Main Component ---
+const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
+    const { campaign, onBack, callHistory, qualifications, users, script, onDeleteContacts, onRecycleContacts, contactNotes, currentUser } = props;
+    const { t } = useI18n();
+    const [activeTab, setActiveTab] = useState<DetailTab>('contacts');
+    
+    const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [selectedContactIds, setSelectedContactIds] = useState<string[]>([]);
+    const [contactSortConfig, setContactSortConfig] = useState<{ key: ContactSortKeys; direction: 'ascending' | 'descending' }>({ key: 'lastName', direction: 'ascending' });
+    
+    const [historyModal, setHistoryModal] = useState<{ isOpen: boolean, contact: Contact | null }>({ isOpen: false, contact: null });
+
+    const canDelete = currentUser.role === 'Administrateur' || currentUser.role === 'SuperAdmin';
+
+    const campaignCallHistory = useMemo(() => callHistory.filter(c => c.campaignId === campaign.id), [callHistory, campaign.id]);
+    
+    const handleExport = () => {
+        const callsByContact = campaignCallHistory.reduce((acc, call) => {
+            if (!acc[call.contactId] || new Date(call.timestamp) > new Date(acc[call.contactId].timestamp)) {
+                acc[call.contactId] = call;
+            }
+            return acc;
+        }, {} as Record<string, CallHistoryRecord>);
+
+        const processedContactsData = Object.values(callsByContact).map(lastCall => {
+            const agent = users.find(u => u.id === lastCall.agentId);
+            const qual = qualifications.find(q => q.id === lastCall.qualificationId);
+            const contact = campaign.contacts.find(c => c.id === lastCall.contactId);
+
+            return {
+                'Date de traitement': new Date(lastCall.timestamp).toLocaleString('fr-FR'),
+                'ID Agent': agent ? agent.loginId : 'N/A',
+                'Nom Agent': agent ? `${agent.firstName} ${agent.lastName}` : 'N/A',
+                'Numéro de téléphone': contact ? contact.phoneNumber : 'N/A',
+                'Durée': lastCall.duration,
+                'Code Qualif': qual ? qual.code : 'N/A',
+                'Description Qualif': qual ? qual.description : 'N/A'
+            };
+        });
+
+        if (processedContactsData.length === 0) {
+            alert(t('campaignDetail.noDataToExport'));
+            return;
+        }
+
+        processedContactsData.sort((a, b) => {
+             const [dateA, timeA] = a['Date de traitement'].split(' ');
+             const [dateB, timeB] = b['Date de traitement'].split(' ');
+             const isoA = `${dateA.split('/').reverse().join('-')}T${timeA}`;
+             const isoB = `${dateB.split('/').reverse().join('-')}T${timeB}`;
+            return new Date(isoB).getTime() - new Date(isoA).getTime();
+        });
         
-        return finalColumns;
-    }, [script, t]);
+        const csv = Papa.unparse(processedContactsData);
+        const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `export_campagne_${campaign.name.replace(/\s/g, '_')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const filteredContacts = useMemo(() => {
         return campaign.contacts.filter(contact => {
@@ -627,18 +403,12 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
 
     const handleDeleteSelected = () => {
         if (selectedContactIds.length === 0) return;
-        if (window.confirm(`Êtes-vous sûr de vouloir supprimer ${selectedContactIds.length} contact(s) ? Cette action est irréversible.`)) {
+        if (window.confirm(t('campaignDetail.contacts.confirmDelete', { count: selectedContactIds.length }))) {
             onDeleteContacts(selectedContactIds);
             setSelectedContactIds([]);
         }
     };
     
-    const handleRecycleClick = (qualificationId: string) => {
-        if (window.confirm(`Êtes-vous sûr de vouloir recycler tous les contacts avec cette qualification ? Leur statut sera réinitialisé à "pending".`)) {
-            onRecycleContacts(campaign.id, qualificationId);
-        }
-    };
-
     const TabButton: React.FC<{ tab: DetailTab; label: string; icon: React.FC<any> }> = ({ tab, label, icon: Icon }) => (
         <button onClick={() => setActiveTab(tab)} className={`flex items-center gap-2 whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm transition-colors ${activeTab === tab ? 'border-primary text-link' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600'}`}>
             <Icon className="w-5 h-5" /> {label}
@@ -725,238 +495,9 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                             </div>}
                         </div>
                     )}
-                     {activeTab === 'dashboard' && (
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <KpiCard title={t('campaignDetail.dashboard.kpis.completionRate')} value={`${campaignStats.completionRate.toFixed(1)}%`} />
-                                <KpiCard title={t('campaignDetail.dashboard.kpis.contactRate')} value={`${campaignStats.contactRate.toFixed(1)}%`} />
-                                <KpiCard title={t('campaignDetail.dashboard.kpis.conversionRate')} value={`${campaignStats.conversionRate.toFixed(1)}%`} />
-                                <KpiCard title={t('campaignDetail.dashboard.kpis.aht')} value={formatDuration(campaignStats.avgDuration)} />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.fileProgress.title')}</h3>
-                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4">
-                                    <div className="bg-indigo-600 h-4 rounded-full text-center text-white text-xs font-bold" style={{ width: `${campaignStats.completionRate}%` }}>
-                                        {campaignStats.completionRate.toFixed(0)}%
-                                    </div>
-                                </div>
-                                <div className="flex justify-between text-sm mt-1 text-slate-600 dark:text-slate-400">
-                                    <span>{t('campaignDetail.dashboard.fileProgress.processed')} {campaignStats.processed}</span>
-                                    <span>{t('campaignDetail.dashboard.fileProgress.remaining')} {campaignStats.pending}</span>
-                                </div>
-                            </div>
-                            {campaign.quotaRules.length > 0 && (
-                                <div>
-                                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.quota.title')}</h3>
-                                    <div className="space-y-3">
-                                        {campaign.quotaRules.map(rule => (
-                                            <div key={rule.id}>
-                                                <div className="flex justify-between text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
-                                                    <span>
-                                                        {rule.operator === 'starts_with' 
-                                                            ? t('campaignDetail.dashboard.quota.ruleStartsWith', { field: rule.contactField, value: rule.value })
-                                                            : t('campaignDetail.dashboard.quota.ruleEquals', { field: rule.contactField, value: rule.value })
-                                                        }
-                                                    </span>
-                                                    <span className="dark:text-slate-400">{t('campaignDetail.dashboard.quota.achieved')} {rule.currentCount} / {rule.limit}</span>
-                                                </div>
-                                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
-                                                    <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${rule.limit > 0 ? (rule.currentCount / rule.limit) * 100 : 0}%` }}></div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t dark:border-slate-700">
-                                <div>
-                                     <div className="flex justify-between items-start">
-                                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.charts.qualifDistributionTitle')}</h3>
-                                        {(treemapFilter.type || treemapFilter.qualificationId) && (
-                                            <button onClick={() => setTreemapFilter({ type: null, qualificationId: null })} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1 dark:text-indigo-400">
-                                                <XMarkIcon className="w-4 h-4" /> Réinitialiser le filtre
-                                            </button>
-                                        )}
-                                    </div>
-                                    <div className="h-64"><ChartComponent type="treemap" data={treemapChartData} options={treemapOptions} /></div>
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.charts.successByHourTitle')}</h3>
-                                    <div className="h-64"><ChartComponent type="bar" data={callsByHour} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }} /></div>
-                                </div>
-                            </div>
-                             <div className="pt-4 border-t dark:border-slate-700">
-                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.tables.qualifPerfTitle')}</h3>
-                                <div className="overflow-x-auto max-h-60 border dark:border-slate-700 rounded-md">
-                                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-                                        <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0"><tr>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.dashboard.tables.headers.qualification')}</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.dashboard.tables.headers.processedRecords')}</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.dashboard.tables.headers.rate')}</th>
-                                        </tr></thead>
-                                        <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
-                                            {qualificationPerformance.map(qual => (
-                                                <tr key={qual.id}>
-                                                    <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-200">{qual.description}</td>
-                                                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{qual.count}</td>
-                                                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{qual.rate.toFixed(2)}%</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <div className="pt-4 border-t dark:border-slate-700">
-                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.tables.agentPerfTitle')}</h3>
-                                <div className="overflow-x-auto max-h-60 border dark:border-slate-700 rounded-md">
-                                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-                                        <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0"><tr>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.dashboard.tables.headers.agent')}</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.dashboard.tables.headers.processedCalls')}</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.dashboard.tables.headers.conversions')}</th>
-                                        </tr></thead>
-                                        <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
-                                            {agentPerformance.map(agent => (
-                                                <tr key={agent.name}>
-                                                    <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-200">{agent.name}</td>
-                                                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{agent.calls}</td>
-                                                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{agent.conversions}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    {activeTab === 'dashboard2' && (
-                        <div className="space-y-6">
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <KpiCard title={t('campaignDetail.dashboard.kpis.completionRate')} value={`${campaignStats.completionRate.toFixed(1)}%`} />
-                                <KpiCard title={t('campaignDetail.dashboard.kpis.contactRate')} value={`${campaignStats.contactRate.toFixed(1)}%`} />
-                                <KpiCard title={t('campaignDetail.dashboard.kpis.conversionRate')} value={`${campaignStats.conversionRate.toFixed(1)}%`} />
-                                <KpiCard title={t('campaignDetail.dashboard.kpis.aht')} value={formatDuration(campaignStats.avgDuration)} />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.fileProgress.title')}</h3>
-                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4">
-                                    <div className="bg-blue-600 h-4 rounded-full text-center text-white text-xs font-bold" style={{ width: `${campaignStats.completionRate}%` }}>
-                                        {campaignStats.completionRate > 10 && `${campaignStats.completionRate.toFixed(0)}%`}
-                                    </div>
-                                </div>
-                                <div className="flex justify-between text-sm mt-1 text-slate-600 dark:text-slate-400">
-                                    <span>{t('campaignDetail.dashboard.fileProgress.processed')} {campaignStats.processed}</span>
-                                    <span>{t('campaignDetail.dashboard.fileProgress.remaining')} {campaignStats.pending}</span>
-                                </div>
-                            </div>
-                            {campaign.quotaRules.length > 0 && (
-                                <div>
-                                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.quota.title')}</h3>
-                                    <div className="space-y-3">
-                                        {campaign.quotaRules.map(rule => (
-                                            <div key={rule.id}>
-                                                <div className="flex justify-between text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
-                                                    <span>
-                                                        {rule.operator === 'starts_with' 
-                                                            ? t('campaignDetail.dashboard.quota.ruleStartsWith', { field: rule.contactField, value: rule.value })
-                                                            : t('campaignDetail.dashboard.quota.ruleEquals', { field: rule.contactField, value: rule.value })
-                                                        }
-                                                    </span>
-                                                    <span className="dark:text-slate-400">{t('campaignDetail.dashboard.quota.achieved')} {rule.currentCount} / {rule.limit}</span>
-                                                </div>
-                                                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
-                                                    <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${rule.limit > 0 ? (rule.currentCount / rule.limit) * 100 : 0}%` }}></div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="space-y-4 pt-4 border-t dark:border-slate-700">
-                                <div className="flex justify-between items-center">
-                                    <Breadcrumbs />
-                                    {drilldownPath.length > 0 && (
-                                        <button onClick={() => setDrilldownPath([])} className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1">
-                                            <XMarkIcon className="w-4 h-4" /> Réinitialiser
-                                        </button>
-                                    )}
-                                </div>
-                                <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border dark:border-slate-700 shadow-sm" style={{height: '400px'}}>
-                                    <ChartComponent type="treemap" data={treemapDrilldownData} options={treemapDrilldownOptions} />
-                                </div>
-                            </div>
-                            
-                            {drilldownPath.length > 0 && (
-                                 <div className="pt-4">
-                                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">Détail des Fiches pour la sélection</h3>
-                                    <div className="overflow-x-auto max-h-96 border dark:border-slate-700 rounded-md">
-                                        <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-                                            <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0"><tr>
-                                                <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">Contact</th>
-                                                <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">Téléphone</th>
-                                                <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">Agent</th>
-                                                <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">Date Appel</th>
-                                                <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">Qualification</th>
-                                            </tr></thead>
-                                            <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
-                                                {contactsForDrilldownTable.length > 0 ? contactsForDrilldownTable.map(contact => (
-                                                    <tr key={contact.id}>
-                                                        <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-200">{contact.firstName} {contact.lastName}</td>
-                                                        <td className="px-4 py-2 font-mono text-slate-600 dark:text-slate-400">{contact.phoneNumber}</td>
-                                                        <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{contact.lastCall ? findEntityName(contact.lastCall.agentId, users) : 'N/A'}</td>
-                                                        <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{contact.lastCall ? new Date(contact.lastCall.timestamp).toLocaleString('fr-FR') : 'N/A'}</td>
-                                                        <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{contact.lastCall ? findEntityName(contact.lastCall.qualificationId, qualifications) : 'N/A'}</td>
-                                                    </tr>
-                                                )) : (
-                                                    <tr>
-                                                        <td colSpan={5} className="text-center py-8 text-slate-500 dark:text-slate-400 italic">
-                                                            Aucune fiche à afficher pour la sélection actuelle.
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                    {activeTab === 'settings' && (
-                        <div className="space-y-6">
-                             <div>
-                                <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.settings.recycling.title')}</h3>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{t('campaignDetail.settings.recycling.description')}</p>
-                                <div className="overflow-x-auto max-h-96 border dark:border-slate-700 rounded-md">
-                                    <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-                                        <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0"><tr>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.settings.recycling.headers.qualification')}</th>
-                                            <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.settings.recycling.headers.processedRecords')}</th>
-                                            <th className="px-4 py-2 text-right font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.settings.recycling.headers.action')}</th>
-                                        </tr></thead>
-                                        <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
-                                            {qualificationPerformance.filter(q => q.count > 0).map(qual => (
-                                                <tr key={qual.id}>
-                                                    <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-200">{qual.description}</td>
-                                                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{qual.count}</td>
-                                                    <td className="px-4 py-2 text-right">
-                                                        <button 
-                                                            onClick={() => handleRecycleClick(qual.id)}
-                                                            disabled={!qual.isRecyclable}
-                                                            title={qual.isRecyclable ? t('campaignDetail.settings.recycling.recycleButtonTooltip') : t('campaignDetail.settings.recycling.notRecyclableTooltip')}
-                                                            className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-semibold text-xs py-1 px-3 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        >
-                                                            {t('campaignDetail.settings.recycling.recycleButton')}
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    {activeTab === 'dashboard' && <CampaignDashboard {...props} />}
+                    {activeTab === 'dashboard2' && <p>Dashboard 2 coming soon...</p>}
+                    {activeTab === 'settings' && <CampaignSettings {...props} />}
                 </div>
             </div>
         </div>

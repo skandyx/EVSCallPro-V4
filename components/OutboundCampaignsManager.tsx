@@ -2,8 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import type { Feature, Campaign, User, SavedScript, QualificationGroup, Contact, CallHistoryRecord, Qualification, UserGroup, ContactNote } from '../types.ts';
 import { PlusIcon, EditIcon, TrashIcon, ArrowUpTrayIcon } from './Icons.tsx';
 import ImportContactsModal from './ImportContactsModal.tsx';
-// FIX: Corrected import path for CampaignDetailView
-import CampaignDetailView from './CampaignDetailView.tsx'; // Import the new detail view
 import { useI18n } from '../src/i18n/index.tsx';
 
 // --- Reusable ToggleSwitch Component ---
@@ -335,22 +333,11 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
         currentUser
     } = props;
     
-    const [view, setView] = useState<'list' | 'detail'>('list');
-    const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [importTargetCampaign, setImportTargetCampaign] = useState<Campaign | null>(null);
     const { t } = useI18n();
-
-    useEffect(() => {
-        if (selectedCampaign) {
-            const updatedCampaign = campaigns.find(c => c.id === selectedCampaign.id);
-            if (updatedCampaign && JSON.stringify(updatedCampaign) !== JSON.stringify(selectedCampaign)) {
-                setSelectedCampaign(updatedCampaign);
-            }
-        }
-    }, [campaigns, selectedCampaign]);
 
     const handleAddNew = () => {
         setEditingCampaign(null);
@@ -373,8 +360,8 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
     };
     
     const handleShowDetail = (campaign: Campaign) => {
-        setSelectedCampaign(campaign);
-        setView('detail');
+        // This is a placeholder, will be implemented in a future step.
+        alert(`Affichage des détails pour la campagne : ${campaign.name}`);
     };
 
     const handleOpenImportModal = (campaign: Campaign) => {
@@ -389,33 +376,6 @@ const OutboundCampaignsManager: React.FC<OutboundCampaignsManagerProps> = (props
         return Promise.resolve(null);
     };
     
-    const selectedScript = useMemo(() => {
-        if (!selectedCampaign?.scriptId) return null;
-        return savedScripts.find(s => s.id === selectedCampaign.scriptId) || null;
-    }, [selectedCampaign, savedScripts]);
-
-    if (view === 'detail' && selectedCampaign) {
-        return (
-            <CampaignDetailView 
-                campaign={selectedCampaign}
-                script={selectedScript}
-                onBack={() => { setView('list'); setSelectedCampaign(null); }}
-                onSaveCampaign={onSaveCampaign}
-                onUpdateContact={onUpdateContact}
-                onDeleteContacts={onDeleteContacts}
-                onRecycleContacts={onRecycleContacts}
-                callHistory={callHistory}
-                qualifications={qualifications}
-                qualificationGroups={qualificationGroups}
-                savedScripts={savedScripts}
-                users={users}
-                contactNotes={contactNotes}
-                userGroups={userGroups}
-                currentUser={currentUser}
-            />
-        )
-    }
-
     return (
         <div className="space-y-8">
             {isModalOpen && (

@@ -430,6 +430,52 @@ router.put('/app-settings', isSuperAdmin, async (req, res) => {
     }
 });
 
+/**
+ * @openapi
+ * /system/module-visibility:
+ *   put:
+ *     summary: Met à jour les paramètres de visibilité des modules.
+ *     tags: [Système]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               categories: { type: object }
+ *               features: { type: object }
+ *     responses:
+ *       '200':
+ *         description: "Paramètres de visibilité enregistrés."
+ */
+router.put('/module-visibility', isSuperAdmin, async (req, res) => {
+    try {
+        const visibilitySettings = req.body;
+        const envPath = path.join(__dirname, '..', '.env');
+        let envContent = await fs.readFile(envPath, 'utf-8');
+        const key = 'MODULE_VISIBILITY';
+        const value = JSON.stringify(visibilitySettings);
+        const regex = new RegExp(`^${key}=.*`, 'm');
+        const replacement = `${key}=${value}`;
+        
+        if (envContent.match(regex)) {
+            envContent = envContent.replace(regex, replacement);
+        } else {
+            envContent += `\n${replacement}`;
+        }
+
+        await fs.writeFile(envPath, envContent);
+        res.json({ message: 'Paramètres de visibilité enregistrés.' });
+    } catch (err) {
+        console.error("Failed to save module visibility settings:", err);
+        res.status(500).json({ error: "Échec de l'enregistrement des paramètres." });
+    }
+});
+
+
 // --- NEW BACKUP ENDPOINTS ---
 router.post('/backups', isSuperAdmin, (req, res) => {
     logger.logSystem('INFO', 'Backup', `Manual backup initiated by ${req.user.id}`);
