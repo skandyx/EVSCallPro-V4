@@ -388,7 +388,8 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             
             // Immediate UI reset before entering wrap-up
             setCurrentContact(null);
-            setCurrentCampaign(null);
+            // DO NOT nullify currentCampaign here, it's needed for wrapUpTime
+            // setCurrentCampaign(null); 
             setActiveScript(null);
             setSelectedQual(null);
             setNewNote('');
@@ -414,7 +415,8 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             
             // Immediate UI reset
             setCurrentContact(null);
-            setCurrentCampaign(null);
+            // DO NOT nullify currentCampaign here, it's needed for wrapUpTime
+            // setCurrentCampaign(null);
             setActiveScript(null);
             setSelectedQual(null);
             setNewNote('');
