@@ -375,8 +375,10 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
             }
             
-            await refreshData();
+            // FIX: Immediately update UI state instead of waiting for a full data refresh.
+            // This makes the contact card disappear instantly.
             onStatusChange('En Post-Appel');
+            setCurrentContact(null);
 
         } catch (error) {
             console.error("Failed to qualify contact:", error);
@@ -394,8 +396,9 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             }
             setIsCallbackModalOpen(false); 
             
-            await refreshData();
+            // FIX: Immediately update UI state instead of waiting for a full data refresh.
             onStatusChange('En Post-Appel');
+            setCurrentContact(null);
 
         } catch (error) { console.error("Failed to schedule callback:", error); alert("Une erreur est survenue."); }
     };
