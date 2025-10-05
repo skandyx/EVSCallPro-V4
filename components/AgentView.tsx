@@ -375,6 +375,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
             }
             
+            await refreshData();
             onStatusChange('En Post-Appel');
 
         } catch (error) {
@@ -393,6 +394,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             }
             setIsCallbackModalOpen(false); 
             
+            await refreshData();
             onStatusChange('En Post-Appel');
 
         } catch (error) { console.error("Failed to schedule callback:", error); alert("Une erreur est survenue."); }
