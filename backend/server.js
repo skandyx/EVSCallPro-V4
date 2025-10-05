@@ -250,15 +250,6 @@ app.get('/api/application-data', async (req, res) => {
             defaultLanguage: envConfig.DEFAULT_LANGUAGE || 'fr',
         };
 
-        let moduleVisibility = { categories: {}, features: {} };
-        try {
-            if (envConfig.MODULE_VISIBILITY) {
-                moduleVisibility = JSON.parse(envConfig.MODULE_VISIBILITY);
-            }
-        } catch (e) {
-            console.error("Error parsing MODULE_VISIBILITY from .env:", e);
-        }
-
         const backupLogs = [
             { id: 'backup-1', timestamp: new Date(Date.now() - 86400000).toISOString(), status: 'success', fileName: 'backup-2024-07-27.sql.gz' },
             { id: 'backup-2', timestamp: new Date(Date.now() - 172800000).toISOString(), status: 'success', fileName: 'backup-2024-07-26.sql.gz' }
@@ -272,7 +263,7 @@ app.get('/api/application-data', async (req, res) => {
             systemConnectionSettings,
             smtpSettings,
             appSettings,
-            moduleVisibility,
+            moduleVisibility: { categories: {}, features: {} },
             backupLogs,
             backupSchedule: { frequency: 'daily', time: '02:00' },
             systemLogs: [],
