@@ -265,10 +265,8 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     }, [data.campaigns, currentContact, currentCampaign]);
     
     const handleWrapUp = useCallback(async () => {
-        // Refresh all application data FIRST to ensure the next state is based on fresh data.
         await refreshData();
         
-        // NOW clear local state related to the finished contact.
         setCurrentContact(null);
         setCurrentCampaign(null);
         setActiveScript(null);
@@ -276,7 +274,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         setNewNote('');
         setActiveCallbackId(null);
         
-        // After data is fresh, change status to 'En Attente', which will trigger the request for the next contact.
         onStatusChange('En Attente');
     }, [onStatusChange, refreshData]);
 
@@ -375,7 +372,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
             }
             
-            // Trigger wrap-up state. The timer will handle clearing the state.
             onStatusChange('En Post-Appel');
 
         } catch (error) {
@@ -394,7 +390,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             }
             setIsCallbackModalOpen(false); 
             
-            // Trigger wrap-up state. The timer will handle clearing the state.
             onStatusChange('En Post-Appel');
 
         } catch (error) { console.error("Failed to schedule callback:", error); alert("Une erreur est survenue."); }
