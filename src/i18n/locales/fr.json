@@ -569,7 +569,9 @@
         "recycleButtonTooltip": "Réinitialiser le statut de toutes les fiches avec cette qualification.",
         "notRecyclableTooltip": "Cette qualification n'est pas marquée comme recyclable."
       }
-    }
+    },
+    "export": "Exporter",
+    "noDataToExport": "Aucune donnée traitée à exporter."
   },
   "qualifications": {
     "types": {
