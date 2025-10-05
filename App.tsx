@@ -456,12 +456,16 @@ const AppContent: React.FC = () => {
         }
     };
 
-    const handleSaveVisibilitySettings = (visibility: ModuleVisibility) => {
-        setAllData(prevData => ({
-            ...prevData,
-            moduleVisibility: visibility,
-        }));
-        showAlert(t('alerts.visibilitySettingsUpdated'), 'success');
+    const handleSaveVisibilitySettings = async (visibility: ModuleVisibility) => {
+        try {
+            await apiClient.put('/system/module-visibility', visibility);
+            await fetchApplicationData();
+            showAlert(t('alerts.visibilitySettingsUpdated'), 'success');
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.error || t('alerts.saveError');
+            showAlert(errorMessage, 'error');
+            throw error;
+        }
     };
 
     const handleSaveSmtpSettings = async (settings: SystemSmtpSettings, password?: string) => {
