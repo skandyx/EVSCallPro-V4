@@ -22,7 +22,8 @@
     "all": "All",
     "none": "None",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "unknown": "Unknown"
   },
   "alerts": {
     "appDataLoadError": "Could not load application data.",
@@ -484,6 +485,7 @@
     "contacts": {
       "searchPlaceholder": "Search for a contact...",
       "deleteSelection": "Delete selection ({count})",
+      "confirmDelete": "Are you sure you want to delete {count} contact(s)? This action is irreversible.",
       "headers": {
         "lastName": "LAST NAME",
         "firstName": "FIRST NAME",
@@ -541,7 +543,11 @@
           "processedRecords": "Processed Records",
           "action": "Action"
         },
-        "recycleButton": "Recycle"
+        "recycleButton": "Recycle",
+        "recycleButtonTooltip": "Reset the status of all contacts with this qualification.",
+        "notRecyclableTooltip": "This qualification is not marked as recyclable.",
+        "confirm": "Are you sure you want to recycle the {count} contact(s) qualified as \"{qualDesc}\"?",
+        "noRecyclable": "No contacts to recycle at the moment."
       }
     },
     "export": "Export",

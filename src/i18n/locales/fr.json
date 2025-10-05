@@ -22,7 +22,8 @@
     "all": "Tous",
     "none": "Aucun",
     "previous": "Précédent",
-    "next": "Suivant"
+    "next": "Suivant",
+    "unknown": "Inconnu"
   },
   "alerts": {
     "appDataLoadError": "Impossible de charger les données de l'application.",
@@ -502,12 +503,12 @@
     "tabs": {
       "contacts": "Contacts ({count})",
       "dashboard": "Statistiques",
-      "dashboard2": "Analyse Détaillée",
       "settings": "Paramètres"
     },
     "contacts": {
       "searchPlaceholder": "Rechercher un contact...",
       "deleteSelection": "Supprimer la sélection ({count})",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer {count} contact(s) ? Cette action est irréversible.",
       "headers": {
         "lastName": "NOM",
         "firstName": "PRÉNOM",
@@ -567,7 +568,9 @@
         },
         "recycleButton": "Recycler",
         "recycleButtonTooltip": "Réinitialiser le statut de toutes les fiches avec cette qualification.",
-        "notRecyclableTooltip": "Cette qualification n'est pas marquée comme recyclable."
+        "notRecyclableTooltip": "Cette qualification n'est pas marquée comme recyclable.",
+        "confirm": "Êtes-vous sûr de vouloir recycler les {count} contact(s) qualifié(s) en \"{qualDesc}\" ?",
+        "noRecyclable": "Aucune fiche à recycler pour le moment."
       }
     },
     "export": "Exporter",
