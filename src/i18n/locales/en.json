@@ -22,7 +22,8 @@
     "all": "All",
     "none": "None",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "send": "Send"
   },
   "alerts": {
     "appDataLoadError": "Could not load application data.",
@@ -102,6 +103,7 @@
     "nextCall": "Next Call",
     "searching": "Searching...",
     "callControls": "Call Controls",
+    "call": "Call",
     "endCall": "End Call",
     "qualifyContact": "Qualify Contact",
     "hold": "Hold",
@@ -151,7 +153,9 @@
     "statusManager": {
       "title": "My Status",
       "settings": "Edit Profile"
-    }
+    },
+    "respond": "Reply",
+    "yourResponsePlaceholder": "Your response..."
   },
   "userManager": {
     "title": "Users",
@@ -458,7 +462,12 @@
         "actions": "Actions"
       },
       "actions": {
-        "contact": "Message for {agentName}:"
+        "contact": "Message for {agentName}:",
+        "listen": "Listen (Whisper)",
+        "barge": "Barge-in",
+        "coach": "Coach",
+        "forcePause": "Force Pause",
+        "forceLogout": "Force Logout"
       },
       "noAgents": "No agents connected at the moment."
     }
@@ -479,6 +488,7 @@
     "tabs": {
       "contacts": "Contacts ({count})",
       "dashboard": "Dashboard",
+      "dashboard2": "Detailed Analysis",
       "settings": "Settings"
     },
     "contacts": {
@@ -541,9 +551,13 @@
           "processedRecords": "Processed Records",
           "action": "Action"
         },
-        "recycleButton": "Recycle"
+        "recycleButton": "Recycle",
+        "recycleButtonTooltip": "Reset the status of all contacts with this qualification.",
+        "notRecyclableTooltip": "This qualification is not marked as recyclable."
       }
-    }
+    },
+    "export": "Export",
+    "noDataToExport": "No processed data to export."
   },
   "qualifications": {
     "types": {
@@ -831,6 +845,52 @@
       "idle": "Idle"
     }
   },
+  "maintenance": {
+    "manual": {
+        "title": "Manual Backup",
+        "description": "Run a full backup of the system configuration at any time. Useful before major changes.",
+        "button": "Run a backup now",
+        "info": "The backup includes users, groups, scripts, IVRs, campaigns, and all settings. Call recordings are not included.",
+        "confirm": "Are you sure you want to run a manual backup now?",
+        "success": "Manual backup started successfully.",
+        "error": "Failed to start backup."
+    },
+    "schedule": {
+        "title": "Scheduling",
+        "frequency": "Frequency",
+        "frequencies": {
+            "none": "None",
+            "daily": "Daily",
+            "weekly": "Weekly"
+        },
+        "time": "Time (UTC)",
+        "saveSuccess": "Schedule saved!",
+        "saveError": "Failed to save schedule.",
+        "saving": "Saving...",
+        "saveButton": "Save Schedule"
+    },
+    "history": {
+        "title": "Backup History",
+        "headers": {
+            "datetime": "Date & Time",
+            "status": "Status",
+            "filename": "File Name"
+        },
+        "statuses": {
+            "success": "Success",
+            "failure": "Failure"
+        },
+        "download": "Download",
+        "restore": "Restore",
+        "confirmRestore": "Are you sure you want to restore the backup '{fileName}'? All current data will be overwritten.",
+        "confirmRestore_final": "IRREVERSIBLE ACTION. Do you confirm the restore? The application will be temporarily unavailable.",
+        "restoreSuccess": "Restore completed. The application will restart.",
+        "restoreError": "Restore failed.",
+        "deleteSuccess": "Backup deleted.",
+        "deleteError": "Failed to delete backup.",
+        "noBackups": "No backups available."
+    }
+  },
   "features": {
     "users": {
       "title": "Users",
@@ -902,17 +962,7 @@
     },
     "languages": {
       "title": "Languages",
-      "description": "Manage the available languages in the application.",
-      "userJourney": {
-        "title": "User Journey: Changing Interface Language",
-        "steps": [
-          "The user changes the language via the selector in the header for an instantly translated experience."
-        ]
-      },
-      "simplificationTip": {
-        "title": "Tip",
-        "content": "This module is a placeholder. The active language is managed via the selector in the header for quick access."
-      }
+      "description": "Manage the available languages in the application."
     },
     "database-client": {
       "title": "Database",
@@ -937,6 +987,10 @@
     "system-settings": {
       "title": "System",
       "description": "Configure low-level system settings, such as email sending."
+    },
+    "help": {
+      "title": "Help Center",
+      "description": "Find answers to your questions and guides on the features."
     }
   }
 }

@@ -22,7 +22,8 @@
     "all": "Tous",
     "none": "Aucun",
     "previous": "Précédent",
-    "next": "Suivant"
+    "next": "Suivant",
+    "send": "Envoyer"
   },
   "alerts": {
     "appDataLoadError": "Impossible de charger les données de l'application.",
@@ -152,7 +153,9 @@
     "statusManager": {
       "title": "Mon Statut",
       "settings": "Modifier le profil"
-    }
+    },
+    "respond": "Répondre",
+    "yourResponsePlaceholder": "Votre réponse..."
   },
   "userManager": {
     "title": "Utilisateurs",
@@ -1011,6 +1014,10 @@
     "system-settings": {
       "title": "Système",
       "description": "Configurez les paramètres système de bas niveau, comme l'envoi d'e-mails."
+    },
+    "help": {
+      "title": "Centre d'Aide",
+      "description": "Trouvez des réponses à vos questions et des guides sur les fonctionnalités."
     }
   }
 }
