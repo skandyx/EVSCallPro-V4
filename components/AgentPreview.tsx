@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { SavedScript, ScriptBlock, DisplayCondition, Page, ButtonAction, Contact, ContactNote, User, Campaign } from '../types.ts';
 import { useI18n } from '../src/i18n/index.tsx';
 
@@ -363,10 +363,26 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
   
   const currentPage = script.pages.find(p => p.id === currentPageId);
 
+  const canvasHeight = useMemo(() => {
+    if (!currentPage?.blocks || currentPage.blocks.length === 0) {
+        return '400px'; // A default height
+    }
+    const lowestPoint = Math.max(
+        0,
+        ...currentPage.blocks
+            .filter(block => block.isVisible !== false && checkCondition(block.displayCondition, formValues))
+            .map(block => block.y + block.height)
+    );
+    return `${lowestPoint + 20}px`; // Add some padding
+  }, [currentPage, formValues]);
+
   const ScriptCanvas = (
     <div 
-      className="h-full rounded-lg p-4 overflow-y-auto relative"
-      style={{ backgroundColor: script.backgroundColor }}
+      className="rounded-lg p-4 relative"
+      style={{ 
+        backgroundColor: script.backgroundColor,
+        height: canvasHeight
+      }}
     >
       {currentPage?.blocks
           .filter(block => block.type !== 'group' && block.isVisible !== false && checkCondition(block.displayCondition, formValues))
@@ -387,7 +403,7 @@ const AgentPreview: React.FC<AgentPreviewProps> = ({
             <h2 className="text-base font-bold text-slate-800 truncate">{script.name}</h2>
             <p className="text-xs text-slate-500">{t('agentPreview.embedded.page')} {currentPage?.name}</p>
         </header>
-        <div className="flex-1 overflow-hidden p-2 bg-slate-50">
+        <div className="flex-1 overflow-y-auto p-2 bg-slate-50">
           {ScriptCanvas}
         </div>
       </div>
