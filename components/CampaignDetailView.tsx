@@ -458,6 +458,34 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             return { ...qual, count, rate };
         }).filter(q => q.count > 0).sort((a,b) => b.count - a.count);
     }, [campaign.qualificationGroupId, qualifications, campaignCallHistory]);
+
+    // NEW: Data source for the recycling table. It calculates counts based on the CURRENT state of contacts.
+    const recyclableQualificationStats = useMemo(() => {
+        const qualifiedContacts = campaign.contacts.filter(c => c.status === 'qualified');
+        if (qualifiedContacts.length === 0) {
+            return [];
+        }
+
+        const lastQuals = qualifiedContacts.map(contact => {
+            const lastCall = campaignCallHistory
+                .filter(call => call.contactId === contact.id && call.qualificationId)
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+            return lastCall ? lastCall.qualificationId : null;
+        }).filter(Boolean) as string[];
+
+        const qualCounts = lastQuals.reduce((acc, qualId) => {
+            acc[qualId] = (acc[qualId] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        return qualifications
+            .map(qual => ({
+                ...qual,
+                count: qualCounts[qual.id] || 0,
+            }))
+            .filter(q => q.count > 0)
+            .sort((a, b) => b.count - a.count);
+    }, [campaign.contacts, campaignCallHistory, qualifications]);
     
     const qualificationPerformanceBarChartData = useMemo(() => {
         // Take top 15 for readability and reverse to show highest bar at the top
@@ -917,7 +945,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                             <th className="px-4 py-2 text-right font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.settings.recycling.headers.action')}</th>
                                         </tr></thead>
                                         <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
-                                            {qualificationPerformance.filter(q => q.count > 0).map(qual => (
+                                            {recyclableQualificationStats.map(qual => (
                                                 <tr key={qual.id}>
                                                     <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-200">{qual.description}</td>
                                                     <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{qual.count}</td>
