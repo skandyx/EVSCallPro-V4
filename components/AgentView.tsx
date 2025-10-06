@@ -356,9 +356,9 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         }
 
         const selectedQualificationObject = qualificationsForCampaign.find(q => q.id === selectedQual);
+        const personalCallbackQual = qualificationsForCampaign.find(q => q.code === '94');
         
-        const personalCallbackQual = data.qualifications.find(q => q.code === '94');
-        if (selectedQualificationObject && personalCallbackQual && selectedQualificationObject.id === personalCallbackQual.id) { 
+        if (selectedQualificationObject && personalCallbackQual && selectedQualificationObject.id === personalCallbackQual.id) {
             setIsCallbackModalOpen(true);
             return;
         }
@@ -374,7 +374,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
             }
             
-            // Refresh data to show updated callback list
             await refreshData();
             
             // Immediate UI reset before entering wrap-up
@@ -496,7 +495,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const endCallButtonText = status === 'En Appel' ? t('agentView.endCall') : t('agentView.qualifyContact');
 
     const KpiCard: React.FC<{ title: string; value: string | number; }> = ({ title, value }) => (
-        <div className="bg-slate-100 dark:bg-slate-700 p-2 rounded-md"><p className="text-xs text-slate-500 dark:text-slate-400">{title}</p><p className="text-xl font-bold text-slate-800 dark:text-slate-200 font-mono text-center">{value}</p></div>
+        <div className="bg-slate-100 dark:bg-slate-900 p-2 rounded-md"><p className="text-xs text-slate-500 dark:text-slate-400">{title}</p><p className="text-xl font-bold text-slate-800 dark:text-slate-200 font-mono text-center">{value}</p></div>
     );
     
     const formatTimer = (seconds: number) => {
@@ -545,7 +544,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                         {mySortedCallbacks.length > 0 ? (
                             mySortedCallbacks.map(cb => {
                                 const scheduled = new Date(cb.scheduledTime);
-                                // A callback is overdue if it was scheduled for a day before the currently viewed day.
                                 const startOfDayForView = new Date(callbackViewDate);
                                 startOfDayForView.setHours(0, 0, 0, 0);
                                 const isOverdue = scheduled < startOfDayForView;
@@ -554,20 +552,20 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                                 
                                 let itemClasses = 'w-full text-left p-3 rounded-md border transition-colors disabled:opacity-60 disabled:cursor-not-allowed ';
                                 if (isOverdue) {
-                                    itemClasses += 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 border-red-200 dark:border-red-800';
+                                    itemClasses += 'bg-red-50 dark:bg-rose-900 hover:bg-red-100 dark:hover:bg-rose-800 border-red-200 dark:border-rose-700';
                                 } else {
-                                    itemClasses += 'bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-600';
+                                    itemClasses += 'bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700';
                                 }
 
                                 return (
                                     <button key={cb.id} onClick={() => handleCallbackClick(cb)} disabled={status !== 'En Attente'} className={itemClasses}>
                                         <div className="flex justify-between items-baseline">
-                                            <p className="font-semibold text-slate-800 dark:text-slate-200">{cb.contactName}</p>
-                                            {isOverdue && <span className="text-xs font-bold text-red-600 dark:text-red-400">EN RETARD</span>}
+                                            <p className={`font-semibold text-slate-800 ${isOverdue ? 'dark:text-rose-100' : 'dark:text-slate-200'}`}>{cb.contactName}</p>
+                                            {isOverdue && <span className="text-xs font-bold text-red-600 dark:text-red-300">EN RETARD</span>}
                                         </div>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">{campaignName}</p>
-                                        <p className="text-sm text-slate-600 dark:text-slate-400 font-mono">{cb.contactNumber}</p>
-                                        <p className="text-sm font-bold text-indigo-700 dark:text-indigo-400 mt-1">{scheduled.toLocaleString('fr-FR')}</p>
+                                        <p className={`text-xs text-slate-500 ${isOverdue ? 'dark:text-rose-200' : 'dark:text-slate-400'}`}>{campaignName}</p>
+                                        <p className={`text-sm font-mono ${isOverdue ? 'text-rose-200' : 'text-slate-600 dark:text-slate-400'}`}>{cb.contactNumber}</p>
+                                        <p className={`text-sm font-bold mt-1 ${isOverdue ? 'dark:text-white' : 'text-indigo-700 dark:text-indigo-400'}`}>{scheduled.toLocaleString('fr-FR')}</p>
                                     </button>
                                 );
                             })
