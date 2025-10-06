@@ -934,6 +934,49 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                     )}
                     {activeTab === 'settings' && (
                         <div className="space-y-6">
+                            <div className="space-y-6 border-b dark:border-slate-700 pb-6 mb-6">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <KpiCard title={t('campaignDetail.dashboard.kpis.completionRate')} value={`${campaignStats.completionRate.toFixed(1)}%`} />
+                                    <KpiCard title={t('campaignDetail.dashboard.kpis.contactRate')} value={`${campaignStats.contactRate.toFixed(1)}%`} />
+                                    <KpiCard title={t('campaignDetail.dashboard.kpis.conversionRate')} value={`${campaignStats.conversionRate.toFixed(1)}%`} />
+                                    <KpiCard title={t('campaignDetail.dashboard.kpis.aht')} value={formatDuration(campaignStats.avgDuration)} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.fileProgress.title')}</h3>
+                                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4">
+                                        <div className="bg-indigo-600 h-4 rounded-full text-center text-white text-xs font-bold" style={{ width: `${campaignStats.completionRate}%` }}>
+                                            {campaignStats.completionRate.toFixed(0)}%
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between text-sm mt-1 text-slate-600 dark:text-slate-400">
+                                        <span>{t('campaignDetail.dashboard.fileProgress.processed')} {campaignStats.processed}</span>
+                                        <span>{t('campaignDetail.dashboard.fileProgress.remaining')} {campaignStats.pending}</span>
+                                    </div>
+                                </div>
+                                {campaign.quotaRules.length > 0 && (
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.quota.title')}</h3>
+                                        <div className="space-y-3">
+                                            {campaign.quotaRules.map(rule => (
+                                                <div key={rule.id}>
+                                                    <div className="flex justify-between text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+                                                        <span>
+                                                            {rule.operator === 'starts_with'
+                                                                ? t('campaignDetail.dashboard.quota.ruleStartsWith', { field: rule.contactField, value: rule.value })
+                                                                : t('campaignDetail.dashboard.quota.ruleEquals', { field: rule.contactField, value: rule.value })
+                                                            }
+                                                        </span>
+                                                        <span className="dark:text-slate-400">{t('campaignDetail.dashboard.quota.achieved')} {rule.currentCount} / {rule.limit}</span>
+                                                    </div>
+                                                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5">
+                                                        <div className="bg-green-600 h-2.5 rounded-full" style={{ width: `${rule.limit > 0 ? (rule.currentCount / rule.limit) * 100 : 0}%` }}></div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                              <div>
                                 <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.settings.recycling.title')}</h3>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{t('campaignDetail.settings.recycling.description')}</p>
