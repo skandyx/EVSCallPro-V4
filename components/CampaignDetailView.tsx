@@ -459,25 +459,39 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         }).filter(q => q.count > 0).sort((a,b) => b.count - a.count);
     }, [campaign.qualificationGroupId, qualifications, campaignCallHistory]);
 
-    // NEW: Data source for the recycling table. It calculates counts based on the CURRENT state of contacts.
+    // FIX: The data source for the recycling table now correctly uses the CURRENT status of contacts.
+    // This ensures that when contacts are recycled (status becomes 'pending'), they disappear from this list.
     const recyclableQualificationStats = useMemo(() => {
-        const qualifiedContacts = campaign.contacts.filter(c => c.status === 'qualified');
-        if (qualifiedContacts.length === 0) {
-            return [];
-        }
+        // Step 1: Create a map of the last known qualification for EVERY contact in the call history.
+        const contactLastQualMap = campaignCallHistory.reduce((acc, call) => {
+            if (call.qualificationId) {
+                // If we haven't seen this contact yet, or this call is newer, update the map.
+                if (!acc[call.contactId] || new Date(call.timestamp) > new Date(acc[call.contactId].timestamp)) {
+                    acc[call.contactId] = { qualId: call.qualificationId, timestamp: call.timestamp };
+                }
+            }
+            return acc;
+        }, {} as Record<string, { qualId: string, timestamp: string }>);
 
-        const lastQuals = qualifiedContacts.map(contact => {
-            const lastCall = campaignCallHistory
-                .filter(call => call.contactId === contact.id && call.qualificationId)
-                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-            return lastCall ? lastCall.qualificationId : null;
-        }).filter(Boolean) as string[];
-
-        const qualCounts = lastQuals.reduce((acc, qualId) => {
-            acc[qualId] = (acc[qualId] || 0) + 1;
+        // Step 2: Create a map of contactId -> status from the live campaign object.
+        const contactStatusMap = new Map(campaign.contacts.map(c => [c.id, c.status]));
+        
+        // Step 3: Iterate through all possible qualifications and count how many contacts
+        // are currently 'qualified' AND have that qualification as their last one.
+        const qualCounts = qualifications.reduce((acc, qual) => {
+            let count = 0;
+            for (const contactId in contactLastQualMap) {
+                if (contactLastQualMap[contactId].qualId === qual.id && contactStatusMap.get(contactId) === 'qualified') {
+                    count++;
+                }
+            }
+            if (count > 0) {
+                acc[qual.id] = count;
+            }
             return acc;
         }, {} as Record<string, number>);
 
+        // Step 4: Build the final list for the table.
         return qualifications
             .map(qual => ({
                 ...qual,
