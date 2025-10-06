@@ -541,11 +541,12 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                     <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col min-h-0"><div className="border-b dark:border-slate-600 pb-2 mb-2 flex items-center justify-between flex-shrink-0"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2"><CalendarDaysIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400"/>{t('agentView.myCallbacks')}</h2><div className="flex items-center gap-2"><button onClick={() => handleCallbackDateChange(-1)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowLeftIcon className="w-4 h-4"/></button><span className="font-semibold text-sm">{callbackViewDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</span><button onClick={() => handleCallbackDateChange(1)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowRightIcon className="w-4 h-4"/></button></div><select value={callbackCampaignFilter} onChange={e => setCallbackCampaignFilter(e.target.value)} className="text-sm p-1 border bg-white dark:bg-slate-700 dark:border-slate-600 rounded-md"><option value="all">Toutes les campagnes</option>{assignedCampaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div className="flex-1 overflow-y-auto pr-2 space-y-2 text-base">
                         {mySortedCallbacks.length > 0 ? (
                             mySortedCallbacks.map(cb => {
-                                const now = new Date();
                                 const scheduled = new Date(cb.scheduledTime);
-                                const startOfToday = new Date();
-                                startOfToday.setHours(0, 0, 0, 0);
-                                const isOverdue = scheduled < startOfToday;
+                                // A callback is overdue if it was scheduled for a day before the currently viewed day.
+                                const startOfDayForView = new Date(callbackViewDate);
+                                startOfDayForView.setHours(0, 0, 0, 0);
+                                const isOverdue = scheduled < startOfDayForView;
+
                                 const campaignName = data.campaigns.find(c => c.id === cb.campaignId)?.name || 'Campagne inconnue';
                                 
                                 let itemClasses = 'w-full text-left p-3 rounded-md border transition-colors disabled:opacity-60 disabled:cursor-not-allowed ';
