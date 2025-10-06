@@ -374,6 +374,10 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
             }
             
+            // --- FIX START: Store campaign for timer ---
+            campaignForWrapUp.current = currentCampaign;
+            // --- FIX END ---
+            
             // Immediate UI reset before entering wrap-up
             setCurrentContact(null);
             setActiveScript(null);
@@ -381,9 +385,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             setNewNote('');
             setActiveCallbackId(null);
             
-            // --- FIX START: Store campaign for timer ---
-            campaignForWrapUp.current = currentCampaign;
-            // --- FIX END ---
             onStatusChange('En Post-Appel');
 
         } catch (error) {
@@ -402,6 +403,10 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             }
             setIsCallbackModalOpen(false); 
             
+            // --- FIX START: Store campaign for timer ---
+            campaignForWrapUp.current = currentCampaign;
+            // --- FIX END ---
+            
             // Immediate UI reset
             setCurrentContact(null);
             setActiveScript(null);
@@ -409,9 +414,6 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             setNewNote('');
             setActiveCallbackId(null);
             
-            // --- FIX START: Store campaign for timer ---
-            campaignForWrapUp.current = currentCampaign;
-            // --- FIX END ---
             onStatusChange('En Post-Appel');
 
         } catch (error) { console.error("Failed to schedule callback:", error); alert("Une erreur est survenue."); }

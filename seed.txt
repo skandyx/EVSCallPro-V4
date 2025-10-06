@@ -47,14 +47,14 @@ INSERT INTO users (id, login_id, extension, first_name, last_name, email, "role"
 -- =============================================================================
 
 INSERT INTO qualifications (id, code, description, "type", is_standard) VALUES
-('std-90', '90', 'Occupé', 'neutral', true),
-('std-91', '91', 'Faux numéro', 'negative', true),
-('std-92', '92', 'Absent', 'neutral', true),
-('std-93', '93', 'Repondeur', 'neutral', true),
-('std-94', '94', 'Rappel personnel', 'neutral', true),
-('std-95', '95', 'Relance', 'neutral', true),
-('std-96', '96', 'Indisponible', 'neutral', true),
-('std-97', '97', 'Transfert', 'neutral', true);
+('qual-90', '90', 'Occupé', 'neutral', true),
+('qual-91', '91', 'Faux numéro', 'negative', true),
+('qual-92', '92', 'Absent', 'neutral', true),
+('qual-93', '93', 'Repondeur', 'neutral', true),
+('qual-94', '94', 'Rappel personnel', 'neutral', true),
+('qual-95', '95', 'Relance', 'neutral', true),
+('qual-96', '96', 'Indisponible', 'neutral', true),
+('qual-97', '97', 'Transfert', 'neutral', true);
 
 -- =============================================================================
 -- SECTION 4 : TYPES D'ACTIVITÉS POUR LE PLANNING (alignés sur les statuts agent)
