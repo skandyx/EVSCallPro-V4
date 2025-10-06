@@ -31,7 +31,7 @@ type DrilldownLevel = { type: 'qualType' | 'agent' | 'qual', value: string, labe
 
 
 const KpiCard: React.FC<{ title: string; value: string | number; }> = ({ title, value }) => (
-    <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+    <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
         <p className="text-sm text-slate-500 dark:text-slate-400">{title}</p>
         <p className="text-3xl font-bold text-slate-900 dark:text-slate-100">{value}</p>
     </div>
@@ -459,7 +459,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         }).filter(q => q.count > 0).sort((a,b) => b.count - a.count);
     }, [campaign.qualificationGroupId, qualifications, campaignCallHistory]);
 
-    // FIX: The data source for the recycling table now correctly uses the CURRENT status of contacts.
+    // The data source for the recycling table now correctly uses the CURRENT status of contacts.
     // This ensures that when contacts are recycled (status becomes 'pending'), they disappear from this list.
     const recyclableQualificationStats = useMemo(() => {
         // Step 1: Create a map of the last known qualification for EVERY contact in the call history.
@@ -694,7 +694,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 <p className="mt-1 text-lg text-slate-600 dark:text-slate-400">{campaign.description || t('campaignDetail.associatedScript', { scriptName: script?.name || t('common.none')})}</p>
             </header>
 
-            <div className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
                 <div className="border-b border-slate-200 dark:border-slate-700"><nav className="-mb-px flex space-x-4 px-6">
                     <TabButton tab="contacts" label={t('campaignDetail.tabs.contacts', { count: campaign.contacts.length })} icon={UsersIcon} />
                     <TabButton tab="dashboard" label={t('campaignDetail.tabs.dashboard')} icon={ChartBarIcon} />
@@ -906,7 +906,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                         </button>
                                     )}
                                 </div>
-                                <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border dark:border-slate-700 shadow-sm" style={{height: '400px'}}>
+                                <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border dark:border-slate-700 shadow-sm" style={{height: '400px'}}>
                                     <ChartComponent type="treemap" data={treemapDrilldownData} options={treemapDrilldownOptions} />
                                 </div>
                             </div>
@@ -996,7 +996,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{t('campaignDetail.settings.recycling.description')}</p>
                                 <div className="overflow-x-auto max-h-96 border dark:border-slate-700 rounded-md">
                                     <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-                                        <thead className="bg-slate-50 dark:bg-slate-700 sticky top-0"><tr>
+                                        <thead className="bg-slate-100 dark:bg-slate-800 sticky top-0"><tr>
                                             <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.settings.recycling.headers.qualification')}</th>
                                             <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.settings.recycling.headers.processedRecords')}</th>
                                             <th className="px-4 py-2 text-right font-medium text-slate-500 dark:text-slate-400 uppercase">{t('campaignDetail.settings.recycling.headers.action')}</th>
