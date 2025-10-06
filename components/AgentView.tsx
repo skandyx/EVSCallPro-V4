@@ -148,7 +148,13 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const [activeCallbackId, setActiveCallbackId] = useState<string | null>(null);
 
     const status = agentState?.status || 'Déconnecté';
+    
+    // --- FIX START: Robust post-call timer logic ---
     const wrapUpTimerRef = useRef<number | null>(null);
+    // This ref stores the campaign at the moment the call ends, making the timer
+    // immune to re-renders that might nullify the `currentCampaign` state.
+    const campaignForWrapUp = useRef<Campaign | null>(null);
+    // --- FIX END ---
     
     const assignedCampaigns = useMemo(() => currentUser.campaignIds.map(id => data.campaigns.find(c => c.id === id && c.isActive)).filter((c): c is Campaign => !!c), [currentUser.campaignIds, data.campaigns]);
     
@@ -261,6 +267,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         setSelectedQual(null);
         setNewNote('');
         setActiveCallbackId(null);
+        campaignForWrapUp.current = null; // --- FIX: Clear the ref
         onStatusChange('En Attente');
     }, [onStatusChange, refreshData]);
 
@@ -304,18 +311,20 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         }
     }, [status, currentContact, isLoadingNextContact, activeDialingCampaignId, requestNextContact]);
 
+    // --- FIX START: Robust post-call timer effect ---
     useEffect(() => {
         if (wrapUpTimerRef.current) {
             clearTimeout(wrapUpTimerRef.current);
             wrapUpTimerRef.current = null;
         }
 
-        if (status === 'En Post-Appel' && currentCampaign) {
-            const wrapUpTime = currentCampaign.wrapUpTime ?? 0;
+        // Use the campaign stored in the ref, which is set at the moment the call ends.
+        if (status === 'En Post-Appel' && campaignForWrapUp.current) {
+            const wrapUpTime = campaignForWrapUp.current.wrapUpTime ?? 0;
             if (wrapUpTime > 0) {
                 wrapUpTimerRef.current = window.setTimeout(handleWrapUp, wrapUpTime * 1000);
             } else {
-                handleWrapUp();
+                handleWrapUp(); // If wrap-up time is 0, proceed immediately.
             }
         }
         
@@ -324,7 +333,9 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 clearTimeout(wrapUpTimerRef.current);
             }
         };
-    }, [status, currentCampaign, handleWrapUp]);
+    }, [status, handleWrapUp]); // Removed currentCampaign from dependencies
+    // --- FIX END ---
+
 
     const handleDial = async (destination: string) => {
         if (!currentContact || !currentCampaign || !destination) return;
@@ -361,13 +372,14 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             
             // Immediate UI reset before entering wrap-up
             setCurrentContact(null);
-            // DO NOT nullify currentCampaign here, it's needed for wrapUpTime
-            // setCurrentCampaign(null); 
             setActiveScript(null);
             setSelectedQual(null);
             setNewNote('');
             setActiveCallbackId(null);
             
+            // --- FIX START: Store campaign for timer ---
+            campaignForWrapUp.current = currentCampaign;
+            // --- FIX END ---
             onStatusChange('En Post-Appel');
 
         } catch (error) {
@@ -388,13 +400,14 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             
             // Immediate UI reset
             setCurrentContact(null);
-            // DO NOT nullify currentCampaign here, it's needed for wrapUpTime
-            // setCurrentCampaign(null);
             setActiveScript(null);
             setSelectedQual(null);
             setNewNote('');
             setActiveCallbackId(null);
             
+            // --- FIX START: Store campaign for timer ---
+            campaignForWrapUp.current = currentCampaign;
+            // --- FIX END ---
             onStatusChange('En Post-Appel');
 
         } catch (error) { console.error("Failed to schedule callback:", error); alert("Une erreur est survenue."); }
@@ -534,10 +547,10 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                             <div className="w-full bg-slate-200 rounded-full h-2.5 mt-6 dark:bg-slate-700">
                                 <div 
                                     className="bg-indigo-600 h-2.5 rounded-full transition-all duration-1000 linear" 
-                                    style={{ width: `${(agentState?.statusDuration || 0) / (currentCampaign?.wrapUpTime || 1) * 100}%` }}
+                                    style={{ width: `${(agentState?.statusDuration || 0) / (campaignForWrapUp.current?.wrapUpTime || 1) * 100}%` }}
                                 ></div>
                             </div>
-                            <p className="mt-2 text-sm font-mono text-slate-500">{formatTimer(agentState?.statusDuration || 0)} / {formatTimer(currentCampaign?.wrapUpTime || 0)}</p>
+                            <p className="mt-2 text-sm font-mono text-slate-500">{formatTimer(agentState?.statusDuration || 0)} / {formatTimer(campaignForWrapUp.current?.wrapUpTime || 0)}</p>
                         </div>
                     ) : activeScript && currentContact ? (
                         <AgentPreview script={activeScript} onClose={() => {}} embedded={true} contact={currentContact} contactNotes={contactNotesForCurrentContact} users={data.users} newNote={newNote} setNewNote={setNewNote} onSaveNote={handleSaveNote} campaign={currentCampaign} onInsertContact={async () => {}} onUpdateContact={onUpdateContact} onClearContact={handleClearContact} />
