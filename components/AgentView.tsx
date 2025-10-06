@@ -374,6 +374,9 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                 await apiClient.put(`/planning-events/callbacks/${activeCallbackId}`, { status: 'completed' });
             }
             
+            // Refresh data to show updated callback list
+            await refreshData();
+            
             // Immediate UI reset before entering wrap-up
             setCurrentContact(null);
             setActiveScript(null);
