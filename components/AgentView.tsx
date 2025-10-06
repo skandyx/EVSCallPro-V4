@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { User, Campaign, Contact, Qualification, SavedScript, QualificationGroup, ContactNote, PersonalCallback, AgentStatus, AgentState } from '../types.ts';
 import { PowerIcon, PhoneIcon, UserCircleIcon, PauseIcon, CalendarDaysIcon, ComputerDesktopIcon, SunIcon, MoonIcon, ChevronDownIcon, ArrowLeftIcon, ArrowRightIcon, HandRaisedIcon, XMarkIcon, BellAlertIcon, Cog6ToothIcon, CheckIcon } from './Icons.tsx';
@@ -200,7 +199,7 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
         const qualMap = new Map<string, Qualification>();
 
         data.qualifications.forEach(q => {
-            if (q.id.startsWith('std-')) {
+            if (q.isStandard) {
                 qualMap.set(q.id, q);
             }
         });
@@ -356,12 +355,10 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             return;
         }
 
-        // Find the selected qualification object to check its code, not its ID.
-        // This is more robust as the ID can change (e.g., 'std-94' vs 'qual-94' in your database).
         const selectedQualificationObject = qualificationsForCampaign.find(q => q.id === selectedQual);
         
-        // Check for code "94" which is designated for "Rappel personnel"
-        if (selectedQualificationObject && selectedQualificationObject.code === '94') { 
+        const personalCallbackQual = data.qualifications.find(q => q.code === '94');
+        if (selectedQualificationObject && personalCallbackQual && selectedQualificationObject.id === personalCallbackQual.id) { 
             setIsCallbackModalOpen(true);
             return;
         }
@@ -540,7 +537,39 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             <main className="flex-1 grid grid-cols-12 gap-4 p-4 overflow-hidden">
                 <div className="col-span-3 flex flex-col gap-4">
                      <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 mb-4">Informations</h2><div className="mb-4"><h3 className="text-base font-semibold text-slate-600 dark:text-slate-300">{t('agentView.kpis')}</h3>{agentState ? (<div className="grid grid-cols-2 gap-2 mt-2"><div className="col-span-2"><KpiCard title={t('agentView.totalConnectedTime')} value={formatTimer(agentState.totalConnectedTime)} /></div><KpiCard title={t('agentView.callsHandled')} value={agentState.callsHandledToday} /><KpiCard title="DMC" value={formatTimer(agentState.averageTalkTime)} /><KpiCard title={t('agentView.totalPauseTime')} value={formatTimer(agentState.totalPauseTime)} /><KpiCard title={t('agentView.pauseCount')} value={agentState.pauseCount} /><KpiCard title={t('agentView.totalTrainingTime')} value={formatTimer(agentState.totalTrainingTime)} /><KpiCard title={t('agentView.trainingCount')} value={agentState.trainingCount} /></div>) : <p className="text-xs text-slate-400 italic mt-1">Chargement...</p>}</div>{matchingQuota && (<div className="border-t dark:border-slate-600 pt-4"><h3 className="text-base font-semibold text-slate-600 dark:text-slate-300">Quota Actif</h3><div className="bg-slate-50 dark:bg-slate-700 p-3 rounded-md mt-2"><p className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate" title={matchingQuota.name}>{matchingQuota.name}</p><div className="w-full bg-slate-200 dark:bg-slate-600 rounded-full h-2.5 mt-2"><div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: `${matchingQuota.progress}%` }}></div></div><p className="text-xs text-right text-slate-500 dark:text-slate-400 mt-1">{matchingQuota.current} / {matchingQuota.limit}</p></div></div>)}{(!currentContact && status === 'En Attente') && (<div className="flex-1 mt-auto pt-4 border-t dark:border-slate-600"><div className="h-full flex flex-col items-center justify-center text-center">{feedbackMessage ? (<p className="text-amber-600 font-semibold">{feedbackMessage}</p>) : (<><svg className="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p className="text-slate-500 dark:text-slate-400 mt-4">{isLoadingNextContact ? t('agentView.searching') : t('agentView.waitingForCall')}</p></>)}</div></div>)}</div>
-                    <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col min-h-0"><div className="border-b dark:border-slate-600 pb-2 mb-2 flex items-center justify-between flex-shrink-0"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2"><CalendarDaysIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400"/>{t('agentView.myCallbacks')}</h2><div className="flex items-center gap-2"><button onClick={() => handleCallbackDateChange(-1)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowLeftIcon className="w-4 h-4"/></button><span className="font-semibold text-sm">{callbackViewDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</span><button onClick={() => handleCallbackDateChange(1)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowRightIcon className="w-4 h-4"/></button></div><select value={callbackCampaignFilter} onChange={e => setCallbackCampaignFilter(e.target.value)} className="text-sm p-1 border bg-white dark:bg-slate-700 dark:border-slate-600 rounded-md"><option value="all">Toutes les campagnes</option>{assignedCampaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div className="flex-1 overflow-y-auto pr-2 space-y-2 text-base">{mySortedCallbacks.length > 0 ? mySortedCallbacks.map(cb => {const now=new Date(); const scheduled=new Date(cb.scheduledTime); let itemClasses='w-full text-left p-3 rounded-md border transition-colors disabled:opacity-60 disabled:cursor-not-allowed '; const startOfToday = new Date(); startOfToday.setHours(0,0,0,0); if(scheduled < startOfToday){itemClasses+='bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 border-red-200 dark:border-red-800';}else{itemClasses+='bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border-slate-200 dark:border-slate-600';} const campaignName=data.campaigns.find(c=>c.id===cb.campaignId)?.name || 'Campagne inconnue'; return (<button key={cb.id} onClick={()=>handleCallbackClick(cb)} disabled={status !== 'En Attente'} className={itemClasses}><div className="flex justify-between items-baseline"><p className="font-semibold text-slate-800 dark:text-slate-200">{cb.contactName}</p></div><p className="text-xs text-slate-500 dark:text-slate-400">{campaignName}</p><p className="text-sm text-slate-600 dark:text-slate-400 font-mono">{cb.contactNumber}</p><p className="text-sm font-bold text-indigo-700 dark:text-indigo-400 mt-1">{scheduled.toLocaleString('fr-FR')}</p></button>);}) : (<p className="text-sm text-slate-500 dark:text-slate-400 text-center pt-8 italic">{t('agentView.noCallbacks')}</p>)}</div></div>
+                    <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border dark:border-slate-700 flex-1 flex flex-col min-h-0"><div className="border-b dark:border-slate-600 pb-2 mb-2 flex items-center justify-between flex-shrink-0"><h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2"><CalendarDaysIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400"/>{t('agentView.myCallbacks')}</h2><div className="flex items-center gap-2"><button onClick={() => handleCallbackDateChange(-1)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowLeftIcon className="w-4 h-4"/></button><span className="font-semibold text-sm">{callbackViewDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</span><button onClick={() => handleCallbackDateChange(1)} className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><ArrowRightIcon className="w-4 h-4"/></button></div><select value={callbackCampaignFilter} onChange={e => setCallbackCampaignFilter(e.target.value)} className="text-sm p-1 border bg-white dark:bg-slate-700 dark:border-slate-600 rounded-md"><option value="all">Toutes les campagnes</option>{assignedCampaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div><div className="flex-1 overflow-y-auto pr-2 space-y-2 text-base">
+                        {mySortedCallbacks.length > 0 ? (
+                            mySortedCallbacks.map(cb => {
+                                const now = new Date();
+                                const scheduled = new Date(cb.scheduledTime);
+                                const startOfToday = new Date();
+                                startOfToday.setHours(0, 0, 0, 0);
+                                const isOverdue = scheduled < startOfToday;
+                                const campaignName = data.campaigns.find(c => c.id === cb.campaignId)?.name || 'Campagne inconnue';
+                                
+                                let itemClasses = 'w-full text-left p-3 rounded-md border transition-colors disabled:opacity-60 disabled:cursor-not-allowed ';
+                                if (isOverdue) {
+                                    itemClasses += 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 border-red-200 dark:border-red-800';
+                                } else {
+                                    itemClasses += 'bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-600';
+                                }
+
+                                return (
+                                    <button key={cb.id} onClick={() => handleCallbackClick(cb)} disabled={status !== 'En Attente'} className={itemClasses}>
+                                        <div className="flex justify-between items-baseline">
+                                            <p className="font-semibold text-slate-800 dark:text-slate-200">{cb.contactName}</p>
+                                            {isOverdue && <span className="text-xs font-bold text-red-600 dark:text-red-400">EN RETARD</span>}
+                                        </div>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">{campaignName}</p>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 font-mono">{cb.contactNumber}</p>
+                                        <p className="text-sm font-bold text-indigo-700 dark:text-indigo-400 mt-1">{scheduled.toLocaleString('fr-FR')}</p>
+                                    </button>
+                                );
+                            })
+                        ) : (
+                            <p className="text-sm text-slate-500 dark:text-slate-400 text-center pt-8 italic">{t('agentView.noCallbacks')}</p>
+                        )}
+                    </div></div>
                 </div>
                 <div className="col-span-6 bg-white dark:bg-slate-800 rounded-lg shadow-sm border dark:border-slate-700">
                     {status === 'En Post-Appel' ? (
