@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { User, Campaign, Contact, Qualification, SavedScript, QualificationGroup, ContactNote, PersonalCallback, AgentStatus, AgentState } from '../types.ts';
 import { PowerIcon, PhoneIcon, UserCircleIcon, PauseIcon, CalendarDaysIcon, ComputerDesktopIcon, SunIcon, MoonIcon, ChevronDownIcon, ArrowLeftIcon, ArrowRightIcon, HandRaisedIcon, XMarkIcon, BellAlertIcon, Cog6ToothIcon, CheckIcon } from './Icons.tsx';
@@ -354,7 +355,13 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
             alert("Veuillez sélectionner une qualification avant de finaliser.");
             return;
         }
-        if (selectedQual === 'std-94') { // Rappel Personnel
+
+        // Find the selected qualification object to check its code, not its ID.
+        // This is more robust as the ID can change (e.g., 'std-94' vs 'qual-94' in your database).
+        const selectedQualificationObject = qualificationsForCampaign.find(q => q.id === selectedQual);
+        
+        // Check for code "94" which is designated for "Rappel personnel"
+        if (selectedQualificationObject && selectedQualificationObject.code === '94') { 
             setIsCallbackModalOpen(true);
             return;
         }
