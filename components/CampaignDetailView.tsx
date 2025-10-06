@@ -106,10 +106,38 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     const [contactSortConfig, setContactSortConfig] = useState<{ key: ContactSortKeys; direction: 'ascending' | 'descending' }>({ key: 'lastName', direction: 'ascending' });
     
     const [historyModal, setHistoryModal] = useState<{ isOpen: boolean, contact: Contact | null }>({ isOpen: false, contact: null });
-    const [treemapFilter, setTreemapFilter] = useState<{ type: Qualification['type'] | null, qualificationId: string | null }>({ type: null, qualificationId: null });
     const [drilldownPath, setDrilldownPath] = useState<DrilldownLevel[]>([]);
 
     const canDelete = currentUser.role === 'Administrateur' || currentUser.role === 'SuperAdmin';
+    
+    const isDarkMode = document.documentElement.classList.contains('dark');
+
+    const commonChartOptions = useMemo(() => {
+        const chartTextColor = isDarkMode ? '#cbd5e1' : '#475569';
+        const chartGridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: chartTextColor } },
+                title: {
+                    display: false, // Titles are outside the canvas
+                    color: chartTextColor
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: chartTextColor },
+                    grid: { color: chartGridColor }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { color: chartTextColor },
+                    grid: { color: chartGridColor }
+                }
+            }
+        };
+    }, [isDarkMode]);
 
     const campaignCallHistory = useMemo(() => callHistory.filter(c => c.campaignId === campaign.id), [callHistory, campaign.id]);
 
@@ -212,27 +240,6 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             avgDuration: avgDuration
         };
     }, [campaign.contacts, campaignCallHistory, qualifications]);
-
-    const filteredDataForTables = useMemo(() => {
-        const isFilterActive = treemapFilter.type || treemapFilter.qualificationId;
-        if (!isFilterActive) {
-            return campaignCallHistory;
-        }
-
-        return campaignCallHistory.filter(call => {
-            if (!call.qualificationId) return false;
-            const qual = qualifications.find(q => q.id === call.qualificationId);
-            if (!qual) return false;
-
-            if (treemapFilter.qualificationId) {
-                return qual.id === treemapFilter.qualificationId;
-            }
-            if (treemapFilter.type) {
-                return qual.type === treemapFilter.type;
-            }
-            return false;
-        });
-    }, [campaignCallHistory, treemapFilter, qualifications]);
     
     const qualificationPerformanceForChart = useMemo(() => {
         const campaignQuals = qualifications.filter(q => q.isStandard || q.groupId === campaign.qualificationGroupId);
@@ -264,72 +271,6 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
         });
         return map;
     }, [qualifications]);
-
-
-    const treemapChartData = useMemo(() => ({
-        datasets: [{
-            tree: qualificationPerformanceForChart.filter(q => q.count > 0),
-            key: 'count',
-            groups: ['type', 'description'],
-            spacing: 1,
-            borderWidth: 2,
-            borderColor: 'white',
-            captions: {
-                display: true,
-                color: 'white', 
-                font: { weight: 'bold' }
-            },
-            labels: {
-                display: true,
-                color: 'white',
-                font: { size: 12 },
-                formatter: (ctx: any) => {
-                    if (!ctx.raw) return null;
-                    const node = ctx.raw._data;
-                    return node.s ? node.s.description : null;
-                }
-            },
-            backgroundColor: (ctx: any) => {
-                if (!ctx.raw || !ctx.raw._data) return 'rgba(200, 200, 200, 0.5)';
-                const node = ctx.raw._data;
-                if (node.s && node.s.id && qualColorMap.has(node.s.id)) {
-                    return qualColorMap.get(node.s.id);
-                }
-                if (node.g === 'positive') return 'rgba(34, 197, 94, 0.2)';
-                if (node.g === 'negative') return 'rgba(239, 68, 68, 0.2)';
-                if (node.g === 'neutral') return 'rgba(100, 116, 139, 0.2)';
-                return 'rgba(200, 200, 200, 0.5)';
-            }
-        }]
-    }), [qualificationPerformanceForChart, qualColorMap]);
-    
-    const treemapOptions = useMemo(() => ({
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                callbacks: {
-                    label: (context: any) => {
-                        const node = context.raw?._data;
-                        if (!node) return '';
-                        if (node.g) return `${t(`qualifications.types.${node.g}`)}: ${node.v} appels`;
-                        if (node.s) return `${node.s.description}: ${node.s.count} appels`;
-                        return '';
-                    }
-                }
-            },
-        },
-        onClick: (evt: any, elements: any) => {
-            if (!elements.length) return;
-            const node = elements[0].element.$context.raw._data;
-            if (node.g) {
-                setTreemapFilter({ type: node.g, qualificationId: null });
-            } else if (node.s) {
-                setTreemapFilter({ type: node.s.type, qualificationId: node.s.id });
-            }
-        }
-    }), [t]);
     
     //
     // --- START: DASHBOARD 2 LOGIC ---
@@ -502,9 +443,71 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
     // --- END: DASHBOARD 2 LOGIC ---
     //
 
+    const qualificationPerformance = useMemo(() => {
+        const campaignQuals = qualifications.filter(q => q.isStandard || q.groupId === campaign.qualificationGroupId);
+        const qualCounts = campaignCallHistory.reduce((acc, call) => {
+            if (call.qualificationId) {
+                acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
+            }
+            return acc;
+        }, {} as Record<string, number>);
+
+        return campaignQuals.map(qual => {
+            const count = qualCounts[qual.id] || 0;
+            const rate = campaignCallHistory.length > 0 ? (count / campaignCallHistory.length) * 100 : 0;
+            return { ...qual, count, rate };
+        }).filter(q => q.count > 0).sort((a,b) => b.count - a.count);
+    }, [campaign.qualificationGroupId, qualifications, campaignCallHistory]);
+    
+    const qualificationPerformanceBarChartData = useMemo(() => {
+        // Take top 15 for readability and reverse to show highest bar at the top
+        const performanceData = [...qualificationPerformance].slice(0, 15).reverse();
+    
+        const labels = performanceData.map(q => q.description);
+        const data = performanceData.map(q => q.count);
+        const backgroundColors = performanceData.map(q => {
+            if (q.type === 'positive') return 'rgba(34, 197, 94, 0.7)';
+            if (q.type === 'negative') return 'rgba(239, 68, 68, 0.7)';
+            return 'rgba(100, 116, 139, 0.7)';
+        });
+    
+        return {
+            labels,
+            datasets: [{
+                label: t('campaignDetail.dashboard.tables.headers.processedRecords'),
+                data,
+                backgroundColor: backgroundColors,
+            }]
+        };
+    }, [qualificationPerformance, t]);
+
+    const qualificationPerformanceBarChartOptions = useMemo(() => ({
+        ...commonChartOptions,
+        indexAxis: 'y', // Horizontal bar chart
+        plugins: {
+            ...commonChartOptions.plugins,
+            legend: {
+                display: false
+            },
+        },
+        scales: {
+            x: {
+                ...commonChartOptions.scales.x,
+                beginAtZero: true,
+                ticks: {
+                    ...commonChartOptions.scales.x.ticks,
+                    precision: 0
+                }
+            },
+            y: {
+                ...commonChartOptions.scales.y,
+            }
+        }
+    }), [commonChartOptions]);
+
     const callsByHour = useMemo(() => {
         const hours = Array(24).fill(0);
-        filteredDataForTables.forEach(call => {
+        campaignCallHistory.forEach(call => {
             const qual = qualifications.find(q => q.id === call.qualificationId);
             if (qual?.type === 'positive') {
                 const hour = new Date(call.timestamp).getHours();
@@ -519,11 +522,11 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                 backgroundColor: 'rgba(79, 70, 229, 0.7)',
             }]
         };
-    }, [filteredDataForTables, qualifications, t]);
+    }, [campaignCallHistory, qualifications, t]);
 
     const agentPerformance = useMemo(() => {
         const perf: {[key: string]: { name: string, calls: number, conversions: number }} = {};
-        filteredDataForTables.forEach(call => {
+        campaignCallHistory.forEach(call => {
             if (!perf[call.agentId]) {
                 const user = users.find(u => u.id === call.agentId);
                 perf[call.agentId] = { name: user ? `${user.firstName} ${user.lastName}` : 'Inconnu', calls: 0, conversions: 0 };
@@ -533,23 +536,7 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
             if(qual?.type === 'positive') perf[call.agentId].conversions++;
         });
         return Object.values(perf).sort((a,b) => b.conversions - a.conversions || b.calls - a.calls);
-    }, [filteredDataForTables, users, qualifications]);
-
-    const qualificationPerformance = useMemo(() => {
-        const campaignQuals = qualifications.filter(q => q.isStandard || q.groupId === campaign.qualificationGroupId);
-        const qualCounts = filteredDataForTables.reduce((acc, call) => {
-            if (call.qualificationId) {
-                acc[call.qualificationId] = (acc[call.qualificationId] || 0) + 1;
-            }
-            return acc;
-        }, {} as Record<string, number>);
-
-        return campaignQuals.map(qual => {
-            const count = qualCounts[qual.id] || 0;
-            const rate = filteredDataForTables.length > 0 ? (count / filteredDataForTables.length) * 100 : 0;
-            return { ...qual, count, rate };
-        }).filter(q => q.count > 0).sort((a,b) => b.count - a.count);
-    }, [campaign.qualificationGroupId, qualifications, filteredDataForTables]);
+    }, [campaignCallHistory, users, qualifications]);
 
     const columnsToDisplay = useMemo(() => {
         const standardColumns: { id: ContactSortKeys; name: string }[] = [
@@ -770,19 +757,14 @@ const CampaignDetailView: React.FC<CampaignDetailViewProps> = (props) => {
                             )}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t dark:border-slate-700">
                                 <div>
-                                     <div className="flex justify-between items-start">
-                                        <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.charts.qualifDistributionTitle')}</h3>
-                                        {(treemapFilter.type || treemapFilter.qualificationId) && (
-                                            <button onClick={() => setTreemapFilter({ type: null, qualificationId: null })} className="text-xs font-semibold text-indigo-600 hover:underline inline-flex items-center gap-1 dark:text-indigo-400">
-                                                <XMarkIcon className="w-4 h-4" /> Réinitialiser le filtre
-                                            </button>
-                                        )}
+                                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.tables.qualifPerfTitle')}</h3>
+                                    <div className="h-64">
+                                        <ChartComponent type="bar" data={qualificationPerformanceBarChartData} options={qualificationPerformanceBarChartOptions} />
                                     </div>
-                                    <div className="h-64"><ChartComponent type="treemap" data={treemapChartData} options={treemapOptions} /></div>
                                 </div>
                                 <div>
                                     <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-2">{t('campaignDetail.dashboard.charts.successByHourTitle')}</h3>
-                                    <div className="h-64"><ChartComponent type="bar" data={callsByHour} options={{ responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }} /></div>
+                                    <div className="h-64"><ChartComponent type="bar" data={callsByHour} options={{ ...commonChartOptions, scales: { ...commonChartOptions.scales, y: { ...commonChartOptions.scales.y, ticks: { ...commonChartOptions.scales.y.ticks, stepSize: 1 } } } }} /></div>
                                 </div>
                             </div>
                              <div className="pt-4 border-t dark:border-slate-700">
