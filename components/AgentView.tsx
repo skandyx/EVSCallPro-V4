@@ -87,12 +87,6 @@ const LanguageSwitcher: React.FC = () => {
     return <div className="relative"><button onClick={(e) => { e.stopPropagation(); toggleDropdown(); }} className="flex items-center p-1 space-x-2 bg-slate-100 dark:bg-slate-700 rounded-full text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-600"><span className="w-6 h-6 rounded-full overflow-hidden"><img src={getFlagSrc(language)} alt={language} className="w-full h-full object-cover" /></span><span className="hidden sm:inline">{language.toUpperCase()}</span><ChevronDownIcon className="w-4 h-4 text-slate-500 dark:text-slate-400 mr-1" /></button>{isOpen && <div className="absolute right-0 mt-2 w-36 origin-top-right bg-white dark:bg-slate-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-20"><div className="py-1">{languages.map(lang => <button key={lang.code} onClick={() => { setLanguage(lang.code); setIsOpen(false); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"><img src={getFlagSrc(lang.code)} alt={lang.name} className="w-5 h-auto rounded-sm" />{lang.name}</button>)}</div></div>}</div>;
 }
 
-const ToggleSwitch: React.FC<{ enabled: boolean; onChange: (enabled: boolean) => void; disabled?: boolean }> = ({ enabled, onChange, disabled = false }) => (
-    <button type="button" onClick={() => !disabled && onChange(!enabled)} className={`${enabled ? 'bg-primary' : 'bg-slate-200'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out`} role="switch" aria-checked={enabled} disabled={disabled}>
-        <span aria-hidden="true" className={`${enabled ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`} />
-    </button>
-);
-
 const getStatusColor = (status: AgentStatus | undefined): string => {
     if (!status) return 'bg-gray-400';
     switch (status) {
@@ -161,30 +155,45 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
     const mySortedCallbacks = useMemo(() => {
         if (!data.personalCallbacks) return [];
     
+        // 1. Filter for pending callbacks for the current user
+        const userPendingCallbacks = data.personalCallbacks.filter(
+            cb => cb.agentId === currentUser.id && cb.status === 'pending'
+        );
+    
+        // 2. De-duplicate: Keep only the latest callback for each contactId
+        const latestCallbacksByContact = new Map<string, PersonalCallback>();
+        for (const cb of userPendingCallbacks) {
+            const existing = latestCallbacksByContact.get(cb.contactId);
+            if (!existing || new Date(cb.scheduledTime) > new Date(existing.scheduledTime)) {
+                latestCallbacksByContact.set(cb.contactId, cb);
+            }
+        }
+        const deduplicatedCallbacks = Array.from(latestCallbacksByContact.values());
+    
+        // 3. Apply campaign filter to the de-duplicated list
+        const filteredByCampaign = deduplicatedCallbacks.filter(cb => {
+            if (callbackCampaignFilter === 'all') return true;
+            return cb.campaignId === callbackCampaignFilter;
+        });
+    
+        // 4. Separate into overdue and for today, then sort
         const startOfDay = new Date(callbackViewDate);
         startOfDay.setHours(0, 0, 0, 0);
         
         const endOfDay = new Date(callbackViewDate);
         endOfDay.setHours(23, 59, 59, 999);
-
-        const pendingCallbacks = data.personalCallbacks
-            .filter(cb => cb.agentId === currentUser.id && cb.status === 'pending')
-            .filter(cb => {
-                if (callbackCampaignFilter === 'all') return true;
-                return cb.campaignId === callbackCampaignFilter;
-            });
         
-        const overdue = pendingCallbacks
+        const overdue = filteredByCampaign
             .filter(cb => new Date(cb.scheduledTime) < startOfDay)
             .sort((a, b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
-
-        const forSelectedDay = pendingCallbacks
+    
+        const forSelectedDay = filteredByCampaign
             .filter(cb => {
                 const scheduled = new Date(cb.scheduledTime);
                 return scheduled >= startOfDay && scheduled <= endOfDay;
             })
             .sort((a, b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime());
-
+    
         return [...overdue, ...forSelectedDay];
     }, [data.personalCallbacks, currentUser.id, callbackCampaignFilter, callbackViewDate]);
 
@@ -609,14 +618,21 @@ const AgentView: React.FC<AgentViewProps> = ({ currentUser, onLogout, data, refr
                             <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 border-b dark:border-slate-600 pb-2 my-4 flex-shrink-0">{t('agentView.activeCampaigns')}</h2>
                             <div className="flex-1 overflow-y-auto pr-2 space-y-2">
                                 {assignedCampaigns.length > 0 ? assignedCampaigns.map(c => (
-                                    <div key={c.id} className="flex items-center justify-between p-3 rounded-md border bg-slate-50 dark:bg-slate-700 dark:border-slate-600">
-                                        <span className="font-medium text-slate-800 dark:text-slate-200">{c.name}</span>
-                                        <ToggleSwitch 
-                                            enabled={activeDialingCampaignId === c.id} 
-                                            onChange={() => handleCampaignToggle(c.id)}
-                                            disabled={!c.isActive}
-                                        />
-                                    </div>
+                                    <button 
+                                        key={c.id} 
+                                        onClick={() => handleCampaignToggle(c.id)}
+                                        disabled={!c.isActive}
+                                        className={`w-full text-left flex items-center justify-between p-3 rounded-md border transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+                                            activeDialingCampaignId === c.id 
+                                            ? 'bg-indigo-50 border-indigo-300 dark:bg-indigo-900/30 dark:border-indigo-700' 
+                                            : 'bg-slate-50 border-slate-200 hover:bg-slate-100 dark:bg-slate-700 dark:border-slate-600 dark:hover:bg-slate-600'
+                                        }`}
+                                    >
+                                        <span className={`font-medium ${activeDialingCampaignId === c.id ? 'text-indigo-800 dark:text-indigo-200' : 'text-slate-800 dark:text-slate-200'}`}>{c.name}</span>
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${activeDialingCampaignId === c.id ? 'border-indigo-600 bg-indigo-600' : 'border-slate-400'}`}>
+                                            {activeDialingCampaignId === c.id && <div className="w-2 h-2 rounded-full bg-white"></div>}
+                                        </div>
+                                    </button>
                                 )) : <p className="text-sm text-slate-500 italic text-center">{t('agentView.noCampaigns')}</p>}
                             </div>
                         </div>
