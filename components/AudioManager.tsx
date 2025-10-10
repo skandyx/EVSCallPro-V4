@@ -349,13 +349,17 @@ const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSave
                         </thead>
                         <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                             {filteredAndSortedFiles.map(file => (
-                                <tr key={file.id}>
+                                <tr 
+                                    key={file.id}
+                                    onClick={() => handlePlayPauseClick(file.id)}
+                                    className={`cursor-pointer transition-colors ${playingFileId === file.id ? 'bg-indigo-50 dark:bg-indigo-900/50' : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                                >
                                     <td className="px-6 py-4">
-                                        <button onClick={() => handlePlayPauseClick(file.id)} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700">
+                                        <div className="flex items-center justify-center h-5 w-5">
                                             {playingFileId === file.id && isPlaying
                                                 ? <PauseIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
                                                 : <PlayIcon className="w-5 h-5 text-slate-500 dark:text-slate-400" />}
-                                        </button>
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200">{file.name}</td>
                                     <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-mono text-sm">{file.fileName}</td>
@@ -363,10 +367,10 @@ const AudioManager: React.FC<AudioManagerProps> = ({ feature, audioFiles, onSave
                                     <td className="px-6 py-4 text-slate-600 dark:text-slate-400 text-sm">{formatBytes(file.size)}</td>
                                     <td className="px-6 py-4 text-slate-600 dark:text-slate-400 text-sm">{new Date(file.uploadDate).toLocaleDateString('fr-FR')}</td>
                                     <td className="px-6 py-4 text-right text-sm font-medium space-x-4">
-                                        <button onClick={() => handleEdit(file)} className="text-link hover:underline inline-flex items-center">
+                                        <button onClick={(e) => { e.stopPropagation(); handleEdit(file); }} className="text-link hover:underline inline-flex items-center">
                                             <EditIcon className="w-4 h-4 mr-1" /> Modifier
                                         </button>
-                                        <button onClick={() => handleDelete(file.id, file.name)} className="text-red-600 hover:text-red-900 dark:hover:text-red-400 inline-flex items-center">
+                                        <button onClick={(e) => { e.stopPropagation(); handleDelete(file.id, file.name); }} className="text-red-600 hover:text-red-900 dark:hover:text-red-400 inline-flex items-center">
                                             <TrashIcon className="w-4 h-4 mr-1" /> Supprimer
                                         </button>
                                     </td>
